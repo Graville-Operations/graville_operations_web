@@ -1,18 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ABOUT THE PROJECT
+This is Graville Enterprises Limited web plaform for contruction and site truck of it's daily operation
 
-## Getting Started
+# VSCODE EXTENSIONS
+1. Tailwind CSS IntelliSense by Tailwind Lab
+2. shadcn/ui by suhel makkad
+2. Typescript by microsoft
+3. ESLint
 
-First, run the development server:
+# Setup & Installation
 
-```bash
+## Prerequisites
+- Node.js (v20 or higher)
+- npm or yarn
+
+## 1. Clone the Repository
+
+git clone https://github.com/Graville-Operations/graville_operations_web.git
+
+## 2. Install dependencies
+
+npm install
+
+## 3. Run Development Server
+
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+
+## 4. Scripts
+
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run start    # Start production server
+npm run lint     # Run ESLint
+
+# Tech stacks 
+
+- **Framework**     : Next.js 15 (App Router)
+- **Language**      : TypeScript
+- **Styling**       : Tailwind CSS
+- **UI Library**    : Shadcn/UI + Radix UI
+- **Icons**         : Lucide React
+- **Font**          : Geist
+- **Deployment**    : Vercel (recommended)
+
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
