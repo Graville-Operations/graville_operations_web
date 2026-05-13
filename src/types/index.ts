@@ -12,11 +12,11 @@ export interface User {
 }
 
 export interface LoginResponse {
-  access_token: string;
+  token: string;           // was access_token
   token_type: string;
   session_id: string;
   account_type: string;
-  expires_in: number;
+  expires_at: string;      // was expires_in
 }
 
 export interface Invoice {
@@ -50,8 +50,8 @@ export interface MenuItem {
   title: string;
   link?: string;
   icon?: string;
-  priority: number;
-  sub_menus: SubMenu[];
+  order: number;           // was priority
+  submenus: SubMenu[];     // was sub_menus
 }
 
 export interface SubMenu {
@@ -60,5 +60,15 @@ export interface SubMenu {
   title: string;
   link?: string;
   icon?: string;
-  priority: number;
+  order: number;           // was priority
+  subsubmenus?: SubSubMenu[];
+}
+
+export interface SubSubMenu {
+  id: number;
+  name: string;
+  title: string;
+  link?: string;
+  icon?: string;
+  order: number;
 }

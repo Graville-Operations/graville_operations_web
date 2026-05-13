@@ -81,6 +81,20 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* ── Graville brand tokens ── */
+  --gv-brand: #33907C;
+  --gv-brand-hover: #2a7a69;
+  --gv-navy: #173990;
+  --gv-bg-gradient: radial-gradient(ellipse at top, #1a3a6e 0%, #0a0f1e 60%, #000000 100%);
+  --gv-glass-bg: rgba(255, 255, 255, 0.10);
+  --gv-glass-border: rgba(255, 255, 255, 0.20);
+  --gv-glass-hover: rgba(255, 255, 255, 0.10);
+  --gv-text-primary: #ffffff;
+  --gv-text-muted: rgba(147, 197, 253, 0.70); /* blue-200/70 */
+  --gv-text-subtle: rgba(147, 197, 253, 0.40); /* blue-200/40 */
+  --gv-scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --gv-scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
 }
 
 .dark {
@@ -127,4 +141,76 @@
   html {
     @apply font-sans;
   }
+}
+
+/* ── Graville global styles ── */
+@layer base {
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--gv-scrollbar-thumb);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--gv-scrollbar-thumb-hover);
+  }
+
+  /* Page background */
+  .gv-page {
+    background: var(--gv-bg-gradient);
+    min-height: 100vh;
+  }
+
+  /* Glass card */
+  .gv-card {
+    background: var(--gv-glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--gv-glass-border);
+    border-radius: 1rem;
+  }
+
+  /* Glass input */
+  .gv-input {
+    background: var(--gv-glass-bg);
+    border: 1px solid var(--gv-glass-border);
+    color: var(--gv-text-primary);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    outline: none;
+  }
+  .gv-input::placeholder {
+    color: rgba(255, 255, 255, 0.30);
+  }
+  .gv-input:focus {
+    ring: 2px solid rgba(96, 165, 250, 0.50);
+    border-color: rgba(255, 255, 255, 0.40);
+  }
+
+  /* Brand button */
+  .gv-btn-brand {
+    background: var(--gv-brand);
+    color: white;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .gv-btn-brand:hover {
+    background: var(--gv-brand-hover);
+  }
+  /* Stat card */
+.gv-stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+.gv-stat-card:hover {
+  transform: scale(1.06);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
 }
