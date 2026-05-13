@@ -11,24 +11,31 @@ export default function LoginPage() {
   const { login, isLoading} = useAuthStore();
   const router = useRouter();
 
-  // Clear form when user lands on login page (e.g. after logout)
-  useEffect(() => {
+  
+ useEffect(() => {
+  const timer = setTimeout(() => {
     setEmail('');
     setPassword('');
     setError('');
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await login(email, password);
-      router.push('/home');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed');
-      setPassword(''); // Clear password on failed attempt, keep email
-    }
-  };
+  }, 0);
+  return () => clearTimeout(timer);
+}, []);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
+  try {
+    await login(email, password);
+    router.push('/home');
+  } catch (err: unknown) {
+    const axiosErr = err as { response?: { data?: { detail?: string; message?: string } } };
+    setError(
+      axiosErr.response?.data?.message ||
+      axiosErr.response?.data?.detail ||
+      'Login failed'
+    );
+    setPassword('');
+  }
+};
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_#1a3a6e_0%,_#0a0f1e_60%,_#000000_100%)]">
