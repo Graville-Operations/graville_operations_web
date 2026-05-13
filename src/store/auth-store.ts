@@ -29,12 +29,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const { data } = await api.post('/refactor/login', { email, password });
+      const { data } = await api.post('/auth/login', { email, password });
       saveToken(data.access_token);
       saveRole(data.account_type);
 
       // Fetch full profile
-      const meRes = await api.get('/refactor/me', {
+      const meRes = await api.get('/auth/me', {
         headers: { Authorization: `Bearer ${data.access_token}` },
       });
       saveUser(meRes.data);
