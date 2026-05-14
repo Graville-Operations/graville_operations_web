@@ -15,15 +15,31 @@ export interface InvoiceItem {
 
 export interface Invoice {
   id: number;
-  invoiceNo: string;
-  deliveryNo: string;
-  lpoNo: string;
-  supplierName: string;
-  invoiceDate: string;
+
+  // support BOTH backend styles safely
+  invoice_no?: string;
+  invoiceNo?: string;
+
+  delivery_no?: string;
+  deliveryNo?: string;
+
+  lpo_no?: string;
+  lpoNo?: string;
+
+  supplier_name?: string;
+  supplierName?: string;
+
+  invoice_date?: string;
+  invoiceDate?: string;
+
   notes: string;
-  createdBy: CreatedBy;
+
+  created_by?: CreatedBy;
+  createdBy?: CreatedBy;
+
   total: number;
   created_at: string;
+
   items: InvoiceItem[];
 }
 
