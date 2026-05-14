@@ -40,7 +40,7 @@ export default function AboutPage() {
   return (
     <div className="gv-page">
 
-      <section className="py-16 px-8 xl:px-20 text-center">
+      <section className="py-5 px-8 xl:px-20 text-center">
 
         <p className="gv-eyebrow mb-4">Our Story</p>
 
@@ -83,7 +83,7 @@ export default function AboutPage() {
 
       <div className="gv-divider" />
 
-      <section className="py-24 px-8 xl:px-20">
+      <section className="py-10 px-8 xl:px-20 text-center">
         <p className="gv-eyebrow mb-3">What We Stand For</p>
         <h2 className="text-3xl md:text-4xl font-bold mb-16"
             style={{ color: "var(--gv-text-primary)" }}>
@@ -111,14 +111,14 @@ export default function AboutPage() {
 
       <div className="gv-divider" />
 
-      <section className="py-28 px-8 xl:px-20">
+      <section className="py-15 px-8 xl:px-20">
         <p className="gv-eyebrow mb-3">Why Graville</p>
         <h2 className="text-3xl md:text-4xl font-bold mb-24"
             style={{ color: "var(--gv-text-primary)" }}>
           What sets us apart.
         </h2>
 
-        <div className="flex flex-col gap-24">
+        <div className="flex flex-col gap-22">
           {whyGraville.map(({ icon: Icon, title, desc, stat }, index) => {
             const isReversed = index % 2 !== 0;
             return (
@@ -128,7 +128,7 @@ export default function AboutPage() {
                   ${isReversed ? "md:flex-row-reverse" : ""}`}
               >
                 <div className="w-full md:w-1/2">
-                  <div className="gv-card gv-card-hover flex flex-col gap-5 py-12 px-10">
+                  <div className="gv-card gv-card-hover flex flex-col gap-5 py-10 px-10">
                     <div className="gv-icon-box">
                       <Icon className="w-5 h-5" style={{ color: "var(--gv-brand)" }} />
                     </div>
