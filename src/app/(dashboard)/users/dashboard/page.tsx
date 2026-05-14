@@ -3,20 +3,33 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
-import { User } from '@/types';
 import { UserPlus, Search, Trash2, Shield } from 'lucide-react';
 
+// API response shape
+interface ApiUser {
+  ref_id: string;
+  email: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  phone?: string;
+  nationalId?: string;
+  accountStatus?: string;
+  role?: string;
+}
+
 const roleColors: Record<string, string> = {
-  ADMIN: 'bg-red-500/20 text-red-300 border border-red-500/20',
+  Admin:          'bg-red-500/20 text-red-300 border border-red-500/20',
+  ADMIN:          'bg-red-500/20 text-red-300 border border-red-500/20',
   FIELD_ENGINEER: 'bg-green-500/20 text-green-300 border border-green-500/20',
-  AUDITOR: 'bg-orange-500/20 text-orange-300 border border-orange-500/20',
-  FOREMAN: 'bg-purple-500/20 text-purple-300 border border-purple-500/20',
-  FINANCE: 'bg-blue-500/20 text-blue-300 border border-blue-500/20',
+  AUDITOR:        'bg-orange-500/20 text-orange-300 border border-orange-500/20',
+  FOREMAN:        'bg-purple-500/20 text-purple-300 border border-purple-500/20',
+  FINANCE:        'bg-blue-500/20 text-blue-300 border border-blue-500/20',
 };
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [filtered, setFiltered] = useState<User[]>([]);
+  const [users, setUsers] = useState<ApiUser[]>([]);
+  const [filtered, setFiltered] = useState<ApiUser[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,9 +42,9 @@ export default function UsersPage() {
     setFiltered(
       users.filter(
         (u) =>
-          `${u.first_name} ${u.last_name}`.toLowerCase().includes(q) ||
+          `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
           u.email.toLowerCase().includes(q) ||
-          (u.account_type ?? '').toLowerCase().includes(q)
+          (u.role ?? '').toLowerCase().includes(q)
       )
     );
   }, [search, users]);
@@ -39,9 +52,11 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const { data } = await api.get('/refactor/users');
-      setUsers(data);
-      setFiltered(data);
+      const { data } = await api.get('/users/list');
+      const payload = data?.data ?? data;
+      const list = Array.isArray(payload) ? payload : payload?.items ?? [];
+      setUsers(list);
+      setFiltered(list);
     } catch (error) {
       console.error(error);
     } finally {
@@ -49,10 +64,10 @@ export default function UsersPage() {
     }
   };
 
-  const deleteUser = async (id: number) => {
+  const deleteUser = async (ref_id: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     try {
-      await api.delete(`/refactor/users/${id}`);
+      await api.delete(`/users/${ref_id}`);
       fetchUsers();
     } catch (error) {
       console.error(error);
@@ -105,7 +120,7 @@ export default function UsersPage() {
           <table className="w-full">
             <thead className="bg-white/5 border-b border-white/10">
               <tr>
-                {['Name', 'Email', 'Role', 'Staff ID', 'Phone', 'Actions'].map((h) => (
+                {['Name', 'Email', 'Role', 'Phone', 'Actions'].map((h) => (
                   <th key={h} className="px-6 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">
                     {h}
                   </th>
@@ -114,30 +129,29 @@ export default function UsersPage() {
             </thead>
             <tbody className="divide-y divide-white/10">
               {filtered.map((user) => (
-                <tr key={user.id} className="hover:bg-white/5 transition-colors">
+                <tr key={user.ref_id} className="hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-[#33907C] rounded-full flex items-center justify-center">
                         <span className="text-white text-xs font-bold">
-                          {user.first_name[0]}{user.last_name[0]}
+                          {user.firstName?.[0] ?? '?'}{user.lastName?.[0] ?? '?'}
                         </span>
                       </div>
                       <span className="font-medium text-white text-sm">
-                        {user.first_name} {user.last_name}
+                        {user.firstName} {user.lastName}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-white/60">{user.email}</td>
                   <td className="px-6 py-4">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${roleColors[user.account_type ?? ''] ?? 'bg-white/10 text-white/60'}`}>
-                      {user.account_type}
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${roleColors[user.role ?? ''] ?? 'bg-white/10 text-white/60'}`}>
+                      {user.role ?? '—'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-white/60">{user.staff_id ?? '—'}</td>
-                  <td className="px-6 py-4 text-sm text-white/60">{user.phone_no ?? '—'}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{user.phone ?? '—'}</td>
                   <td className="px-6 py-4">
                     <button
-                      onClick={() => deleteUser(user.id)}
+                      onClick={() => deleteUser(user.ref_id)}
                       className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
                     >
                       <Trash2 size={16} />

@@ -20,7 +20,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       clearSession();
-      window.location.href = '/login';
+      window.location.href = '/signin';
     }
     return Promise.reject(error);
   }

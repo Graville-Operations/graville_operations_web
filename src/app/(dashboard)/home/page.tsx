@@ -1,5 +1,4 @@
 'use client';
-
 import { useAuthStore } from '@/store/auth-store';
 import { Users, BarChart2, Briefcase, TrendingUp } from 'lucide-react';
 
@@ -18,7 +17,7 @@ export default function HomePage() {
       {/* Welcome */}
       <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-white shadow-lg">
         <h2 className="text-2xl font-bold">
-          Good morning, {user?.first_name ?? 'there'} 👋
+          Hello, {user?.first_name ?? 'there'} 👋
         </h2>
         <p className="text-blue-200/70 mt-1">
           {role} — Here's what's happening today
@@ -32,7 +31,7 @@ export default function HomePage() {
           return (
             <div
               key={stat.label}
-              className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-lg"
+              className="gv-stat-card bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-lg"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className={`${stat.color} p-2 rounded-xl`}>
