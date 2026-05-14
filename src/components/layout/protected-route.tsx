@@ -13,17 +13,16 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   loadFromStorage();
   const cookieToken = getToken();
   if (!cookieToken) {
-    router.replace('/login');
+    router.replace('/signin');
   }
   setTimeout(() => setChecked(true), 0);
 }, []);
 
-  // Also re-check whenever the store token changes (e.g. after logout)
   useEffect(() => {
     if (checked && !token) {
       const cookieToken = getToken();
       if (!cookieToken) {
-        router.replace('/login');
+        router.replace('/signin');
       }
     }
   }, [token, checked]);

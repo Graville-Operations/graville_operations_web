@@ -62,7 +62,7 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/signin');
   };
 
   const getMenuHref = (menu: MenuItem): string => {
