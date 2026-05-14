@@ -13,7 +13,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   loadFromStorage();
   const cookieToken = getToken();
   if (!cookieToken) {
-    router.replace('/login');
+    router.replace('/signin');
   }
   setTimeout(() => setChecked(true), 0);
 }, []);
@@ -22,7 +22,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     if (checked && !token) {
       const cookieToken = getToken();
       if (!cookieToken) {
-        router.replace('/login');
+        router.replace('/signin');
       }
     }
   }, [token, checked]);
