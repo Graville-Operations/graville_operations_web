@@ -88,7 +88,7 @@ export default function HomePage() {
 
       </section>
 
-      <section className="py-10 px-8 xl:px-20">
+      <section className="py-10 px-8 xl:px-20 text-center">
 
         <p className="gv-eyebrow mb-3">Platform Features</p>
         <h2 className="text-3xl md:text-4xl xl:text-5xl font-bold mb-24"
@@ -96,7 +96,7 @@ export default function HomePage() {
           One App. Every Operation.
         </h2>
 
-        <div className="flex flex-col gap-24">
+        <div className="flex flex-col gap-22">
           {features.map(({ icon: Icon, tag, title, body, stat, detail }, index) => {
             const isReversed = index % 2 !== 0;
             return (
@@ -106,7 +106,7 @@ export default function HomePage() {
                   ${isReversed ? "md:flex-row-reverse" : ""}`}
               >
                 <div className="w-full md:w-1/2">
-                  <div className="gv-card gv-card-hover flex flex-col gap-5 py-12 px-10">
+                  <div className="gv-card gv-card-hover flex flex-col gap-5 py-10 px-10">
                     <div className="gv-icon-box">
                       <Icon className="w-5 h-5" style={{ color: "var(--gv-brand)" }} />
                     </div>

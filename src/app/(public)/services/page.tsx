@@ -2,7 +2,7 @@ import { Building, Home, Wrench, HardHat, Ruler, Truck } from "lucide-react";
 
 const services = [
   { icon: Building,  title: "Commercial Construction", desc: "Office complexes, retail centres, and mixed-use developments built to the highest commercial standards.", tag: "Commercial" },
-  { icon: Home,      title: "Residential Projects",    desc: "Custom homes, apartment blocks, and estate developments balancing aesthetics with structural integrity.", tag: "Residential" },
+  //{ icon: Home,      title: "Residential Projects",    desc: "Custom homes, apartment blocks, and estate developments balancing aesthetics with structural integrity.", tag: "Residential" },
   { icon: HardHat,   title: "Civil Engineering",       desc: "Roads, bridges, drainage systems, and public infrastructure — from feasibility through to commissioning.", tag: "Civil" },
   { icon: Wrench,    title: "Renovation & Fit-Out",    desc: "Precision refurbishment of existing structures, including MEP upgrades and interior transformations.", tag: "Renovation" },
   { icon: Ruler,     title: "Project Management",      desc: "End-to-end project oversight: planning, procurement, scheduling, and quality assurance.", tag: "Management" },
@@ -12,16 +12,16 @@ const services = [
 export default function ServicesPage() {
   return (
     <div className="gv-page">
-      <section className="py-24 px-8 xl:px-20">
+      <section className="py-5 px-8 xl:px-20 text-center">
 
         <p className="gv-eyebrow mb-4">What We Do</p>
         <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-6"
             style={{ color: "var(--gv-text-primary)" }}>
           Our Services
         </h1>
-        <p className="text-lg leading-relaxed mb-20"
+        <p className="text-lg leading-relaxed mb-20 mx-auto"
            style={{ color: "var(--gv-text-muted)", maxWidth: "60ch" }}>
-          From groundbreaking to handover, Graville delivers across the full spectrum
+          From groundbreaking to handover, Graville Enterprises Limited delivers across the full spectrum
           of construction and infrastructure services.
         </p>
 
