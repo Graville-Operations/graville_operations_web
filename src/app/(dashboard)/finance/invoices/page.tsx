@@ -1,203 +1,318 @@
-// 'use client';
+'use client';
 
-// import { useState, useEffect } from 'react';
-// import api from '@/lib/api';
-// import { Invoice } from '@/types';
-// import { Search, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import api from '@/lib/api';
+import { Invoice } from '@/types';
+import { Search, Eye, Plus, X, Receipt } from 'lucide-react';
 
-// const statusColors: Record<string, string> = {
-//   PENDING: 'bg-yellow-100 text-yellow-700',
-//   APPROVED: 'bg-blue-100 text-blue-700',
-//   REJECTED: 'bg-red-100 text-red-700',
-//   PARTIALLY_PAID: 'bg-orange-100 text-orange-700',
-//   FULLY_PAID: 'bg-green-100 text-green-700',
-// };
+const statusStyles: Record<string, { bg: string; color: string }> = {
+  PENDING:        { bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24' },
+  APPROVED:       { bg: 'rgba(96,165,250,0.15)',   color: '#60a5fa' },
+  REJECTED:       { bg: 'rgba(248,113,113,0.15)',  color: '#f87171' },
+  PARTIALLY_PAID: { bg: 'rgba(251,146,60,0.15)',   color: '#fb923c' },
+  FULLY_PAID:     { bg: 'rgba(51,144,124,0.15)',   color: '#33907c' },
+};
 
-// export default function InvoicesPage() {
-//   const [invoices, setInvoices] = useState<Invoice[]>([]);
-//   const [filtered, setFiltered] = useState<Invoice[]>([]);
-//   const [search, setSearch] = useState('');
-//   const [isLoading, setIsLoading] = useState(true);
-//   const [selected, setSelected] = useState<Invoice | null>(null);
+export default function InvoicesPage() {
+  const [invoices, setInvoices]   = useState<Invoice[]>([]);
+  const [filtered, setFiltered]   = useState<Invoice[]>([]);
+  const [search, setSearch]       = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [selected, setSelected]   = useState<Invoice | null>(null);
 
-//   useEffect(() => { fetchInvoices(); }, []);
+  useEffect(() => { fetchInvoices(); }, []);
 
-//   useEffect(() => {
-//     const q = search.toLowerCase();
-//     setFiltered(invoices.filter((i) =>
-//       i.invoice_number.toLowerCase().includes(q) ||
-//       i.supplier_name.toLowerCase().includes(q) ||
-//       (i.submitted_by ?? '').toLowerCase().includes(q) ||
-//       (i.site ?? '').toLowerCase().includes(q) ||
-//       i.status.toLowerCase().includes(q)
-//     ));
-//   }, [search, invoices]);
+  useEffect(() => {
+    const q = search.toLowerCase();
+    setFiltered(
+      invoices.filter((i) =>
+        i.invoice_number.toLowerCase().includes(q) ||
+        i.supplier_name.toLowerCase().includes(q) ||
+        (i.submitted_by ?? '').toLowerCase().includes(q) ||
+        (i.site ?? '').toLowerCase().includes(q) ||
+        i.status.toLowerCase().includes(q)
+      )
+    );
+  }, [search, invoices]);
 
-//   const fetchInvoices = async () => {
-//     try {
-//       setIsLoading(true);
-//       const { data } = await api.get('/invoices/');
-//       setInvoices(data);
-//       setFiltered(data);
-//     } catch (error) {
-//       console.error(error);
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
+  const fetchInvoices = async () => {
+    try {
+      setIsLoading(true);
+      const { data } = await api.get('/invoices/all');
+      setInvoices(data);
+      setFiltered(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-//   return (
-//     <div className="space-y-6">
-//       <div className="flex items-center justify-between">
-//         <div>
-//           <h2 className="text-xl font-bold text-gray-800">Invoices</h2>
-//           <p className="text-sm text-gray-500">{filtered.length} invoices</p>
-//         </div>
-//       </div>
+  return (
+    <div className="space-y-6">
 
-//       {/* Search */}
-//       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-//         <div className="relative">
-//           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-//           <input
-//             type="text"
-//             placeholder="Search by invoice no, supplier, site, status..."
-//             value={search}
-//             onChange={(e) => setSearch(e.target.value)}
-//             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm"
-//           />
-//         </div>
-//       </div>
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>
+            Invoices
+          </h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+            {filtered.length} invoice{filtered.length !== 1 ? 's' : ''}
+          </p>
+        </div>
 
-//       {/* Table */}
-//       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-//         {isLoading ? (
-//           <div className="flex items-center justify-center h-48">
-//             <div className="w-6 h-6 border-2 border-[#33907C] border-t-transparent rounded-full animate-spin" />
-//           </div>
-//         ) : (
-//           <table className="w-full">
-//             <thead className="bg-gray-50 border-b border-gray-100">
-//               <tr>
-//                 {['Invoice No', 'Supplier', 'Site', 'Submitted By', 'Amount', 'Paid', 'Status', ''].map((h) => (
-//                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-//                     {h}
-//                   </th>
-//                 ))}
-//               </tr>
-//             </thead>
-//             <tbody className="divide-y divide-gray-50">
-//               {filtered.map((inv) => (
-//                 <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
-//                   <td className="px-4 py-3 text-sm font-medium text-gray-800">{inv.invoice_number}</td>
-//                   <td className="px-4 py-3 text-sm text-gray-600">{inv.supplier_name}</td>
-//                   <td className="px-4 py-3 text-sm text-gray-600">{inv.site ?? '—'}</td>
-//                   <td className="px-4 py-3 text-sm text-gray-600">{inv.submitted_by ?? '—'}</td>
-//                   <td className="px-4 py-3 text-sm font-medium text-gray-800">
-//                     KES {inv.total_amount.toLocaleString()}
-//                   </td>
-//                   <td className="px-4 py-3 text-sm text-gray-600">
-//                     KES {inv.amount_paid.toLocaleString()}
-//                   </td>
-//                   <td className="px-4 py-3">
-//                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${statusColors[inv.status] ?? 'bg-gray-100 text-gray-600'}`}>
-//                       {inv.status.replace('_', ' ')}
-//                     </span>
-//                   </td>
-//                   <td className="px-4 py-3">
-//                     <button
-//                       onClick={() => setSelected(inv)}
-//                       className="p-2 text-[#33907C] hover:bg-green-50 rounded-lg transition-colors"
-//                     >
-//                       <Eye size={16} />
-//                     </button>
-//                   </td>
-//                 </tr>
-//               ))}
-//             </tbody>
-//           </table>
-//         )}
-//       </div>
+        <Link
+          href="/finance/invoices/new"
+          className="gv-btn-brand flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
+        >
+          <Plus size={16} />
+          New Invoice
+        </Link>
+      </div>
 
-//       {/* Invoice Detail Modal */}
-//       {selected && (
-//         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-//           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-//             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-//               <h3 className="font-bold text-gray-800">Invoice #{selected.invoice_number}</h3>
-//               <button
-//                 onClick={() => setSelected(null)}
-//                 className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-//               >
-//                 ×
-//               </button>
-//             </div>
-//             <div className="p-6 space-y-4">
-//               <div className="grid grid-cols-2 gap-4">
-//                 {[
-//                   { label: 'Supplier', value: selected.supplier_name },
-//                   { label: 'LPO Number', value: selected.lpo_number },
-//                   { label: 'Delivery Number', value: selected.delivery_number },
-//                   { label: 'Invoice Date', value: new Date(selected.invoice_date).toLocaleDateString() },
-//                   { label: 'Site', value: selected.site ?? '—' },
-//                   { label: 'Submitted By', value: selected.submitted_by ?? '—' },
-//                   { label: 'Submitted On', value: selected.created_at ? new Date(selected.created_at).toLocaleDateString() : '—' },
-//                   { label: 'Status', value: selected.status.replace('_', ' ') },
-//                 ].map(({ label, value }) => (
-//                   <div key={label}>
-//                     <p className="text-xs text-gray-400 uppercase font-semibold">{label}</p>
-//                     <p className="text-sm font-medium text-gray-800 mt-1">{value}</p>
-//                   </div>
-//                 ))}
-//               </div>
+      {/* ── Search ── */}
+      <div className="gv-card !p-3">
+        <div className="relative">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--gv-text-subtle)' }}
+          />
+          <input
+            type="text"
+            placeholder="Search by invoice no, supplier, site, status..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="gv-input !pl-9 !py-2 text-sm"
+          />
+        </div>
+      </div>
 
-//               {/* Items */}
-//               {selected.items && selected.items.length > 0 && (
-//                 <div>
-//                   <p className="text-xs text-gray-400 uppercase font-semibold mb-2">Items</p>
-//                   <table className="w-full text-sm">
-//                     <thead className="bg-gray-50">
-//                       <tr>
-//                         {['Particular', 'Qty', 'Unit Price', 'Total'].map((h) => (
-//                           <th key={h} className="px-3 py-2 text-left text-xs text-gray-500">{h}</th>
-//                         ))}
-//                       </tr>
-//                     </thead>
-//                     <tbody>
-//                       {selected.items.map((item, i) => (
-//                         <tr key={i} className="border-t border-gray-50">
-//                           <td className="px-3 py-2">{item.particular}</td>
-//                           <td className="px-3 py-2">{item.quantity}</td>
-//                           <td className="px-3 py-2">KES {item.unit_price.toLocaleString()}</td>
-//                           <td className="px-3 py-2 font-medium text-[#33907C]">KES {item.total_price.toLocaleString()}</td>
-//                         </tr>
-//                       ))}
-//                     </tbody>
-//                   </table>
-//                 </div>
-//               )}
+      {/* ── Table ── */}
+      <div className="gv-card !p-0 overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-48">
+            <div className="w-6 h-6 border-2 border-[#33907c] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48">
+            <Receipt size={40} style={{ color: 'var(--gv-text-faint)' }} className="mb-3" />
+            <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
+              {search ? `No results for "${search}"` : 'No invoices found'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
+                  {['Invoice No', 'Supplier', 'Site', 'Submitted By', 'Amount', 'Paid', 'Status', ''].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                      style={{ color: '#33907c' }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((inv, idx) => {
+                  const status = statusStyles[inv.status] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--gv-text-muted)' };
+                  return (
+                    <tr
+                      key={inv.id}
+                      style={{
+                        borderBottom: idx < filtered.length - 1 ? '1px solid var(--gv-glass-border)' : 'none',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
+                        {inv.invoice_number}
+                      </td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                        {inv.supplier_name}
+                      </td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                        {inv.site ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                        {inv.submitted_by ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>
+                        KES {inv.total_amount.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                        KES {inv.amount_paid.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className="text-xs font-bold px-2.5 py-1 rounded-full"
+                          style={{ background: status.bg, color: status.color }}
+                        >
+                          {inv.status.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setSelected(inv)}
+                          className="p-2 rounded-lg transition-colors"
+                          style={{ color: '#33907c' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(51,144,124,0.12)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-//               {/* Totals */}
-//               <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-//                 <div className="flex justify-between text-sm">
-//                   <span className="text-gray-600">Total Amount</span>
-//                   <span className="font-bold text-gray-800">KES {selected.total_amount.toLocaleString()}</span>
-//                 </div>
-//                 <div className="flex justify-between text-sm">
-//                   <span className="text-gray-600">Amount Paid</span>
-//                   <span className="font-bold text-green-600">KES {selected.amount_paid.toLocaleString()}</span>
-//                 </div>
-//                 <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
-//                   <span className="text-gray-600">Balance</span>
-//                   <span className="font-bold text-red-600">
-//                     KES {(selected.total_amount - selected.amount_paid).toLocaleString()}
-//                   </span>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
+      {/* ── Invoice Detail Modal ── */}
+      {selected && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSelected(null); }}
+        >
+          <div
+            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
+            style={{ background: '#0d1528', border: '1px solid var(--gv-glass-border)' }}
+          >
+            {/* Modal Header */}
+            <div
+              className="flex items-center justify-between px-6 py-4"
+              style={{ borderBottom: '1px solid var(--gv-glass-border)' }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="gv-icon-box">
+                  <Receipt size={18} className="text-[#33907c]" />
+                </div>
+                <h3 className="font-bold text-base" style={{ color: 'var(--gv-text-primary)' }}>
+                  Invoice #{selected.invoice_number}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelected(null)}
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: 'var(--gv-text-muted)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: 'Supplier',        value: selected.supplier_name },
+                  { label: 'LPO Number',       value: selected.lpo_number },
+                  { label: 'Delivery Number',  value: selected.delivery_number },
+                  { label: 'Invoice Date',     value: new Date(selected.invoice_date).toLocaleDateString() },
+                  { label: 'Site',             value: selected.site ?? '—' },
+                  { label: 'Submitted By',     value: selected.submitted_by ?? '—' },
+                  { label: 'Submitted On',     value: selected.created_at ? new Date(selected.created_at).toLocaleDateString() : '—' },
+                  { label: 'Status',           value: selected.status.replace(/_/g, ' ') },
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <p className="gv-eyebrow mb-1">{label}</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Items Table */}
+              {selected.items && selected.items.length > 0 && (
+                <div>
+                  <p className="gv-eyebrow mb-3">Items</p>
+                  <div
+                    className="rounded-xl overflow-hidden"
+                    style={{ border: '1px solid var(--gv-glass-border)' }}
+                  >
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr style={{ background: 'rgba(51,144,124,0.08)' }}>
+                          {['Particular', 'Qty', 'Unit Price', 'Total'].map((h) => (
+                            <th
+                              key={h}
+                              className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider"
+                              style={{ color: '#33907c' }}
+                            >
+                              {h}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selected.items.map((item, i) => (
+                          <tr
+                            key={i}
+                            style={{ borderTop: '1px solid var(--gv-glass-border)' }}
+                          >
+                            <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-primary)' }}>
+                              {item.particular}
+                            </td>
+                            <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-muted)' }}>
+                              {item.quantity}
+                            </td>
+                            <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-muted)' }}>
+                              KES {item.unit_price.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-2.5 font-semibold" style={{ color: '#33907c' }}>
+                              KES {item.total_price.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Totals */}
+              <div
+                className="rounded-xl p-4 space-y-3"
+                style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}
+              >
+                {[
+                  { label: 'Total Amount', value: `KES ${selected.total_amount.toLocaleString()}`, color: 'var(--gv-text-primary)' },
+                  { label: 'Amount Paid',  value: `KES ${selected.amount_paid.toLocaleString()}`,  color: '#33907c' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="flex justify-between text-sm">
+                    <span style={{ color: 'var(--gv-text-muted)' }}>{label}</span>
+                    <span className="font-bold" style={{ color }}>{value}</span>
+                  </div>
+                ))}
+                <div
+                  className="flex justify-between text-sm pt-3"
+                  style={{ borderTop: '1px solid var(--gv-glass-border)' }}
+                >
+                  <span style={{ color: 'var(--gv-text-muted)' }}>Balance</span>
+                  <span className="font-bold" style={{ color: '#f87171' }}>
+                    KES {(selected.total_amount - selected.amount_paid).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
