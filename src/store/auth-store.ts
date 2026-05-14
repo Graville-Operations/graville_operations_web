@@ -29,20 +29,26 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const { data } = await api.post('/refactor/login', { email, password });
-      saveToken(data.access_token);
-      saveRole(data.account_type);
+      const { data } = await api.post('/auth/login', { email, password });
 
-      // Fetch full profile
-      const meRes = await api.get('/refactor/me', {
-        headers: { Authorization: `Bearer ${data.access_token}` },
+      // API returns: { code, data: { token, role, user_id, expires_at }, message }
+      const payload = data?.data ?? data;
+
+      saveToken(payload.token);  
+      saveRole(payload.role);    
+
+      // Fetch full user profile
+      const meRes = await api.get('/auth/me', {
+        headers: { Authorization: `Bearer ${payload.token}` },
       });
-      saveUser(meRes.data);
 
+      const user = meRes.data?.data ?? meRes.data;
+
+      saveUser(user);
       set({
-        token: data.access_token,
-        role: data.account_type,
-        user: meRes.data,
+        token: payload.token,  
+        role: payload.role,    
+        user,
         isLoading: false,
       });
     } catch (error) {
