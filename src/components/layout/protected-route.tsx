@@ -18,7 +18,6 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   setTimeout(() => setChecked(true), 0);
 }, []);
 
-  // Also re-check whenever the store token changes (e.g. after logout)
   useEffect(() => {
     if (checked && !token) {
       const cookieToken = getToken();
