@@ -3,7 +3,7 @@ import { MapPin, Phone, Mail } from "lucide-react";
 export default function ContactPage() {
   return (
     <div className="gv-page">
-      <section className="py-24 px-8 xl:px-20">
+      <section className="py-5 px-8 xl:px-20 text-center">
 
         <p className="gv-eyebrow mb-4">Get In Touch</p>
         <h1 className="text-5xl md:text-6xl font-extrabold mb-20"
