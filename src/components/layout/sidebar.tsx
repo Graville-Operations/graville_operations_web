@@ -28,6 +28,10 @@ const subRouteMap: Record<string, string> = {
   'finance.expenses':           '/finance/expenses',
   'projects.dashboard':         '/projects',
   'projects.new-project':       '/projects/new',
+  'store.dashboard':            '/stores/dashboard',
+  'store.orders':               '/stores/orders',
+  'store.stocks':               '/stores/stocks',
+    // add more as you build pages...
 };
 
 export default function Sidebar() {

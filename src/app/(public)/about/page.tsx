@@ -8,7 +8,7 @@ const whyGraville = [
     icon: Building2,
     title: "10+ Years Experience",
     desc: "Decades of delivering landmark projects across residential, commercial, and civil sectors.",
-    stat: "50+ projects delivered",
+    stat: "250+ projects delivered",
   },
   {
     icon: ShieldCheck,
@@ -26,7 +26,7 @@ const whyGraville = [
     icon: Users,
     title: "Expert Teams",
     desc: "Certified engineers, architects, and tradespeople working as one cohesive unit.",
-    stat: "20+ certified professionals",
+    stat: "70+ certified professionals",
   },
 ];
 
@@ -53,7 +53,7 @@ export default function AboutPage() {
           style={{ color: "var(--gv-text-muted)", maxWidth: "72ch" }}>
           Founded in 2015, Graville Enterprises Limited began as a small civil works
           contractor and has grown into a full-spectrum construction company with over
-          50 completed projects across Kenya.
+          250 completed projects across Kenya.
         </p>
         <p className="text-base leading-relaxed mx-auto mb-10"
           style={{ color: "var(--gv-text-muted)", maxWidth: "72ch" }}>
@@ -65,8 +65,8 @@ export default function AboutPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mt-6">
           {[
             { v: "10+", l: "Years in operation" },
-            { v: "50+", l: "Projects delivered" },
-            { v: "20+", l: "Team members"       },
+            { v: "250+", l: "Projects delivered" },
+            { v: "70+", l: "Team members"       },
             { v: "12",  l: "Active sites"       },
           ].map(({ v, l }) => (
             <div key={l} className="gv-card flex flex-col items-center gap-1 py-8">
@@ -112,8 +112,8 @@ export default function AboutPage() {
       <div className="gv-divider" />
 
       <section className="py-15 px-8 xl:px-20">
-        <p className="gv-eyebrow mb-3">Why Graville</p>
-        <h2 className="text-3xl md:text-4xl font-bold mb-24"
+        <p className="gv-eyebrow mb-3 text-center">Why Graville</p>
+        <h2 className="text-3xl md:text-4xl font-bold mb-24 text-center"
             style={{ color: "var(--gv-text-primary)" }}>
           What sets us apart.
         </h2>
