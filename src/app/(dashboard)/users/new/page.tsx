@@ -1,35 +1,66 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
-const roles = [
-  { value: 'ADMIN', label: 'Admin' },
-  { value: 'AUDITOR', label: 'Auditor' },
-  { value: 'FOREMAN', label: 'Foreman' },
-  { value: 'FINANCE', label: 'Finance Department' },
-];
+interface Role {
+  id: number;
+  name: string;
+  description: string;
+}
 
 export default function NewUserPage() {
   const router = useRouter();
+  const [roles, setRoles] = useState<Role[]>([]);
   const [form, setForm] = useState({
-    first_name: '', last_name: '', email: '',
-    phone_no: '', national_id: '', staff_id: '',
-    account_type: '', password: 'Password098',
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone_no: '',
+    password: 'Password098!',
+    role_id: '' as string | number,
+    department_id: null as number | null,
+    site_ids: null as number[] | null,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Fetch roles from backend
+  const fetchRoles = async () => {
+    try {
+      const { data } = await api.get('/roles/list');
+      const payload = data?.data ?? data;
+      const list = Array.isArray(payload) ? payload : payload?.items ?? [];
+      setRoles(list);
+    } catch (err) {
+      console.error('Failed to fetch roles:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      await api.post('/refactor/create-member', form);
-      router.push('/users/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create user');
+      await api.post('/users/create', {
+        first_name:    form.first_name,
+        last_name:     form.last_name,
+        email:         form.email,
+        phone_no:      form.phone_no || null,
+        password:      form.password,
+        role_id:       Number(form.role_id),
+        department_id: form.department_id,
+        site_ids:      form.site_ids,
+      });
+      router.push('/users');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string; detail?: string } } };
+      setError(e.response?.data?.message || e.response?.data?.detail || 'Failed to create user');
     } finally {
       setIsLoading(false);
     }
@@ -53,14 +84,14 @@ export default function NewUserPage() {
         <div>
           <label className="block text-sm font-medium text-blue-100/80 mb-1">Role *</label>
           <select
-            value={form.account_type}
-            onChange={(e) => setForm({ ...form, account_type: e.target.value })}
+            value={form.role_id}
+            onChange={(e) => setForm({ ...form, role_id: e.target.value })}
             required
             className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm text-white [&>option]:bg-[#0d1b2a] [&>option]:text-white"
           >
             <option value="">Select role...</option>
             {roles.map((r) => (
-              <option key={r.value} value={r.value}>{r.label}</option>
+              <option key={r.id} value={r.id}>{r.name}</option>
             ))}
           </select>
         </div>
@@ -72,10 +103,12 @@ export default function NewUserPage() {
             { label: 'Last Name', key: 'last_name', required: true },
           ].map(({ label, key, required }) => (
             <div key={key}>
-              <label className="block text-sm font-medium text-blue-100/80 mb-1">{label} {required && '*'}</label>
+              <label className="block text-sm font-medium text-blue-100/80 mb-1">
+                {label} {required && '*'}
+              </label>
               <input
                 type="text"
-                value={(form as any)[key]}
+                value={(form as Record<string, unknown>)[key] as string}
                 onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                 required={required}
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm text-white placeholder-white/30"
@@ -97,34 +130,33 @@ export default function NewUserPage() {
           />
         </div>
 
-        {/* Phone & National ID */}
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: 'Phone Number', key: 'phone_no', type: 'tel' },
-            { label: 'National ID', key: 'national_id', type: 'text' },
-          ].map(({ label, key, type }) => (
-            <div key={key}>
-              <label className="block text-sm font-medium text-blue-100/80 mb-1">{label}</label>
-              <input
-                type={type}
-                value={(form as any)[key]}
-                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm text-white placeholder-white/30"
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Staff ID */}
+        {/* Phone */}
         <div>
-          <label className="block text-sm font-medium text-blue-100/80 mb-1">Staff ID</label>
+          <label className="block text-sm font-medium text-blue-100/80 mb-1">Phone Number</label>
           <input
-            type="text"
-            value={form.staff_id}
-            onChange={(e) => setForm({ ...form, staff_id: e.target.value })}
-            placeholder="GRV-001"
+            type="tel"
+            value={form.phone_no}
+            onChange={(e) => setForm({ ...form, phone_no: e.target.value })}
+            placeholder="+254700000000"
             className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm text-white placeholder-white/30"
           />
+        </div>
+
+        {/* Password */}
+        <div>
+          <label className="block text-sm font-medium text-blue-100/80 mb-1">
+            Default Password *
+          </label>
+          <input
+            type="text"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            required
+            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm text-white placeholder-white/30"
+          />
+          <p className="text-xs text-white/30 mt-1">
+            User will be prompted to change this on first login.
+          </p>
         </div>
 
         <div className="flex gap-3 pt-2">

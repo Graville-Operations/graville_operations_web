@@ -1,41 +1,43 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, isLoading} = useAuthStore();
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, isLoading } = useAuthStore();
   const router = useRouter();
 
-  
- useEffect(() => {
-  const timer = setTimeout(() => {
-    setEmail('');
-    setPassword('');
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setEmail('');
+      setPassword('');
+      setError('');
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError('');
-  }, 0);
-  return () => clearTimeout(timer);
-}, []);
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  try {
-    await login(email, password);
-    router.push('/home');
-  } catch (err: unknown) {
-    const axiosErr = err as { response?: { data?: { detail?: string; message?: string } } };
-    setError(
-      axiosErr.response?.data?.message ||
-      axiosErr.response?.data?.detail ||
-      'Login failed'
-    );
-    setPassword('');
-  }
-};
+    try {
+      await login(email, password);
+      router.push('/home');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string; message?: string } } };
+      setError(
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.detail ||
+        'Login failed'
+      );
+      setPassword('');
+    }
+  };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_#1a3a6e_0%,_#0a0f1e_60%,_#000000_100%)]">
@@ -45,7 +47,6 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       {/* Glass card */}
       <div className="relative w-full max-w-md rounded-2xl p-8 shadow-2xl bg-white/10 backdrop-blur-md border border-white/20">
-
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-[#173990]/80 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30">
@@ -76,14 +77,32 @@ const handleSubmit = async (e: React.FormEvent) => {
 
           <div>
             <label className="block text-sm font-medium text-blue-100/80 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="********"
-              required
-              className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-white/40 backdrop-blur-sm"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="********"
+                required
+                className="w-full px-4 py-3 pr-12 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-white/40 backdrop-blur-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {/* Forgot password link */}
+            <div className="text-right mt-1.5">
+              <Link
+                href="signin/forgot-password"
+                className="text-xs text-blue-300/70 hover:text-blue-200 transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button
