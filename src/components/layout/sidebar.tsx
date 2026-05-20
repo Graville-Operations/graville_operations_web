@@ -92,6 +92,9 @@ export default function Sidebar() {
     'finance.expenses':           '/finance/expenses',
     'projects.dashboard':         '/projects',
     'projects.new-project':       '/projects/new',
+    'store.dashboard':            '/store',
+    'store.stock-registers':      '/store/stocks',
+    'store.orders':               '/store/orders',
     // add more as you build pages...
   };
   return subRouteMap[sub.name] ?? sub.link ?? '#';
