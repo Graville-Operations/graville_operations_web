@@ -3,13 +3,40 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
+import { useMenuStore } from '@/store/menu-store';
 import api from '@/lib/api';
 import { MenuItem } from '@/types';
 import { ChevronDown, ChevronRight, LogOut, User, Bell } from 'lucide-react';
 
+// Hardcoded links for subsubmenus until backend seeds them
+const subSubMenuLinks: Record<string, string> = {
+  'finance.invoices.company':        '/finance/invoices/company',
+  'finance.invoices.client':         '/finance/invoices/client',
+  'finance.invoices.supplier':       '/finance/invoices/supplier',
+  'finance.invoices.sub-contractor': '/finance/invoices/sub-contractor',
+};
+
+// Hardcoded submenu routes until backend seeds them
+const subRouteMap: Record<string, string> = {
+  'users.dashboard':            '/users/dashboard',
+  'users.add-user':             '/users/new',
+  'users.roles-and-permission': '/users/roles',
+  'users.reports':              '/users/reports',
+  'users.imports':              '/users/import',
+  'finance.dashboard':          '/finance',
+  'finance.invoices':           '/finance/invoices',
+  'finance.expenses':           '/finance/expenses',
+  'projects.dashboard':         '/projects',
+  'projects.new-project':       '/projects/new',
+  'store.dashboard':            '/store',
+  'store.stock-registers':      '/store/stocks',
+  'store.orders':               '/store/orders',
+    // add more as you build pages...
+};
+
 export default function Sidebar() {
-  const [menus, setMenus] = useState<MenuItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { menus, isLoaded, setMenus, clearMenus } = useMenuStore();
+  const [isLoading, setIsLoading] = useState(!isLoaded);
   const [openMenus, setOpenMenus] = useState<Set<number>>(new Set());
   const [hoveredMenu, setHoveredMenu] = useState<number | null>(null);
   const pathname = usePathname();
@@ -20,16 +47,29 @@ export default function Sidebar() {
     fetchMenus();
   }, []);
 
+  // Auto-open active menus when pathname changes
+  useEffect(() => {
+    if (menus.length > 0) {
+      menus.forEach((menu: MenuItem) => {
+        if (menu.submenus?.some((sub) => {
+          const href = subRouteMap[sub.name] ?? sub.link ?? '#';
+          return href !== '#' && pathname.startsWith(href);
+        })) {
+          setOpenMenus((prev) => new Set(prev).add(menu.id));
+        }
+      });
+    }
+  }, [pathname, menus]);
+
   const fetchMenus = async () => {
+    if (isLoaded) return;
+
     try {
       setIsLoading(true);
       const { data } = await api.get('/menus/list');
       const menuData = data?.data ?? data;
 
-      if (!Array.isArray(menuData)) {
-        setMenus([]);
-        return;
-      }
+      if (!Array.isArray(menuData)) return;
 
       const seen = new Set<string>();
       const unique = menuData.filter((m: MenuItem) => {
@@ -37,14 +77,8 @@ export default function Sidebar() {
         seen.add(m.name);
         return true;
       });
-      setMenus(unique);
 
-      // Auto-open only menus where a submenu has a real link matching current path
-      unique.forEach((menu: MenuItem) => {
-        if (menu.submenus?.some((sub) => sub.link && pathname.startsWith(sub.link))) {
-          setOpenMenus((prev) => new Set(prev).add(menu.id));
-        }
-      });
+      setMenus(unique);
     } catch (error) {
       console.error('Failed to fetch menus:', error);
     } finally {
@@ -61,6 +95,7 @@ export default function Sidebar() {
   };
 
   const handleLogout = () => {
+    clearMenus();
     logout();
     router.push('/signin');
   };
@@ -80,33 +115,26 @@ export default function Sidebar() {
     return routeMap[menu.name] ?? menu.link ?? '#';
   };
 
-  const getSubMenuHref = (sub: { link?: string; name: string }): string => {
-  const subRouteMap: Record<string, string> = {
-    'users.dashboard':            '/users/dashboard',
-    'users.add-user':             '/users/new',
-    'users.roles-and-permission': '/users/roles',
-    'users.reports':              '/users/reports',
-    'users.imports':              '/users/import',
-    'finance.dashboard':          '/finance',
-    'finance.invoices':           '/finance/invoices',
-    'finance.expenses':           '/finance/expenses',
-    'projects.dashboard':         '/projects',
-    'projects.new-project':       '/projects/new',
-    'store.dashboard':            '/store',
-    'store.stock-registers':      '/store/stocks',
-    'store.orders':               '/store/orders',
-    // add more as you build pages...
+  const getSubMenuHref = (sub: { link?: string | null; name: string }): string => {
+    return subRouteMap[sub.name] ?? sub.link ?? '#';
   };
-  return subRouteMap[sub.name] ?? sub.link ?? '#';
-};
+
+  const getSubSubMenuHref = (subsub: { link?: string | null; name: string }): string => {
+    return subsub.link ?? subSubMenuLinks[subsub.name] ?? '#';
+  };
 
   const isMenuActive = (menu: MenuItem): boolean => {
     const href = getMenuHref(menu);
     return pathname === href || pathname.startsWith(href + '/');
   };
 
-  const isSubActive = (sub: { link?: string; name: string }): boolean => {
+  const isSubActive = (sub: { link?: string | null; name: string }): boolean => {
     const href = getSubMenuHref(sub);
+    return href !== '#' && (pathname === href || pathname.startsWith(href + '/'));
+  };
+
+  const isSubSubActive = (subsub: { link?: string | null; name: string }): boolean => {
+    const href = getSubSubMenuHref(subsub);
     return href !== '#' && (pathname === href || pathname.startsWith(href + '/'));
   };
 
@@ -166,18 +194,73 @@ export default function Sidebar() {
                       {menu.submenus
                         .sort((a, b) => a.order - b.order)
                         .map((sub) => (
-                          <Link
-                            key={sub.id}
-                            href={getSubMenuHref(sub)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-150 hover:scale-[1.01] ${
-                              isSubActive(sub)
-                                ? 'bg-[#33907C] text-white font-medium'
-                                : 'text-white/50 hover:bg-white/20 hover:text-white'
-                            }`}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" />
-                            {sub.title}
-                          </Link>
+                          <div key={sub.id}>
+                            {sub.subsubmenus && sub.subsubmenus.length > 0 ? (
+                              /* Submenu with sub-submenus — split title link + chevron toggle */
+                              <div>
+                                <div className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-all duration-150 hover:scale-[1.01] ${
+                                  isSubActive(sub)
+                                    ? 'bg-[#33907C]/20 text-[#33907C] font-medium'
+                                    : 'text-white/50 hover:bg-white/20 hover:text-white'
+                                }`}>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" />
+                                  {getSubMenuHref(sub) !== '#' ? (
+                                    <Link href={getSubMenuHref(sub)} className="flex-1 text-left">
+                                      {sub.title}
+                                    </Link>
+                                  ) : (
+                                    <span className="flex-1 text-left">{sub.title}</span>
+                                  )}
+                                  <button
+                                    onClick={() => toggleMenu(sub.id)}
+                                    className="p-0.5 shrink-0"
+                                  >
+                                    <ChevronDown
+                                      size={12}
+                                      className={`transition-transform duration-200 opacity-50 ${
+                                        openMenus.has(sub.id) ? 'rotate-180' : ''
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+
+                                {/* Sub-submenus */}
+                                {openMenus.has(sub.id) && (
+                                  <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
+                                    {sub.subsubmenus
+                                      .sort((a, b) => a.order - b.order)
+                                      .map((subsub) => (
+                                        <Link
+                                          key={subsub.id}
+                                          href={getSubSubMenuHref(subsub)}
+                                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-150 hover:scale-[1.01] ${
+                                            isSubSubActive(subsub)
+                                              ? 'bg-[#33907C] text-white font-medium'
+                                              : 'text-white/40 hover:bg-white/20 hover:text-white'
+                                          }`}
+                                        >
+                                          <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
+                                          {subsub.title}
+                                        </Link>
+                                      ))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              /* Regular submenu — direct link */
+                              <Link
+                                href={getSubMenuHref(sub)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-150 hover:scale-[1.01] ${
+                                  isSubActive(sub)
+                                    ? 'bg-[#33907C] text-white font-medium'
+                                    : 'text-white/50 hover:bg-white/20 hover:text-white'
+                                }`}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" />
+                                {sub.title}
+                              </Link>
+                            )}
+                          </div>
                         ))}
                     </div>
                   )}
