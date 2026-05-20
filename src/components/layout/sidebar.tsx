@@ -204,7 +204,7 @@ export default function Sidebar() {
                     />
                   </button>
 
-                  {/* Submenus — show on hover OR when toggled open */}
+                  {/* Submenus — show on hover*/}
                   {(openMenus.has(menu.id) || hoveredMenu === menu.id) && (
                     <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
                       {menu.submenus
@@ -212,7 +212,6 @@ export default function Sidebar() {
                         .map((sub) => (
                           <div key={sub.id}>
                             {sub.subsubmenus && sub.subsubmenus.length > 0 ? (
-                              /* Submenu with sub-submenus — split title link + chevron toggle */
                               <div>
                                 <div className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-all duration-150 hover:scale-[1.01] ${
                                   isSubActive(sub)

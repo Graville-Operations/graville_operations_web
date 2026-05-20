@@ -18,7 +18,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url ?? '';
+    const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/verify-otp');
+    
+    if (error.response?.status === 401 && !isAuthRoute) {
       clearSession();
       window.location.href = '/signin';
     }
