@@ -19,29 +19,48 @@ export interface LoginResponse {
   expires_at: string;      // was expires_in
 }
 
-export interface Invoice {
-  id: number;
-  invoice_number: string;
-  lpo_number: string;
-  delivery_number: string;
-  supplier_name: string;
-  invoice_date: string;
-  total_amount: number;
-  amount_paid: number;
-  status: string;
-  site?: string;
-  items?: InvoiceItem[];
-  submitted_by?: string;
-  submitted_by_id: number;
-  notes?: string;
-  created_at: string;
-}
-
 export interface InvoiceItem {
-  particular: string;
+  id: number;
+  item_index: number;
+  material_id: number;
+  particulars: string;
   quantity: number;
   unit_price: number;
   total_price: number;
+  created_at: string;
+}
+
+export interface Invoice {
+  id: number;
+  invoice_number: string;
+  lpo_number?: string;
+  delivery_number?: string;
+  invoice_date: string;
+  supplier_name: string;
+  total_invoice_value: number;
+  notes?: string;
+  site_id: number;
+  store_id: number;
+  created_by?: number;
+  created_at: string;
+  updated_at?: string;
+  items: InvoiceItem[];
+}
+
+export interface InvoiceListItem {
+  id: number;
+  invoice_number: string;
+  supplier_name: string;
+  invoice_date: string;
+  total_invoice_value: number;
+  site_id: number;
+  created_at: string;
+}
+
+export interface Material {
+  id: number;
+  name: string;
+  unit?: string;
 }
 
 export interface MenuItem {

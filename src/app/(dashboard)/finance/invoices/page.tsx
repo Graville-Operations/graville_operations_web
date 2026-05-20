@@ -3,23 +3,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
-import { Invoice } from '@/types';
+import { InvoiceListItem, Invoice } from '@/types';
 import { Search, Eye, Plus, X, Receipt } from 'lucide-react';
 
-const statusStyles: Record<string, { bg: string; color: string }> = {
-  PENDING:        { bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24' },
-  APPROVED:       { bg: 'rgba(96,165,250,0.15)',   color: '#60a5fa' },
-  REJECTED:       { bg: 'rgba(248,113,113,0.15)',  color: '#f87171' },
-  PARTIALLY_PAID: { bg: 'rgba(251,146,60,0.15)',   color: '#fb923c' },
-  FULLY_PAID:     { bg: 'rgba(51,144,124,0.15)',   color: '#33907c' },
-};
-
 export default function InvoicesPage() {
-  const [invoices, setInvoices]   = useState<Invoice[]>([]);
-  const [filtered, setFiltered]   = useState<Invoice[]>([]);
+  const [invoices, setInvoices]   = useState<InvoiceListItem[]>([]);
+  const [filtered, setFiltered]   = useState<InvoiceListItem[]>([]);
   const [search, setSearch]       = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selected, setSelected]   = useState<Invoice | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => { fetchInvoices(); }, []);
 
@@ -29,9 +22,7 @@ export default function InvoicesPage() {
       invoices.filter((i) =>
         i.invoice_number.toLowerCase().includes(q) ||
         i.supplier_name.toLowerCase().includes(q) ||
-        (i.submitted_by ?? '').toLowerCase().includes(q) ||
-        (i.site ?? '').toLowerCase().includes(q) ||
-        i.status.toLowerCase().includes(q)
+        i.invoice_date.toLowerCase().includes(q)
       )
     );
   }, [search, invoices]);
@@ -49,6 +40,18 @@ export default function InvoicesPage() {
     }
   };
 
+  const fetchDetail = async (id: number) => {
+    try {
+      setDetailLoading(true);
+      const { data } = await api.get(`/invoices/details/${id}`);
+      setSelected(data);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
 
@@ -62,7 +65,6 @@ export default function InvoicesPage() {
             {filtered.length} invoice{filtered.length !== 1 ? 's' : ''}
           </p>
         </div>
-
         <Link
           href="/finance/invoices/new"
           className="gv-btn-brand flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
@@ -82,7 +84,7 @@ export default function InvoicesPage() {
           />
           <input
             type="text"
-            placeholder="Search by invoice no, supplier, site, status..."
+            placeholder="Search by invoice no, supplier, date..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="gv-input !pl-9 !py-2 text-sm"
@@ -108,7 +110,7 @@ export default function InvoicesPage() {
             <table className="w-full">
               <thead>
                 <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
-                  {['Invoice No', 'Supplier', 'Site', 'Submitted By', 'Amount', 'Paid', 'Status', ''].map((h) => (
+                  {['Invoice No', 'Supplier', 'Invoice Date', 'Total Value', 'Submitted On', ''].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
@@ -120,66 +122,59 @@ export default function InvoicesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((inv, idx) => {
-                  const status = statusStyles[inv.status] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--gv-text-muted)' };
-                  return (
-                    <tr
-                      key={inv.id}
-                      style={{
-                        borderBottom: idx < filtered.length - 1 ? '1px solid var(--gv-glass-border)' : 'none',
-                        transition: 'background 0.15s',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
-                        {inv.invoice_number}
-                      </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
-                        {inv.supplier_name}
-                      </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
-                        {inv.site ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
-                        {inv.submitted_by ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>
-                        KES {inv.total_amount.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
-                        KES {inv.amount_paid.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className="text-xs font-bold px-2.5 py-1 rounded-full"
-                          style={{ background: status.bg, color: status.color }}
-                        >
-                          {inv.status.replace(/_/g, ' ')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => setSelected(inv)}
-                          className="p-2 rounded-lg transition-colors"
-                          style={{ color: '#33907c' }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(51,144,124,0.12)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                        >
-                          <Eye size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {filtered.map((inv, idx) => (
+                  <tr
+                    key={inv.id}
+                    style={{
+                      borderBottom: idx < filtered.length - 1
+                        ? '1px solid var(--gv-glass-border)'
+                        : 'none',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <td className="px-4 py-3 text-sm font-semibold"
+                        style={{ color: 'var(--gv-text-primary)' }}>
+                      {inv.invoice_number}
+                    </td>
+                    <td className="px-4 py-3 text-sm"
+                        style={{ color: 'var(--gv-text-muted)' }}>
+                      {inv.supplier_name}
+                    </td>
+                    <td className="px-4 py-3 text-sm"
+                        style={{ color: 'var(--gv-text-muted)' }}>
+                      {new Date(inv.invoice_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium"
+                        style={{ color: 'var(--gv-text-primary)' }}>
+                      KES {inv.total_invoice_value.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm"
+                        style={{ color: 'var(--gv-text-muted)' }}>
+                      {new Date(inv.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => fetchDetail(inv.id)}
+                        className="p-2 rounded-lg transition-colors"
+                        style={{ color: '#33907c' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(51,144,124,0.12)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <Eye size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      {/* ── Invoice Detail Modal ── */}
-      {selected && (
+      {/* ── Detail Modal ── */}
+      {(selected || detailLoading) && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50 p-4"
           style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
@@ -199,7 +194,7 @@ export default function InvoicesPage() {
                   <Receipt size={18} className="text-[#33907c]" />
                 </div>
                 <h3 className="font-bold text-base" style={{ color: 'var(--gv-text-primary)' }}>
-                  Invoice #{selected.invoice_number}
+                  {selected ? `Invoice #${selected.invoice_number}` : 'Loading...'}
                 </h3>
               </div>
               <button
@@ -213,103 +208,105 @@ export default function InvoicesPage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: 'Supplier',        value: selected.supplier_name },
-                  { label: 'LPO Number',       value: selected.lpo_number },
-                  { label: 'Delivery Number',  value: selected.delivery_number },
-                  { label: 'Invoice Date',     value: new Date(selected.invoice_date).toLocaleDateString() },
-                  { label: 'Site',             value: selected.site ?? '—' },
-                  { label: 'Submitted By',     value: selected.submitted_by ?? '—' },
-                  { label: 'Submitted On',     value: selected.created_at ? new Date(selected.created_at).toLocaleDateString() : '—' },
-                  { label: 'Status',           value: selected.status.replace(/_/g, ' ') },
-                ].map(({ label, value }) => (
-                  <div key={label}>
-                    <p className="gv-eyebrow mb-1">{label}</p>
-                    <p className="text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>
-                      {value}
-                    </p>
-                  </div>
-                ))}
+            {detailLoading ? (
+              <div className="flex items-center justify-center h-48">
+                <div className="w-6 h-6 border-2 border-[#33907c] border-t-transparent rounded-full animate-spin" />
               </div>
+            ) : selected ? (
+              <div className="p-6 space-y-6">
 
-              {/* Items Table */}
-              {selected.items && selected.items.length > 0 && (
-                <div>
-                  <p className="gv-eyebrow mb-3">Items</p>
-                  <div
-                    className="rounded-xl overflow-hidden"
-                    style={{ border: '1px solid var(--gv-glass-border)' }}
-                  >
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr style={{ background: 'rgba(51,144,124,0.08)' }}>
-                          {['Particular', 'Qty', 'Unit Price', 'Total'].map((h) => (
-                            <th
-                              key={h}
-                              className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider"
-                              style={{ color: '#33907c' }}
-                            >
-                              {h}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selected.items.map((item, i) => (
-                          <tr
-                            key={i}
-                            style={{ borderTop: '1px solid var(--gv-glass-border)' }}
-                          >
-                            <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-primary)' }}>
-                              {item.particular}
-                            </td>
-                            <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-muted)' }}>
-                              {item.quantity}
-                            </td>
-                            <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-muted)' }}>
-                              KES {item.unit_price.toLocaleString()}
-                            </td>
-                            <td className="px-4 py-2.5 font-semibold" style={{ color: '#33907c' }}>
-                              KES {item.total_price.toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { label: 'Supplier',         value: selected.supplier_name },
+                    { label: 'LPO Number',        value: selected.lpo_number ?? '—' },
+                    { label: 'Delivery Number',   value: selected.delivery_number ?? '—' },
+                    { label: 'Invoice Date',      value: new Date(selected.invoice_date).toLocaleDateString() },
+                    { label: 'Site ID',           value: String(selected.site_id) },
+                    { label: 'Submitted On',      value: new Date(selected.created_at).toLocaleDateString() },
+                    { label: 'Notes',             value: selected.notes ?? '—' },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <p className="gv-eyebrow mb-1">{label}</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>
+                        {value}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              )}
 
-              {/* Totals */}
-              <div
-                className="rounded-xl p-4 space-y-3"
-                style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}
-              >
-                {[
-                  { label: 'Total Amount', value: `KES ${selected.total_amount.toLocaleString()}`, color: 'var(--gv-text-primary)' },
-                  { label: 'Amount Paid',  value: `KES ${selected.amount_paid.toLocaleString()}`,  color: '#33907c' },
-                ].map(({ label, value, color }) => (
-                  <div key={label} className="flex justify-between text-sm">
-                    <span style={{ color: 'var(--gv-text-muted)' }}>{label}</span>
-                    <span className="font-bold" style={{ color }}>{value}</span>
+                {/* Items Table */}
+                {selected.items && selected.items.length > 0 && (
+                  <div>
+                    <p className="gv-eyebrow mb-3">Items</p>
+                    <div
+                      className="rounded-xl overflow-hidden"
+                      style={{ border: '1px solid var(--gv-glass-border)' }}
+                    >
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr style={{ background: 'rgba(51,144,124,0.08)' }}>
+                            {['#', 'Particulars', 'Qty', 'Unit Price', 'Total'].map((h) => (
+                              <th
+                                key={h}
+                                className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider"
+                                style={{ color: '#33907c' }}
+                              >
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selected.items.map((item) => (
+                            <tr
+                              key={item.id}
+                              style={{ borderTop: '1px solid var(--gv-glass-border)' }}
+                            >
+                              <td className="px-4 py-2.5 text-xs"
+                                  style={{ color: 'var(--gv-text-subtle)' }}>
+                                {item.item_index}
+                              </td>
+                              <td className="px-4 py-2.5"
+                                  style={{ color: 'var(--gv-text-primary)' }}>
+                                {item.particulars}
+                              </td>
+                              <td className="px-4 py-2.5"
+                                  style={{ color: 'var(--gv-text-muted)' }}>
+                                {item.quantity}
+                              </td>
+                              <td className="px-4 py-2.5"
+                                  style={{ color: 'var(--gv-text-muted)' }}>
+                                KES {item.unit_price.toLocaleString()}
+                              </td>
+                              <td className="px-4 py-2.5 font-semibold"
+                                  style={{ color: '#33907c' }}>
+                                KES {item.total_price.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                ))}
+                )}
+
+                {/* Total */}
                 <div
-                  className="flex justify-between text-sm pt-3"
-                  style={{ borderTop: '1px solid var(--gv-glass-border)' }}
+                  className="flex items-center justify-between rounded-xl px-5 py-4"
+                  style={{ background: 'rgba(51,144,124,0.10)', border: '1px solid rgba(51,144,124,0.25)' }}
                 >
-                  <span style={{ color: 'var(--gv-text-muted)' }}>Balance</span>
-                  <span className="font-bold" style={{ color: '#f87171' }}>
-                    KES {(selected.total_amount - selected.amount_paid).toLocaleString()}
+                  <span className="text-sm font-medium"
+                        style={{ color: 'var(--gv-text-muted)' }}>
+                    Total Invoice Value
+                  </span>
+                  <span className="text-xl font-bold" style={{ color: '#33907c' }}>
+                    KES {selected.total_invoice_value.toLocaleString()}
                   </span>
                 </div>
-              </div>
 
-            </div>
+              </div>
+            ) : null}
           </div>
         </div>
       )}
