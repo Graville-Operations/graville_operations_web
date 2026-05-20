@@ -1,53 +1,33 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import {
-  ChevronDown,
-  Activity,
-  PackageCheck,
-  Calendar,
-  ClipboardList,
-  ChevronRight,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  Package,
+  ChevronDown, Activity, PackageCheck, Calendar,
+  ClipboardList, ChevronRight, CheckCircle2, Clock,
+  XCircle, Package,
 } from 'lucide-react';
 
-interface Site {
-  id: number;
-  name: string;
-}
+interface Site { id: number; name: string; }
 
 interface DailyUsageItem {
   material: { name: string; unit: { symbol: string } };
-  quantity_used: number;
-  notes?: string;
+  quantity_used: number; notes?: string;
 }
-
 interface DailyUsageRecord {
-  id: number;
-  usage_date: string;
-  status: string;
-  notes?: string;
-  items: DailyUsageItem[];
-  store?: { id: number };
+  id: number; usage_date: string; status: string;
+  notes?: string; items: DailyUsageItem[];
 }
-
 interface ReceiptRecord {
   id: number;
   material: { name: string; unit: { symbol: string } };
-  quantity: number;
-  unit_price: number;
-  notes?: string;
-  received_at: string;
+  quantity: number; unit_price: number; notes?: string; received_at: string;
 }
 
 const USAGE_STATUS_META: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-  DRAFT:     { label: 'Draft',     cls: 'border-white/20 text-muted-foreground',    icon: <Clock size={11} /> },
-  SUBMITTED: { label: 'Submitted', cls: 'border-blue-500/30 text-blue-400',         icon: <ClipboardList size={11} /> },
-  APPROVED:  { label: 'Approved',  cls: 'border-green-500/30 text-green-400',       icon: <CheckCircle2 size={11} /> },
-  REJECTED:  { label: 'Rejected',  cls: 'border-destructive/30 text-destructive',   icon: <XCircle size={11} /> },
+  DRAFT:     { label: 'Draft',     cls: 'border-white/20 text-muted-foreground',  icon: <Clock size={11} />         },
+  SUBMITTED: { label: 'Submitted', cls: 'border-blue-500/30 text-blue-400',       icon: <ClipboardList size={11} /> },
+  APPROVED:  { label: 'Approved',  cls: 'border-green-500/30 text-green-400',     icon: <CheckCircle2 size={11} />  },
+  REJECTED:  { label: 'Rejected',  cls: 'border-destructive/30 text-destructive', icon: <XCircle size={11} />       },
 };
 
 type ActiveTab = 'usage' | 'receipts';
@@ -63,45 +43,45 @@ export default function StoreActivityPage() {
   const [isUsageLoading, setIsUsageLoading]       = useState(false);
   const [isReceiptsLoading, setIsReceiptsLoading] = useState(false);
 
-  // Load sites
+  // Step 1 — load sites
   useEffect(() => {
-    api
-      .get('/sites/list')
+    api.get('/sites/list')
       .then((res) => {
-        const list: Site[] = res.data?.data ?? res.data ?? [];
+        const raw = res.data?.data;
+        const list: Site[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
         setSites(list);
-        if (list.length > 0) setSelectedSiteId(list[0].id);
+        if (list.length > 0) setSelectedSiteId(list[0].id);  // triggers step 2
       })
       .catch(console.error)
       .finally(() => setIsSitesLoading(false));
   }, []);
 
-  const fetchUsage = useCallback(() => {
-    if (!selectedSiteId) return;
+  // Step 2 — runs whenever selectedSiteId changes
+  useEffect(() => {
+    if (selectedSiteId === null) return;
+
+    // GET /api/v1/daily-usage/all?site_id=X
     setIsUsageLoading(true);
-    api
-      .get(`/sites/${selectedSiteId}/store/daily-usage`)
-      .then((res) => setUsageLogs(res.data?.data ?? res.data ?? []))
+    api.get('/daily-usage/all', { params: { site_id: selectedSiteId } })
+      .then((res) => {
+        const raw = res.data?.data;
+        setUsageLogs(Array.isArray(raw) ? raw : (raw?.items ?? []));
+      })
       .catch(() => setUsageLogs([]))
       .finally(() => setIsUsageLoading(false));
-  }, [selectedSiteId]);
 
-  const fetchReceipts = useCallback(() => {
-    if (!selectedSiteId) return;
+    // GET /api/v1/store/site/{site_id}
+    // store overview — receipts nested inside if service returns them
     setIsReceiptsLoading(true);
-    api
-      .get(`/sites/${selectedSiteId}/store/receipts`)
-      .then((res) => setReceipts(res.data?.data ?? res.data ?? []))
+    api.get(`/store/site/${selectedSiteId}`)
+      .then((res) => {
+        const data = res.data?.data ?? res.data;
+        // adapt to whatever key your store overview returns for receipt list
+        setReceipts(data?.receipts ?? data?.receipt_history ?? data?.material_receipts ?? []);
+      })
       .catch(() => setReceipts([]))
       .finally(() => setIsReceiptsLoading(false));
   }, [selectedSiteId]);
-
-  // Load data on site change
-  useEffect(() => {
-    if (!selectedSiteId) return;
-    fetchUsage();
-    fetchReceipts();
-  }, [selectedSiteId, fetchUsage, fetchReceipts]);
 
   const toggleExpand = (id: number) => {
     setExpandedUsage((prev) => {
@@ -111,35 +91,33 @@ export default function StoreActivityPage() {
     });
   };
 
-  const totalUsageItems   = usageLogs.reduce((sum, r) => sum + r.items.length, 0);
-  const totalReceiptValue = receipts.reduce((sum, r) => sum + r.quantity * r.unit_price, 0);
+  const totalUsageItems   = usageLogs.reduce((sum, r) => sum + (r.items?.length ?? 0), 0);
+  const totalReceiptValue = receipts.reduce((sum, r)  => sum + r.quantity * r.unit_price, 0);
   const selectedSite      = sites.find((s) => s.id === selectedSiteId);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header + site selector */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>
           <h1 className="text-2xl font-bold mt-1">Store Activity</h1>
         </div>
-
-        <div className="relative w-full sm:w-64">
+        <div className="flex flex-col gap-1 w-full sm:w-64">
+          <p className="gv-label">Viewing site</p>
           {isSitesLoading ? (
             <div className="gv-input h-10 animate-pulse bg-muted" />
           ) : (
-            <>
+            <div className="relative">
               <select
                 className="gv-input appearance-none pr-9 h-10 text-sm cursor-pointer"
                 value={selectedSiteId ?? ''}
                 onChange={(e) => setSelectedSiteId(Number(e.target.value))}
               >
-                {sites.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
+                {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
               <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -148,9 +126,9 @@ export default function StoreActivityPage() {
       {selectedSite && !isUsageLoading && !isReceiptsLoading && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Usage Logs',   value: usageLogs.length,  icon: <ClipboardList size={15} className="text-primary" /> },
-            { label: 'Usage Items',  value: totalUsageItems,   icon: <Package size={15} className="text-blue-400" /> },
-            { label: 'Receipts',     value: receipts.length,   icon: <PackageCheck size={15} className="text-green-400" /> },
+            { label: 'Usage Logs',    value: usageLogs.length, icon: <ClipboardList size={15} className="text-primary" />  },
+            { label: 'Usage Items',   value: totalUsageItems,  icon: <Package size={15} className="text-blue-400" />       },
+            { label: 'Receipts',      value: receipts.length,  icon: <PackageCheck size={15} className="text-green-400" /> },
             {
               label: 'Total Received',
               value: `$${totalReceiptValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -172,31 +150,26 @@ export default function StoreActivityPage() {
       <div className="flex gap-1 p-1 rounded-lg bg-muted w-fit">
         {([
           { key: 'usage',    label: 'Daily Usage', icon: <ClipboardList size={14} /> },
-          { key: 'receipts', label: 'Receipts',    icon: <PackageCheck size={14} /> },
+          { key: 'receipts', label: 'Receipts',    icon: <PackageCheck size={14} />  },
         ] as { key: ActiveTab; label: string; icon: React.ReactNode }[]).map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              tab === t.key
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
+              tab === t.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {t.icon}
-            {t.label}
+            {t.icon}{t.label}
           </button>
         ))}
       </div>
 
-      {/* Daily Usage */}
+      {/* Daily Usage tab */}
       {tab === 'usage' && (
-        <>
-          {isUsageLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => <div key={i} className="gv-card h-16 animate-pulse" />)}
-            </div>
-          ) : usageLogs.length === 0 ? (
+        isUsageLoading
+          ? <div className="space-y-2">{[1,2,3].map((i) => <div key={i} className="gv-card h-16 animate-pulse" />)}</div>
+          : usageLogs.length === 0
+          ? (
             <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
               <ClipboardList size={36} className="text-muted-foreground opacity-20 mb-3" />
               <p className="text-sm text-muted-foreground">No daily usage logs for this site</p>
@@ -221,36 +194,26 @@ export default function StoreActivityPage() {
                             weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
                           })}
                         </p>
-                        {log.notes && (
-                          <p className="text-xs text-muted-foreground truncate">{log.notes}</p>
-                        )}
+                        {log.notes && <p className="text-xs text-muted-foreground truncate">{log.notes}</p>}
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <span className="text-xs text-muted-foreground">
-                          {log.items.length} item{log.items.length !== 1 ? 's' : ''}
+                          {log.items?.length ?? 0} item{(log.items?.length ?? 0) !== 1 ? 's' : ''}
                         </span>
-                        <span className={`gv-tag flex items-center gap-1 ${meta.cls}`}>
-                          {meta.icon} {meta.label}
-                        </span>
-                        <ChevronRight
-                          size={14}
-                          className={`text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                        />
+                        <span className={`gv-tag flex items-center gap-1 ${meta.cls}`}>{meta.icon} {meta.label}</span>
+                        <ChevronRight size={14} className={`text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} />
                       </div>
                     </button>
-
                     {isOpen && (
                       <div className="border-t border-border">
-                        {log.items.length === 0 ? (
+                        {!log.items?.length ? (
                           <p className="px-4 py-3 text-xs text-muted-foreground">No items recorded</p>
                         ) : (
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-border bg-muted/30">
                                 {['Material', 'Qty Used', 'Notes'].map((h) => (
-                                  <th key={h} className="text-left px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                    {h}
-                                  </th>
+                                  <th key={h} className="text-left px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
                                 ))}
                               </tr>
                             </thead>
@@ -261,9 +224,7 @@ export default function StoreActivityPage() {
                                   <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
                                     {item.quantity_used} {item.material?.unit?.symbol}
                                   </td>
-                                  <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                                    {item.notes ?? '—'}
-                                  </td>
+                                  <td className="px-4 py-2.5 text-xs text-muted-foreground">{item.notes ?? '—'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -275,18 +236,15 @@ export default function StoreActivityPage() {
                 );
               })}
             </div>
-          )}
-        </>
+          )
       )}
 
-      {/* Receipts */}
+      {/* Receipts tab */}
       {tab === 'receipts' && (
-        <>
-          {isReceiptsLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => <div key={i} className="gv-card h-16 animate-pulse" />)}
-            </div>
-          ) : receipts.length === 0 ? (
+        isReceiptsLoading
+          ? <div className="space-y-2">{[1,2,3].map((i) => <div key={i} className="gv-card h-16 animate-pulse" />)}</div>
+          : receipts.length === 0
+          ? (
             <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
               <PackageCheck size={36} className="text-muted-foreground opacity-20 mb-3" />
               <p className="text-sm text-muted-foreground">No receipts recorded for this site</p>
@@ -297,9 +255,7 @@ export default function StoreActivityPage() {
                 <thead>
                   <tr className="border-b border-border">
                     {['Material', 'Qty', 'Unit Price', 'Total', 'Notes', 'Received'].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        {h}
-                      </th>
+                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -314,22 +270,12 @@ export default function StoreActivityPage() {
                           {r.material?.name}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground tabular-nums">
-                        {r.quantity} {r.material?.unit?.symbol}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground tabular-nums">
-                        ${r.unit_price?.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 font-semibold tabular-nums">
-                        ${(r.quantity * r.unit_price).toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-40 truncate">
-                        {r.notes ?? '—'}
-                      </td>
+                      <td className="px-4 py-3 text-muted-foreground tabular-nums">{r.quantity} {r.material?.unit?.symbol}</td>
+                      <td className="px-4 py-3 text-muted-foreground tabular-nums">${r.unit_price?.toFixed(2)}</td>
+                      <td className="px-4 py-3 font-semibold tabular-nums">${(r.quantity * r.unit_price).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-[160px] truncate">{r.notes ?? '—'}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {new Date(r.received_at).toLocaleDateString(undefined, {
-                          year: 'numeric', month: 'short', day: 'numeric',
-                        })}
+                        {new Date(r.received_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                       </td>
                     </tr>
                   ))}
@@ -339,7 +285,7 @@ export default function StoreActivityPage() {
                     <td colSpan={3} className="px-4 py-3 text-xs text-muted-foreground font-semibold uppercase tracking-wider">
                       Total received value
                     </td>
-                    <td className="px-4 py-3 font-bold text-foreground tabular-nums">
+                    <td className="px-4 py-3 font-bold tabular-nums">
                       ${totalReceiptValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td colSpan={2} />
@@ -347,8 +293,7 @@ export default function StoreActivityPage() {
                 </tfoot>
               </table>
             </div>
-          )}
-        </>
+          )
       )}
     </div>
   );

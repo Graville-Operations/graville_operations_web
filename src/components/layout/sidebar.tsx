@@ -28,9 +28,9 @@ const subRouteMap: Record<string, string> = {
   'finance.expenses':           '/finance/expenses',
   'projects.dashboard':         '/projects',
   'projects.new-project':       '/projects/new',
-  'store.dashboard':            '/store',
-  'store.stock-registers':      '/store/stocks',
-  'store.orders':               '/store/orders',
+  'store.dashboard':            '/stores/dashboard',
+  'store.orders':               '/stores/orders',
+  'store.stocks':               '/stores/stocks',
     // add more as you build pages...
 };
 
