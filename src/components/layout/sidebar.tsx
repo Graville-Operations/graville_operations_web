@@ -111,27 +111,25 @@ export default function Sidebar() {
     return routeMap[menu.name] ?? menu.link ?? '#';
   };
 
-  const getSubMenuHref = (sub: { link?: string; name: string }): string => {
-    const subRouteMap: Record<string, string> = {
-      'users.dashboard':            '/users/dashboard',
-      'users.add-user':             '/users/new',
-      'users.roles-and-permission': '/users/roles',
-      'users.reports':              '/users/reports',
-      'users.imports':              '/users/import',
-      'finance.dashboard':          '/finance',
-      'finance.invoices':           '/finance/invoices',
-      'finance.expenses':           '/finance/expenses',
-      'projects.dashboard':         '/projects',
-      'projects.new-project':       '/projects/new',
-      'department.menus':           '/department/menus',
-      'department.groups':          '/department/groups',
-      'department.users':           '/department/users',
-      // add more as you build pages...
-    };
-    return subRouteMap[sub.name] ?? sub.link ?? '#';
   const getSubMenuHref = (sub: { link?: string | null; name: string }): string => {
-    return subRouteMap[sub.name] ?? sub.link ?? '#';
+  const subRouteMap: Record<string, string> = {
+    'users.dashboard':            '/users/dashboard',
+    'users.add-user':             '/users/new',
+    'users.roles-and-permission': '/users/roles',
+    'users.reports':              '/users/reports',
+    'users.imports':              '/users/import',
+    'finance.dashboard':          '/finance',
+    'finance.invoices':           '/finance/invoices',
+    'finance.expenses':           '/finance/expenses',
+    'projects.dashboard':         '/projects',
+    'projects.new-project':       '/projects/new',
+    'department.menus':           '/department/menus',
+    'department.groups':          '/department/groups',
+    'department.users':           '/department/users',
   };
+
+  return subRouteMap[sub.name] ?? sub.link ?? '#';
+};
 
   const getSubSubMenuHref = (subsub: { link?: string | null; name: string }): string => {
     return subsub.link ?? subSubMenuLinks[subsub.name] ?? '#';

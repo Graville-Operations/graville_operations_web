@@ -14,7 +14,6 @@ interface Member {
 
 interface Group {
   id: number;
-  refId?: string;
   name: string;
   description: string;
   colorClass: string;
@@ -32,7 +31,6 @@ const PALETTE = [
   { label: "Sky",    accentHex: "#0369A1", colorClass: "bg-[#0369A1]" },
 ];
 
-// Assign palette colours by index so each department gets a consistent colour
 function paletteForIndex(index: number) {
   return PALETTE[index % PALETTE.length];
 }
@@ -142,6 +140,44 @@ function FormField({ label, value, onChange, placeholder }: {
   );
 }
 
+// ─── Group Form Content (OUTSIDE page component — fixes input focus bug) ──────
+function GroupFormContent({
+  fName, setFName,
+  fDesc, setFDesc,
+  fColorIdx, setFColorIdx,
+}: {
+  fName: string;      setFName: (v: string) => void;
+  fDesc: string;      setFDesc: (v: string) => void;
+  fColorIdx: number;  setFColorIdx: (v: number) => void;
+}) {
+  return (
+    <>
+      <FormField label="Group Name"  value={fName} onChange={setFName} placeholder="e.g. Logistics" />
+      <FormField label="Description" value={fDesc} onChange={setFDesc} placeholder="e.g. Fleet and logistics operations" />
+      <div className="mb-3">
+        <label className="gv-label">Color Theme</label>
+        <div className="flex gap-2 flex-wrap mt-1">
+          {PALETTE.map((p, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setFColorIdx(i)}
+              title={p.label}
+              className="w-7 h-7 rounded-full transition-all"
+              style={{
+                background: p.accentHex,
+                outline: i === fColorIdx ? "3px solid white" : "3px solid transparent",
+                outlineOffset: 2,
+              }}
+            />
+          ))}
+        </div>
+        <p className="text-white/40 text-xs mt-2">Selected: {PALETTE[fColorIdx].label}</p>
+      </div>
+    </>
+  );
+}
+
 // ─── Group Detail Bottom Sheet ────────────────────────────────────────────────
 function GroupDetailSheet({ group, members, membersLoading, onClose, onEdit, onDelete }: {
   group: Group;
@@ -159,9 +195,10 @@ function GroupDetailSheet({ group, members, membersLoading, onClose, onEdit, onD
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-lg bg-[#0d1528] border border-white/10 rounded-t-2xl flex flex-col"
-        style={{ maxHeight: "85vh", animation: "slideUp 0.22s ease" }}>
-
+      <div
+        className="w-full max-w-lg bg-[#0d1528] border border-white/10 rounded-t-2xl flex flex-col"
+        style={{ maxHeight: "85vh", animation: "slideUp 0.22s ease" }}
+      >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-9 h-1 rounded-full bg-white/20" />
@@ -309,12 +346,18 @@ function GroupCard({ group, onTap, onEdit, onDelete }: {
           </div>
         </div>
         <div className="flex gap-1 shrink-0">
-          <button onClick={e => { e.stopPropagation(); onEdit(); }}
-            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition-all">
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onEdit(); }}
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition-all"
+          >
             <EditIcon />
           </button>
-          <button onClick={e => { e.stopPropagation(); onDelete(); }}
-            className="p-1.5 rounded-lg text-red-300/70 hover:text-red-300 hover:bg-red-500/20 transition-all">
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onDelete(); }}
+            className="p-1.5 rounded-lg text-red-300/70 hover:text-red-300 hover:bg-red-500/20 transition-all"
+          >
             <TrashIcon />
           </button>
         </div>
@@ -338,7 +381,8 @@ function GroupCard({ group, onTap, onEdit, onDelete }: {
       <div className="px-3 pb-3 flex items-center justify-between">
         <div className="flex">
           {members.slice(0, 4).map((u, i) => (
-            <div key={u.id}
+            <div
+              key={u.id}
               className="w-7 h-7 rounded-full border-2 border-white/10 flex items-center justify-center text-xs font-bold text-white"
               style={{ background: group.accentHex, marginLeft: i === 0 ? 0 : -8, zIndex: 10 - i, position: "relative" }}
             >
@@ -346,8 +390,10 @@ function GroupCard({ group, onTap, onEdit, onDelete }: {
             </div>
           ))}
           {members.length > 4 && (
-            <div className="w-7 h-7 rounded-full border-2 border-white/10 bg-white/10 flex items-center justify-center text-xs font-bold text-white/50"
-              style={{ marginLeft: -8, position: "relative", zIndex: 0 }}>
+            <div
+              className="w-7 h-7 rounded-full border-2 border-white/10 bg-white/10 flex items-center justify-center text-xs font-bold text-white/50"
+              style={{ marginLeft: -8, position: "relative", zIndex: 0 }}
+            >
               +{members.length - 4}
             </div>
           )}
@@ -365,28 +411,29 @@ function GroupCard({ group, onTap, onEdit, onDelete }: {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function GroupsPage() {
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [groups, setGroups]   = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [search, setSearch] = useState("");
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [isSaving, setIsSaving]   = useState(false);
+  const [search, setSearch]       = useState("");
+  const [toast, setToast]         = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const [detailTarget, setDetailTarget] = useState<Group | null>(null);
-  const [detailMembers, setDetailMembers] = useState<Member[]>([]);
+  const [detailTarget, setDetailTarget]             = useState<Group | null>(null);
+  const [detailMembers, setDetailMembers]           = useState<Member[]>([]);
   const [detailMembersLoading, setDetailMembersLoading] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Group | null>(null);
+  const [addOpen, setAddOpen]           = useState(false);
+  const [editTarget, setEditTarget]     = useState<Group | null>(null);
 
-  const [fName, setFName] = useState("");
-  const [fDesc, setFDesc] = useState("");
+  // ── Form state (lifted here; passed as props to GroupFormContent) ───────────
+  const [fName,     setFName]     = useState("");
+  const [fDesc,     setFDesc]     = useState("");
   const [fColorIdx, setFColorIdx] = useState(0);
 
-  const showToast = (message: string, type: "success" | "error") => {
+  const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
-  };
+  }, []);
 
   const resetForm = () => { setFName(""); setFDesc(""); setFColorIdx(0); };
 
@@ -415,7 +462,7 @@ export default function GroupsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => { fetchGroups(); }, [fetchGroups]);
 
@@ -452,15 +499,16 @@ export default function GroupsPage() {
     try {
       setIsSaving(true);
       await api.post("/departments/create", {
-        name: fName,
-        description: fDesc,
+        name: fName.trim(),
+        description: fDesc.trim(),
       });
       showToast("Group created successfully", "success");
       setAddOpen(false);
       resetForm();
       fetchGroups();
-    } catch {
-      showToast("Failed to create group", "error");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.response?.data?.detail ?? "Failed to create group";
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -472,15 +520,16 @@ export default function GroupsPage() {
     try {
       setIsSaving(true);
       await api.patch(`/departments/${editTarget.id}`, {
-        name: fName,
-        description: fDesc,
+        name: fName.trim(),
+        description: fDesc.trim(),
       });
       showToast("Group updated successfully", "success");
       setEditTarget(null);
       resetForm();
       fetchGroups();
-    } catch {
-      showToast("Failed to update group", "error");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.response?.data?.detail ?? "Failed to update group";
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -494,10 +543,7 @@ export default function GroupsPage() {
     setEditTarget(group);
   };
 
-  // ── Delete — uses deletion-request flow ─────────────────────────────────────
-  // The backend requires a deletion request + approval flow (DIRECTOR role).
-  // Here we submit a deletion request. If your backend auto-approves for DIRECTOR
-  // you can chain the approval call, or simply reflect the pending state.
+  // ── Delete (deletion-request flow) ─────────────────────────────────────────
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
@@ -508,8 +554,9 @@ export default function GroupsPage() {
       showToast("Deletion request submitted", "success");
       setDeleteTarget(null);
       fetchGroups();
-    } catch {
-      showToast("Failed to submit deletion request", "error");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.response?.data?.detail ?? "Failed to submit deletion request";
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -522,29 +569,6 @@ export default function GroupsPage() {
       g.description.toLowerCase().includes(search.toLowerCase())
     ), [groups, search]);
 
-  const FormContent = () => (
-    <>
-      <FormField label="Group Name"  value={fName} onChange={setFName} placeholder="e.g. Logistics" />
-      <FormField label="Description" value={fDesc} onChange={setFDesc} placeholder="e.g. Fleet and logistics operations" />
-      <div className="mb-3">
-        <label className="gv-label">Color Theme</label>
-        <div className="flex gap-2 flex-wrap mt-1">
-          {PALETTE.map((p, i) => (
-            <button key={i} onClick={() => setFColorIdx(i)} title={p.label}
-              className="w-7 h-7 rounded-full transition-all"
-              style={{
-                background: p.accentHex,
-                outline: i === fColorIdx ? `3px solid white` : "3px solid transparent",
-                outlineOffset: 2,
-              }}
-            />
-          ))}
-        </div>
-        <p className="text-white/40 text-xs mt-2">Selected: {PALETTE[fColorIdx].label}</p>
-      </div>
-    </>
-  );
-
   return (
     <div className="space-y-6">
 
@@ -555,10 +579,10 @@ export default function GroupsPage() {
           <h1 className="text-white text-2xl font-bold">Groups</h1>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchGroups} className="gv-btn-outline px-3 py-2 text-sm gap-2 flex items-center">
+          <button type="button" onClick={fetchGroups} className="gv-btn-outline px-3 py-2 text-sm gap-2 flex items-center">
             <RefreshIcon /> Refresh
           </button>
-          <button onClick={() => { resetForm(); setAddOpen(true); }} className="gv-btn-brand px-4 py-2 text-sm gap-2">
+          <button type="button" onClick={() => { resetForm(); setAddOpen(true); }} className="gv-btn-brand px-4 py-2 text-sm gap-2">
             <PlusIcon /> Add Group
           </button>
         </div>
@@ -574,7 +598,7 @@ export default function GroupsPage() {
           className="flex-1 bg-transparent outline-none text-white text-sm placeholder:text-white/30"
         />
         {search && (
-          <button onClick={() => setSearch("")} className="text-white/30 hover:text-white transition-colors">
+          <button type="button" onClick={() => setSearch("")} className="text-white/30 hover:text-white transition-colors">
             <CloseIcon />
           </button>
         )}
@@ -583,7 +607,10 @@ export default function GroupsPage() {
       {/* Summary chips */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {groups.map(g => (
-          <button key={g.id} onClick={() => openDetail(g)}
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => openDetail(g)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors shrink-0"
           >
             <div className="w-2 h-2 rounded-full shrink-0" style={{ background: g.accentHex }} />
@@ -617,7 +644,9 @@ export default function GroupsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-10">
           {filtered.map(group => (
-            <GroupCard key={group.id} group={group}
+            <GroupCard
+              key={group.id}
+              group={group}
               onTap={() => openDetail(group)}
               onEdit={() => openEdit(group)}
               onDelete={() => setDeleteTarget(group)}
@@ -631,48 +660,76 @@ export default function GroupsPage() {
 
       {/* ── Add Dialog ── */}
       {addOpen && (
-        <Dialog title="Add Group" onClose={() => setAddOpen(false)} actions={
-          <>
-            <button onClick={() => setAddOpen(false)} className="gv-btn-outline px-4 py-2 text-sm">Cancel</button>
-            <button onClick={handleAdd} disabled={isSaving} className="gv-btn-brand px-4 py-2 text-sm">
-              {isSaving ? "Saving…" : "Add"}
-            </button>
-          </>
-        }>
-          <FormContent />
+        <Dialog
+          title="Add Group"
+          onClose={() => { setAddOpen(false); resetForm(); }}
+          actions={
+            <>
+              <button type="button" onClick={() => { setAddOpen(false); resetForm(); }} className="gv-btn-outline px-4 py-2 text-sm">
+                Cancel
+              </button>
+              <button type="button" onClick={handleAdd} disabled={isSaving || !fName.trim()} className="gv-btn-brand px-4 py-2 text-sm disabled:opacity-50">
+                {isSaving ? "Saving…" : "Add"}
+              </button>
+            </>
+          }
+        >
+          <GroupFormContent
+            fName={fName}     setFName={setFName}
+            fDesc={fDesc}     setFDesc={setFDesc}
+            fColorIdx={fColorIdx} setFColorIdx={setFColorIdx}
+          />
         </Dialog>
       )}
 
       {/* ── Edit Dialog ── */}
       {editTarget && (
-        <Dialog title={`Edit — ${editTarget.name}`} onClose={() => setEditTarget(null)} actions={
-          <>
-            <button onClick={() => setEditTarget(null)} className="gv-btn-outline px-4 py-2 text-sm">Cancel</button>
-            <button onClick={handleEdit} disabled={isSaving} className="gv-btn-brand px-4 py-2 text-sm">
-              {isSaving ? "Saving…" : "Save"}
-            </button>
-          </>
-        }>
-          <FormContent />
+        <Dialog
+          title={`Edit — ${editTarget.name}`}
+          onClose={() => { setEditTarget(null); resetForm(); }}
+          actions={
+            <>
+              <button type="button" onClick={() => { setEditTarget(null); resetForm(); }} className="gv-btn-outline px-4 py-2 text-sm">
+                Cancel
+              </button>
+              <button type="button" onClick={handleEdit} disabled={isSaving || !fName.trim()} className="gv-btn-brand px-4 py-2 text-sm disabled:opacity-50">
+                {isSaving ? "Saving…" : "Save"}
+              </button>
+            </>
+          }
+        >
+          <GroupFormContent
+            fName={fName}     setFName={setFName}
+            fDesc={fDesc}     setFDesc={setFDesc}
+            fColorIdx={fColorIdx} setFColorIdx={setFColorIdx}
+          />
         </Dialog>
       )}
 
       {/* ── Delete Dialog ── */}
       {deleteTarget && (
-        <Dialog title="Submit Deletion Request" onClose={() => setDeleteTarget(null)} actions={
-          <>
-            <button onClick={() => setDeleteTarget(null)} className="gv-btn-outline px-4 py-2 text-sm">Cancel</button>
-            <button
-              onClick={handleDelete}
-              disabled={isSaving}
-              className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors"
-            >
-              {isSaving ? "Submitting…" : "Submit Request"}
-            </button>
-          </>
-        }>
+        <Dialog
+          title="Submit Deletion Request"
+          onClose={() => setDeleteTarget(null)}
+          actions={
+            <>
+              <button type="button" onClick={() => setDeleteTarget(null)} className="gv-btn-outline px-4 py-2 text-sm">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isSaving}
+                className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors disabled:opacity-50"
+              >
+                {isSaving ? "Submitting…" : "Submit Request"}
+              </button>
+            </>
+          }
+        >
           <p className="text-white/70 text-sm">
-            Submit a deletion request for group <strong className="text-white">'{deleteTarget.name}'</strong>?
+            Submit a deletion request for group{" "}
+            <strong className="text-white">'{deleteTarget.name}'</strong>?
             <span className="block mt-2 text-yellow-400/80 text-xs">
               ⚠️ This will go through the approval workflow before the group is permanently removed.
             </span>

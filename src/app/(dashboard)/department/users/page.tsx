@@ -103,13 +103,16 @@ function Modal({ title, onClose, children, actions }: {
       style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="gv-card w-full max-w-md" style={{ animation: "gvFadeUp .18s ease", maxHeight: "90vh", overflowY: "auto" }}>
+      <div
+        className="gv-card w-full max-w-md"
+        style={{ animation: "gvFadeUp .18s ease", maxHeight: "90vh", overflowY: "auto" }}
+      >
         <div className="flex items-start justify-between mb-5">
           <div>
             <p className="gv-eyebrow mb-1">Departments / Users</p>
             <h2 className="text-base font-semibold text-white">{title}</h2>
           </div>
-          <button onClick={onClose} className="gv-btn-outline" style={{ padding: "6px 8px" }}>
+          <button type="button" onClick={onClose} className="gv-btn-outline" style={{ padding: "6px 8px" }}>
             <IconX />
           </button>
         </div>
@@ -130,8 +133,13 @@ function Field({ label, value, onChange, placeholder, type = "text" }: {
   return (
     <div className="mb-4">
       <label className="gv-label">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)}
-        placeholder={placeholder} className="gv-input" />
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="gv-input"
+      />
     </div>
   );
 }
@@ -144,11 +152,16 @@ function SelectField({ label, value, onChange, options }: {
     <div className="mb-4">
       <label className="gv-label">{label}</label>
       <div className="relative">
-        <select value={value} onChange={e => onChange(e.target.value)}
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
           className="gv-input appearance-none pr-8 cursor-pointer"
-          style={{ background: "var(--gv-glass-bg)" }}>
+          style={{ background: "var(--gv-glass-bg)" }}
+        >
           {options.map(o => (
-            <option key={o.value} value={o.value} style={{ background: "#0d1528", color: "#fff" }}>{o.label}</option>
+            <option key={o.value} value={o.value} style={{ background: "#0d1528", color: "#fff" }}>
+              {o.label}
+            </option>
           ))}
         </select>
         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--gv-text-subtle)" }}>
@@ -156,6 +169,52 @@ function SelectField({ label, value, onChange, options }: {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── User Form Content (OUTSIDE page — fixes input focus bug) ─────────────────
+function UserFormContent({
+  fName,     setFName,
+  fEmail,    setFEmail,
+  fPhone,    setFPhone,
+  fRole,     setFRole,
+  fPassword, setFPassword,
+  fStatus,   setFStatus,
+  isCreate = false,
+}: {
+  fName: string;     setFName: (v: string) => void;
+  fEmail: string;    setFEmail: (v: string) => void;
+  fPhone: string;    setFPhone: (v: string) => void;
+  fRole: string;     setFRole: (v: string) => void;
+  fPassword: string; setFPassword: (v: string) => void;
+  fStatus: "active" | "inactive"; setFStatus: (v: "active" | "inactive") => void;
+  isCreate?: boolean;
+}) {
+  return (
+    <>
+      <Field label="Full Name" value={fName}  onChange={setFName}  placeholder="e.g. Alice Kamau" />
+      <Field label="Email"     value={fEmail} onChange={setFEmail} placeholder="alice@example.co.ke" type="email" />
+      <Field label="Phone"     value={fPhone} onChange={setFPhone} placeholder="+254 7xx xxx xxx" />
+      <Field label="Role"      value={fRole}  onChange={setFRole}  placeholder="e.g. Driver" />
+      {isCreate && (
+        <Field
+          label="Password"
+          value={fPassword}
+          onChange={setFPassword}
+          placeholder="Temporary password"
+          type="password"
+        />
+      )}
+      <SelectField
+        label="Status"
+        value={fStatus}
+        onChange={v => setFStatus(v as "active" | "inactive")}
+        options={[
+          { value: "active",   label: "Active"   },
+          { value: "inactive", label: "Inactive" },
+        ]}
+      />
+    </>
   );
 }
 
@@ -187,20 +246,26 @@ function UserSheet({ user, color, onClose, onEdit, onDelete }: {
         </div>
 
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-            style={{ background: `${color}1a`, color, border: `1px solid ${color}44` }}>
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+            style={{ background: `${color}1a`, color, border: `1px solid ${color}44` }}
+          >
             {initials(user.name)}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-white font-bold text-base truncate">{user.name}</div>
-            <div className="text-xs font-medium" style={{ color }}>{user.role}{user.departmentName ? ` · ${user.departmentName}` : ""}</div>
+            <div className="text-xs font-medium" style={{ color }}>
+              {user.role}{user.departmentName ? ` · ${user.departmentName}` : ""}
+            </div>
           </div>
-          <span className="text-[10px] font-semibold px-3 py-1 rounded-full"
+          <span
+            className="text-[10px] font-semibold px-3 py-1 rounded-full"
             style={{
               background: user.status === "active" ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.06)",
               color:      user.status === "active" ? "#34d399" : "rgba(255,255,255,0.35)",
               border:     `1px solid ${user.status === "active" ? "rgba(52,211,153,0.3)" : "rgba(255,255,255,0.08)"}`,
-            }}>
+            }}
+          >
             {user.status === "active" ? "Active" : "Inactive"}
           </span>
         </div>
@@ -209,9 +274,11 @@ function UserSheet({ user, color, onClose, onEdit, onDelete }: {
 
         <div className="space-y-2 mb-5">
           {rows.map(r => (
-            <div key={r.label}
+            <div
+              key={r.label}
               className="flex items-center justify-between px-3 py-2.5 rounded-lg"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+            >
               <div className="flex items-center gap-2.5">
                 <span className="text-sm">{r.emoji}</span>
                 <span className="text-xs" style={{ color: "var(--gv-text-subtle)" }}>{r.label}</span>
@@ -222,18 +289,27 @@ function UserSheet({ user, color, onClose, onEdit, onDelete }: {
         </div>
 
         <div className="flex gap-3 mb-3">
-          <button onClick={() => { onClose(); onEdit(); }}
-            className="gv-btn-outline flex-1 flex items-center justify-center gap-2 py-2.5 text-sm">
+          <button
+            type="button"
+            onClick={() => { onClose(); onEdit(); }}
+            className="gv-btn-outline flex-1 flex items-center justify-center gap-2 py-2.5 text-sm"
+          >
             <IconEdit /> Edit
           </button>
-          <button onClick={() => { onClose(); onDelete(); }}
+          <button
+            type="button"
+            onClick={() => { onClose(); onDelete(); }}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg"
-            style={{ background: "rgba(239,83,80,0.1)", border: "1px solid rgba(239,83,80,0.28)", color: "#f87171" }}>
+            style={{ background: "rgba(239,83,80,0.1)", border: "1px solid rgba(239,83,80,0.28)", color: "#f87171" }}
+          >
             <IconTrash /> Deactivate
           </button>
         </div>
-        <button onClick={onClose}
-          className="gv-btn-outline w-full flex items-center justify-center gap-2 py-2.5 text-sm">
+        <button
+          type="button"
+          onClick={onClose}
+          className="gv-btn-outline w-full flex items-center justify-center gap-2 py-2.5 text-sm"
+        >
           <IconX /> Close
         </button>
       </div>
@@ -247,24 +323,35 @@ function UserCard({ user, color, onTap, onEdit, onDelete }: {
   onTap: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   return (
-    <div onClick={onTap} className="gv-card gv-card-hover flex flex-col gap-3 cursor-pointer" style={{ padding: "1rem" }}>
-      <div className="h-px -mx-1 -mt-1 rounded-full" style={{ background: `linear-gradient(90deg, ${color}55, transparent)` }} />
+    <div
+      onClick={onTap}
+      className="gv-card gv-card-hover flex flex-col gap-3 cursor-pointer"
+      style={{ padding: "1rem" }}
+    >
+      <div
+        className="h-px -mx-1 -mt-1 rounded-full"
+        style={{ background: `linear-gradient(90deg, ${color}55, transparent)` }}
+      />
 
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-          style={{ background: `${color}18`, color, border: `1px solid ${color}33` }}>
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+          style={{ background: `${color}18`, color, border: `1px solid ${color}33` }}
+        >
           {initials(user.name)}
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-white font-semibold text-sm truncate">{user.name}</div>
           <div className="text-xs truncate" style={{ color: "var(--gv-text-muted)" }}>{user.email}</div>
         </div>
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+        <span
+          className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
           style={{
             background: user.status === "active" ? "rgba(52,211,153,0.1)" : "rgba(255,255,255,0.05)",
             color:      user.status === "active" ? "#34d399" : "rgba(255,255,255,0.3)",
             border:     `1px solid ${user.status === "active" ? "rgba(52,211,153,0.22)" : "rgba(255,255,255,0.08)"}`,
-          }}>
+          }}
+        >
           {user.status === "active" ? "Active" : "Inactive"}
         </span>
       </div>
@@ -278,13 +365,19 @@ function UserCard({ user, color, onTap, onEdit, onDelete }: {
 
       <div className="gv-divider" />
       <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-        <button onClick={onEdit}
-          className="gv-btn-outline flex-1 flex items-center justify-center gap-1.5 text-xs py-1.5">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="gv-btn-outline flex-1 flex items-center justify-center gap-1.5 text-xs py-1.5"
+        >
           <IconEdit /> Edit
         </button>
-        <button onClick={onDelete}
+        <button
+          type="button"
+          onClick={onDelete}
           className="flex-1 flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg font-medium transition-all"
-          style={{ background: "rgba(239,83,80,0.07)", border: "1px solid rgba(239,83,80,0.2)", color: "#f87171" }}>
+          style={{ background: "rgba(239,83,80,0.07)", border: "1px solid rgba(239,83,80,0.2)", color: "#f87171" }}
+        >
           <IconTrash /> Deactivate
         </button>
       </div>
@@ -307,18 +400,18 @@ export default function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [detailTarget, setDetailTarget] = useState<User | null>(null);
 
-  // Form state
-  const [fName, setFName]         = useState("");
-  const [fEmail, setFEmail]       = useState("");
-  const [fPhone, setFPhone]       = useState("");
-  const [fRole, setFRole]         = useState("");
+  // ── Form state (lifted here; passed as props to UserFormContent) ────────────
+  const [fName,     setFName]     = useState("");
+  const [fEmail,    setFEmail]    = useState("");
+  const [fPhone,    setFPhone]    = useState("");
+  const [fRole,     setFRole]     = useState("");
   const [fPassword, setFPassword] = useState("");
-  const [fStatus, setFStatus]     = useState<"active" | "inactive">("active");
+  const [fStatus,   setFStatus]   = useState<"active" | "inactive">("active");
 
-  const showToast = (message: string, type: "success" | "error") => {
+  const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
-  };
+  }, []);
 
   const resetForm = () => {
     setFName(""); setFEmail(""); setFPhone("");
@@ -329,7 +422,7 @@ export default function UsersPage() {
   const fetchDepartments = useCallback(async () => {
     try {
       const { data } = await api.get("/departments/list");
-      const raw: any[] = data?.items ?? data?.data ?? data ?? [];
+      const raw: any[] = data?.data?.items ?? data?.items ?? data?.data ?? data ?? [];
       setDepartments(raw.map((d: any, idx: number) => ({
         id: d.id,
         name: d.name,
@@ -345,23 +438,23 @@ export default function UsersPage() {
     try {
       setIsLoading(true);
       const { data } = await api.get("/users/list");
-      const raw: any[] = data?.items ?? data?.data ?? data ?? [];
+      const raw: any[] = data?.data?.items ?? data?.items ?? data?.data ?? data ?? [];
 
       const mapped: User[] = raw.map((u: any) => {
-        // Resolve department name from nested object or flat field
-        const deptId: number | undefined = u.department_id ?? u.departmentId ?? u.department?.id;
+        const deptId: number | undefined   = u.department_id ?? u.departmentId ?? u.department?.id;
         const deptName: string | undefined = u.department?.name ?? u.department_name ?? u.departmentName;
 
-        // Derive colour from department index in our local departments list
         return {
           id: u.id,
-          name: u.name ?? u.full_name ?? `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim(),
+          name: u.name ?? u.full_name ??
+            `${u.firstName ?? u.first_name ?? ""} ${u.lastName ?? u.last_name ?? ""}`.trim(),
           email: u.email ?? "",
           phone: u.phone ?? u.phone_number ?? undefined,
           role: u.role ?? u.job_title ?? "",
           departmentId: deptId,
           departmentName: deptName,
-          status: u.status === "active" || u.is_active === true ? "active" : "inactive",
+          status: u.accountStatus === "active" || u.status === "active" || u.is_active === true
+            ? "active" : "inactive",
         };
       });
 
@@ -371,7 +464,7 @@ export default function UsersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     fetchDepartments();
@@ -379,11 +472,11 @@ export default function UsersPage() {
   }, [fetchDepartments, fetchUsers]);
 
   // ── Colour helper ───────────────────────────────────────────────────────────
-  const colorForUser = (user: User): string => {
+  const colorForUser = useCallback((user: User): string => {
     if (!user.departmentId) return DEPT_COLORS[0];
     const idx = departments.findIndex(d => d.id === user.departmentId);
     return idx >= 0 ? deptColor(idx) : DEPT_COLORS[0];
-  };
+  }, [departments]);
 
   // ── Create ──────────────────────────────────────────────────────────────────
   const handleAdd = async () => {
@@ -391,19 +484,20 @@ export default function UsersPage() {
     try {
       setIsSaving(true);
       await api.post("/users/create", {
-        // Adjust field names to match your UserCreateRequest DTO
-        name: fName,
-        email: fEmail,
-        phone: fPhone || undefined,
-        role: fRole || undefined,
-        password: fPassword || undefined,
+        name:     fName.trim(),
+        email:    fEmail.trim(),
+        phone:    fPhone.trim() || undefined,
+        role:     fRole.trim()  || undefined,
+        password: fPassword     || undefined,
+        status:   fStatus,
       });
       showToast("User created successfully", "success");
       setAddOpen(false);
       resetForm();
       fetchUsers();
-    } catch {
-      showToast("Failed to create user", "error");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.response?.data?.detail ?? "Failed to create user";
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -411,22 +505,23 @@ export default function UsersPage() {
 
   // ── Update ──────────────────────────────────────────────────────────────────
   const handleEdit = async () => {
-    if (!editTarget) return;
+    if (!editTarget || !fName.trim() || !fEmail.trim()) return;
     try {
       setIsSaving(true);
       await api.patch(`/users/${editTarget.id}`, {
-        name: fName,
-        email: fEmail,
-        phone: fPhone || undefined,
-        role: fRole || undefined,
+        name:   fName.trim(),
+        email:  fEmail.trim(),
+        phone:  fPhone.trim() || undefined,
+        role:   fRole.trim()  || undefined,
         status: fStatus,
       });
       showToast("User updated successfully", "success");
       setEditTarget(null);
       resetForm();
       fetchUsers();
-    } catch {
-      showToast("Failed to update user", "error");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.response?.data?.detail ?? "Failed to update user";
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -442,7 +537,7 @@ export default function UsersPage() {
     setEditTarget(u);
   };
 
-  // ── Deactivate (DELETE endpoint deactivates, not hard-deletes) ──────────────
+  // ── Deactivate ──────────────────────────────────────────────────────────────
   const handleDeactivate = async () => {
     if (!deleteTarget) return;
     try {
@@ -451,8 +546,9 @@ export default function UsersPage() {
       showToast("User deactivated successfully", "success");
       setDeleteTarget(null);
       fetchUsers();
-    } catch {
-      showToast("Failed to deactivate user", "error");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.response?.data?.detail ?? "Failed to deactivate user";
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
@@ -462,7 +558,8 @@ export default function UsersPage() {
   const filtered = useMemo(() =>
     users.filter(u => {
       const q = search.toLowerCase();
-      const matchSearch = u.name.toLowerCase().includes(q) ||
+      const matchSearch =
+        u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         u.role.toLowerCase().includes(q);
       const matchDept = filterDept === "all" || String(u.departmentId) === filterDept;
@@ -471,27 +568,6 @@ export default function UsersPage() {
 
   const activeCount   = users.filter(u => u.status === "active").length;
   const inactiveCount = users.length - activeCount;
-
-  const FormContent = ({ isCreate = false }: { isCreate?: boolean }) => (
-    <>
-      <Field label="Full Name" value={fName}  onChange={setFName}  placeholder="e.g. Alice Kamau" />
-      <Field label="Email"     value={fEmail} onChange={setFEmail} placeholder="alice@graville.co.ke" type="email" />
-      <Field label="Phone"     value={fPhone} onChange={setFPhone} placeholder="+254 7xx xxx xxx" />
-      <Field label="Role"      value={fRole}  onChange={setFRole}  placeholder="e.g. Driver" />
-      {isCreate && (
-        <Field label="Password" value={fPassword} onChange={setFPassword} placeholder="Temporary password" type="password" />
-      )}
-      <SelectField
-        label="Status"
-        value={fStatus}
-        onChange={v => setFStatus(v as "active" | "inactive")}
-        options={[
-          { value: "active",   label: "Active"   },
-          { value: "inactive", label: "Inactive" },
-        ]}
-      />
-    </>
-  );
 
   return (
     <>
@@ -513,11 +589,14 @@ export default function UsersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchUsers} className="gv-btn-outline flex items-center gap-2 px-3 py-2 text-sm">
+          <button type="button" onClick={fetchUsers} className="gv-btn-outline flex items-center gap-2 px-3 py-2 text-sm">
             <RefreshIcon /> Refresh
           </button>
-          <button onClick={() => { resetForm(); setAddOpen(true); }}
-            className="gv-btn-brand flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => { resetForm(); setAddOpen(true); }}
+            className="gv-btn-brand flex items-center gap-2"
+          >
             <IconPlus /> Add User
           </button>
         </div>
@@ -543,17 +622,25 @@ export default function UsersPage() {
           <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--gv-text-subtle)" }}>
             <IconSearch />
           </div>
-          <input value={search} onChange={e => setSearch(e.target.value)}
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
             placeholder="Search by name, email or role…"
-            className="gv-input pl-9" />
+            className="gv-input pl-9"
+          />
         </div>
         <div className="relative">
-          <select value={filterDept} onChange={e => setFilterDept(e.target.value)}
+          <select
+            value={filterDept}
+            onChange={e => setFilterDept(e.target.value)}
             className="gv-input appearance-none pr-8 cursor-pointer"
-            style={{ minWidth: 140, background: "var(--gv-glass-bg)" }}>
+            style={{ minWidth: 140, background: "var(--gv-glass-bg)" }}
+          >
             <option value="all" style={{ background: "#0d1528" }}>All Departments</option>
             {departments.map(d => (
-              <option key={d.id} value={String(d.id)} style={{ background: "#0d1528", color: "#fff" }}>{d.name}</option>
+              <option key={d.id} value={String(d.id)} style={{ background: "#0d1528", color: "#fff" }}>
+                {d.name}
+              </option>
             ))}
           </select>
           <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--gv-text-subtle)" }}>
@@ -584,10 +671,14 @@ export default function UsersPage() {
       ) : (
         <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
           {filtered.map(u => (
-            <UserCard key={u.id} user={u} color={colorForUser(u)}
+            <UserCard
+              key={u.id}
+              user={u}
+              color={colorForUser(u)}
               onTap={() => setDetailTarget(u)}
               onEdit={() => openEdit(u)}
-              onDelete={() => setDeleteTarget(u)} />
+              onDelete={() => setDeleteTarget(u)}
+            />
           ))}
         </div>
       )}
@@ -597,44 +688,95 @@ export default function UsersPage() {
 
       {/* ── Add modal ── */}
       {addOpen && (
-        <Modal title="Add User" onClose={() => setAddOpen(false)} actions={
-          <>
-            <button onClick={() => setAddOpen(false)} className="gv-btn-outline px-5 py-2 text-sm">Cancel</button>
-            <button onClick={handleAdd} disabled={isSaving} className="gv-btn-brand px-5 py-2 text-sm">
-              {isSaving ? "Saving…" : "Add User"}
-            </button>
-          </>
-        }><FormContent isCreate /></Modal>
+        <Modal
+          title="Add User"
+          onClose={() => { setAddOpen(false); resetForm(); }}
+          actions={
+            <>
+              <button type="button" onClick={() => { setAddOpen(false); resetForm(); }} className="gv-btn-outline px-5 py-2 text-sm">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={isSaving || !fName.trim() || !fEmail.trim()}
+                className="gv-btn-brand px-5 py-2 text-sm disabled:opacity-50"
+              >
+                {isSaving ? "Saving…" : "Add User"}
+              </button>
+            </>
+          }
+        >
+          <UserFormContent
+            fName={fName}         setFName={setFName}
+            fEmail={fEmail}       setFEmail={setFEmail}
+            fPhone={fPhone}       setFPhone={setFPhone}
+            fRole={fRole}         setFRole={setFRole}
+            fPassword={fPassword} setFPassword={setFPassword}
+            fStatus={fStatus}     setFStatus={setFStatus}
+            isCreate
+          />
+        </Modal>
       )}
 
       {/* ── Edit modal ── */}
       {editTarget && (
-        <Modal title={`Edit — ${editTarget.name}`} onClose={() => setEditTarget(null)} actions={
-          <>
-            <button onClick={() => setEditTarget(null)} className="gv-btn-outline px-5 py-2 text-sm">Cancel</button>
-            <button onClick={handleEdit} disabled={isSaving} className="gv-btn-brand px-5 py-2 text-sm">
-              {isSaving ? "Saving…" : "Save Changes"}
-            </button>
-          </>
-        }><FormContent /></Modal>
+        <Modal
+          title={`Edit — ${editTarget.name}`}
+          onClose={() => { setEditTarget(null); resetForm(); }}
+          actions={
+            <>
+              <button type="button" onClick={() => { setEditTarget(null); resetForm(); }} className="gv-btn-outline px-5 py-2 text-sm">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleEdit}
+                disabled={isSaving || !fName.trim() || !fEmail.trim()}
+                className="gv-btn-brand px-5 py-2 text-sm disabled:opacity-50"
+              >
+                {isSaving ? "Saving…" : "Save Changes"}
+              </button>
+            </>
+          }
+        >
+          <UserFormContent
+            fName={fName}         setFName={setFName}
+            fEmail={fEmail}       setFEmail={setFEmail}
+            fPhone={fPhone}       setFPhone={setFPhone}
+            fRole={fRole}         setFRole={setFRole}
+            fPassword={fPassword} setFPassword={setFPassword}
+            fStatus={fStatus}     setFStatus={setFStatus}
+          />
+        </Modal>
       )}
 
       {/* ── Deactivate modal ── */}
       {deleteTarget && (
-        <Modal title="Deactivate User" onClose={() => setDeleteTarget(null)} actions={
-          <>
-            <button onClick={() => setDeleteTarget(null)} className="gv-btn-outline px-5 py-2 text-sm">Cancel</button>
-            <button
-              onClick={handleDeactivate}
-              disabled={isSaving}
-              className="px-5 py-2 text-sm font-semibold rounded-lg"
-              style={{ background: "rgba(239,83,80,0.12)", border: "1px solid rgba(239,83,80,0.35)", color: "#f87171" }}>
-              {isSaving ? "Processing…" : "Deactivate"}
-            </button>
-          </>
-        }>
+        <Modal
+          title="Deactivate User"
+          onClose={() => setDeleteTarget(null)}
+          actions={
+            <>
+              <button type="button" onClick={() => setDeleteTarget(null)} className="gv-btn-outline px-5 py-2 text-sm">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeactivate}
+                disabled={isSaving}
+                className="px-5 py-2 text-sm font-semibold rounded-lg disabled:opacity-50"
+                style={{ background: "rgba(239,83,80,0.12)", border: "1px solid rgba(239,83,80,0.35)", color: "#f87171" }}
+              >
+                {isSaving ? "Processing…" : "Deactivate"}
+              </button>
+            </>
+          }
+        >
           <p className="text-sm" style={{ color: "var(--gv-text-muted)" }}>
-            Deactivate <span className="text-white font-semibold">"{deleteTarget.name}"</span>? They will lose access to the system. This can be reversed by editing the user.
+            Deactivate{" "}
+            <span className="text-white font-semibold">"{deleteTarget.name}"</span>?
+            {" "}They will lose access to the system. This can be reversed by editing the user.
           </p>
         </Modal>
       )}
@@ -646,7 +788,8 @@ export default function UsersPage() {
           color={colorForUser(detailTarget)}
           onClose={() => setDetailTarget(null)}
           onEdit={() => openEdit(detailTarget)}
-          onDelete={() => setDeleteTarget(detailTarget)} />
+          onDelete={() => setDeleteTarget(detailTarget)}
+        />
       )}
     </>
   );
