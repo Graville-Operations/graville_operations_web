@@ -1,11 +1,11 @@
 export type ProjectStatus =
-  | "PLANNING"
-  | "IN_PROGRESS"
-  | "ON_HOLD"
-  | "COMPLETED"
-  | "CANCELLED";
+  | 'PLANNING'
+  | 'IN_PROGRESS'
+  | 'ON_HOLD'
+  | 'COMPLETED'
+  | 'CANCELLED';
 
-export type SiteStatus = "ACTIVE" | "INACTIVE" | "CLOSED";
+export type SiteStatus = 'ACTIVE' | 'INACTIVE' | 'CLOSED';
 
 export interface Site {
   id: number;
@@ -40,4 +40,26 @@ export interface CreateSitePayload {
   tender_name?: string;
   inquiring_entity?: string;
   field_operator_id?: number;
+}
+
+// Exact field names from GET /api/v1/analytics/overview
+export interface OverviewKPIs {
+  totalSites: number;
+  activeSites: number;
+  planningSites: number;
+  totalWorkers: number;
+  active_workers: number;
+  totalTasks: number;
+  completedTasks: number;
+  teasksCompletion: number;
+  totalInvoiced: number;
+  pendingInvoiceValue: number;
+  totalPermits: number;
+  expiring_permits: number;
+  Rejecktedpermits: number;
+  avgReviewRating: number;
+  totalReviews: number;
+  pendingTransactionsransfers: number;
+  attendanceEateToday: number;
+  presentToday: number;
 }

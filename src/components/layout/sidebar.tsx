@@ -90,8 +90,9 @@ export default function Sidebar() {
     'finance.dashboard':          '/finance',
     'finance.invoices':           '/finance/invoices',
     'finance.expenses':           '/finance/expenses',
-    'projects.dashboard':         '/projects',
-    'projects.new-project':       '/projects/new',
+    'projects.dashboard':         '/projects/dashboard',
+    'projects.new-project':       '/projects/new-project',
+    'projects.[id]':              '/projects/[id]',
     // add more as you build pages...
   };
   return subRouteMap[sub.name] ?? sub.link ?? '#';
