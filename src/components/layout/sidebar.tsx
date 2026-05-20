@@ -67,35 +67,38 @@ export default function Sidebar() {
 
   const getMenuHref = (menu: MenuItem): string => {
     const routeMap: Record<string, string> = {
-      home: '/home',
-      workers: '/workers',
-      inventory: '/store',
-      account: '/account',
-      users: '/users',
-      finance: '/finance',
-      admin: '/admin',
-      projects: '/projects',
-      departments: '/departments',
+      home:       '/home',
+      workers:    '/workers',
+      inventory:  '/store',
+      account:    '/account',
+      users:      '/users',
+      finance:    '/finance',
+      admin:      '/admin',
+      projects:   '/projects',
+      department: '/department/menus',
     };
     return routeMap[menu.name] ?? menu.link ?? '#';
   };
 
   const getSubMenuHref = (sub: { link?: string; name: string }): string => {
-  const subRouteMap: Record<string, string> = {
-    'users.dashboard':            '/users/dashboard',
-    'users.add-user':             '/users/new',
-    'users.roles-and-permission': '/users/roles',
-    'users.reports':              '/users/reports',
-    'users.imports':              '/users/import',
-    'finance.dashboard':          '/finance',
-    'finance.invoices':           '/finance/invoices',
-    'finance.expenses':           '/finance/expenses',
-    'projects.dashboard':         '/projects',
-    'projects.new-project':       '/projects/new',
-    // add more as you build pages...
+    const subRouteMap: Record<string, string> = {
+      'users.dashboard':            '/users/dashboard',
+      'users.add-user':             '/users/new',
+      'users.roles-and-permission': '/users/roles',
+      'users.reports':              '/users/reports',
+      'users.imports':              '/users/import',
+      'finance.dashboard':          '/finance',
+      'finance.invoices':           '/finance/invoices',
+      'finance.expenses':           '/finance/expenses',
+      'projects.dashboard':         '/projects',
+      'projects.new-project':       '/projects/new',
+      'department.menus':           '/department/menus',
+      'department.groups':          '/department/groups',
+      'department.users':           '/department/users',
+      // add more as you build pages...
+    };
+    return subRouteMap[sub.name] ?? sub.link ?? '#';
   };
-  return subRouteMap[sub.name] ?? sub.link ?? '#';
-};
 
   const isMenuActive = (menu: MenuItem): boolean => {
     const href = getMenuHref(menu);
