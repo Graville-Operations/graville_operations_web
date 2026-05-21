@@ -19,8 +19,7 @@ export interface LoginResponse {
   expires_at: string;
 }
 
-<<<<<<< HEAD
-// ── Raw shapes — exactly as the backend returns them (camelCase) ─────────────
+// ── Raw shapes — exactly as the backend returns them ──────────────────────────
 
 export interface RawInvoiceItem {
   id: number;
@@ -47,6 +46,9 @@ export interface RawInvoice {
   notes: string | null;
   createdBy: RawCreatedBy | null;
   total: number;
+  amountPaid: number;
+  status: string;
+  site: string | null;
   created_at: string;
   items: RawInvoiceItem[];
 }
@@ -68,50 +70,9 @@ export interface InvoiceItem {
   id: number;
   index: number;
   particular: string;
-=======
-export interface InvoiceItem {
-  id: number;
-  item_index: number;
-  material_id: number;
-  particulars: string;
->>>>>>> main
   quantity: number;
   unit_price: number;
   total_price: number;
-  created_at: string;
-}
-
-export interface Invoice {
-  id: number;
-  invoice_number: string;
-  lpo_number?: string;
-  delivery_number?: string;
-  invoice_date: string;
-  supplier_name: string;
-  total_invoice_value: number;
-  notes?: string;
-  site_id: number;
-  store_id: number;
-  created_by?: number;
-  created_at: string;
-  updated_at?: string;
-  items: InvoiceItem[];
-}
-
-export interface InvoiceListItem {
-  id: number;
-  invoice_number: string;
-  supplier_name: string;
-  invoice_date: string;
-  total_invoice_value: number;
-  site_id: number;
-  created_at: string;
-}
-
-export interface Material {
-  id: number;
-  name: string;
-  unit?: string;
 }
 
 export interface Invoice {
@@ -124,32 +85,38 @@ export interface Invoice {
   total_amount: number;
   amount_paid: number;
   status: string;
-  site?: string | null;
-  items?: InvoiceItem[];
-  submitted_by?: string | null;
+  site: string | null;
+  items: InvoiceItem[];
+  submitted_by: string | null;
   submitted_by_id: number;
-  notes?: string | null;
+  notes: string | null;
   created_at: string;
+}
+
+export interface Material {
+  id: number;
+  name: string;
+  unit?: string;
 }
 
 // ── Transformer ───────────────────────────────────────────────────────────────
 
 export function normaliseInvoice(raw: RawInvoice): Invoice {
   return {
-    id:               raw.id,
-    invoice_number:   raw.invoiceNo,
-    lpo_number:       raw.lpoNo ?? null,
-    delivery_number:  raw.deliveryNo ?? null,
-    supplier_name:    raw.supplierName,
-    invoice_date:     raw.invoiceDate,
-    total_amount:     raw.total,
-    amount_paid:      0,
-    status:           'PENDING',
-    site:             null,
-    submitted_by:     raw.createdBy?.name ?? null,
-    submitted_by_id:  0,
-    notes:            raw.notes ?? null,
-    created_at:       raw.created_at,
+    id:              raw.id,
+    invoice_number:  raw.invoiceNo,
+    lpo_number:      raw.lpoNo      ?? null,
+    delivery_number: raw.deliveryNo ?? null,
+    supplier_name:   raw.supplierName,
+    invoice_date:    raw.invoiceDate,
+    total_amount:    raw.total,
+    amount_paid:     raw.amountPaid  ?? 0,
+    status:          raw.status      ?? 'PENDING',
+    site:            raw.site        ?? null,
+    submitted_by:    raw.createdBy?.name ?? null,
+    submitted_by_id: 0,
+    notes:           raw.notes ?? null,
+    created_at:      raw.created_at,
     items: (raw.items ?? []).map((item) => ({
       id:          item.id,
       index:       item.index,
@@ -161,7 +128,7 @@ export function normaliseInvoice(raw: RawInvoice): Invoice {
   };
 }
 
-// ── Other types ───────────────────────────────────────────────────────────────
+// ── Menu types ────────────────────────────────────────────────────────────────
 
 export interface MenuItem {
   id: number;
@@ -191,3 +158,40 @@ export interface SubSubMenu {
   icon?: string;
   order: number;
 }
+
+// ── Company types ─────────────────────────────────────────────────────────────
+
+export interface Company {
+  id: number;
+  name: string;
+  email: string;
+  logo?: string;
+  website?: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CompanyFormData {
+  companyName: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+  phoneNumber: string;
+  description: string;
+  website: string;
+}
+
+export interface CompanyCreatePayload {
+  companyName: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  password: string;
+  phoneNumber?: string;
+  description?: string;
+  website?: string;
+}
+
+export type FormErrors = Partial<Record<keyof CompanyFormData, string>>;
