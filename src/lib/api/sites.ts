@@ -2,19 +2,24 @@ import api from '@/lib/api';
 import { Site, CreateSitePayload, OverviewKPIs } from '@/types/site';
 
 function unwrapArray<T>(response: unknown): T[] {
-  // handles { code, data: [...], message } envelope
+  if (Array.isArray(response)) return response as T[];
   if (response && typeof response === 'object') {
     const obj = response as Record<string, unknown>;
+    // paginated: { data: { items: [...] } }
+    if (obj.data && typeof obj.data === 'object') {
+      const inner = obj.data as Record<string, unknown>;
+      if (Array.isArray(inner.items))   return inner.items   as T[];
+      if (Array.isArray(inner.results)) return inner.results as T[];
+    }
+    // flat: { data: [...] }
     if (Array.isArray(obj.data))    return obj.data    as T[];
     if (Array.isArray(obj.items))   return obj.items   as T[];
     if (Array.isArray(obj.results)) return obj.results as T[];
   }
-  if (Array.isArray(response)) return response as T[];
   return [];
 }
 
 function unwrapObject<T>(response: unknown): T {
-  // handles { code, data: {...}, message } envelope
   if (response && typeof response === 'object') {
     const obj = response as Record<string, unknown>;
     if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {

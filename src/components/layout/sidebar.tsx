@@ -24,10 +24,10 @@ const subRouteMap: Record<string, string> = {
   'users.reports':              '/users/reports',
   'users.imports':              '/users/import',
   'finance.dashboard':          '/finance',
-  'finance.invoices':           '/finance/invoices',
-  'finance.expenses':           '/finance/expenses',
-  'projects.dashboard':         '/projects',
-  'projects.new-project':       '/projects/new',
+'finance.invoices':           '/finance/invoices',
+    'finance.expenses':           '/finance/expenses',
+    'projects.dashboard':         '/projects/dashboard',
+    'projects.new-project':       '/projects/new-project',
 };
 
 export default function Sidebar() {
@@ -111,20 +111,6 @@ export default function Sidebar() {
     return routeMap[menu.name] ?? menu.link ?? '#';
   };
 
-  const getSubMenuHref = (sub: { link?: string; name: string }): string => {
-  const subRouteMap: Record<string, string> = {
-    'users.dashboard':            '/users/dashboard',
-    'users.add-user':             '/users/new',
-    'users.roles-and-permission': '/users/roles',
-    'users.reports':              '/users/reports',
-    'users.imports':              '/users/import',
-    'finance.dashboard':          '/finance',
-    'finance.invoices':           '/finance/invoices',
-    'finance.expenses':           '/finance/expenses',
-    'projects.dashboard':         '/projects/dashboard',
-    'projects.new-project':       '/projects/new-project',
-    'projects.[id]':              '/projects/[id]',
-    // add more as you build pages...
   const getSubMenuHref = (sub: { link?: string | null; name: string }): string => {
     return subRouteMap[sub.name] ?? sub.link ?? '#';
   };

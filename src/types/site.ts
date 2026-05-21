@@ -42,7 +42,6 @@ export interface CreateSitePayload {
   field_operator_id?: number;
 }
 
-// Exact field names from GET /api/v1/analytics/overview
 export interface OverviewKPIs {
   totalSites: number;
   activeSites: number;

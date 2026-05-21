@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { format } from 'date-fns';
 import { fetchSites, fetchOverviewKPIs } from '@/lib/api/sites';
 import { Site, ProjectStatus, SiteStatus, OverviewKPIs } from '@/types/site';
@@ -10,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import {
-  MapPin, Plus, Search, Calendar, Tag, Building2,
+  MapPin, Search, Calendar, Tag, Building2,
   RefreshCw, AlertCircle, Layers, ChevronRight,
   Loader2, Users, ClipboardList, FileText,
   Shield, Star, ArrowLeftRight, UserCheck,
+  X, Hash, Clock, Navigation, User,
 } from 'lucide-react';
 
 const PROJECT_STATUS_META: Record<
@@ -71,8 +70,8 @@ function StatCard({
 }
 
 function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
-  const projMeta = PROJECT_STATUS_META[site.project_status];
-  const siteDot  = SITE_STATUS_DOT[site.site_status];
+  const projMeta = PROJECT_STATUS_META[site.project_status] ?? PROJECT_STATUS_META['PLANNING'];
+  const siteDot  = SITE_STATUS_DOT[site.site_status]        ?? SITE_STATUS_DOT['INACTIVE'];
 
   return (
     <Card
@@ -136,11 +135,11 @@ function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
       <CardFooter className="pt-3 border-t flex items-center justify-between">
         <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
           <Calendar className="w-3 h-3" />
-          {format(new Date(site.created_at), 'dd MMM yyyy')}
+          {site.created_at ? format(new Date(site.created_at), 'dd MMM yyyy') : '—'}
         </div>
         {site.completion_date && (
           <span className="text-[11px] text-muted-foreground">
-            Due {format(new Date(site.completion_date), 'dd MMM yyyy')}
+            Due {site.completion_date ? format(new Date(site.completion_date), 'dd MMM yyyy') : '—'}
           </span>
         )}
       </CardFooter>
@@ -148,9 +147,156 @@ function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
   );
 }
 
-export default function ProjectsDashboardPage() {
-  const router = useRouter();
+function DetailRow({ icon: Icon, label, value }: {
+  icon: React.ElementType;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 py-3 border-b last:border-0">
+      <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+        <div className="text-sm font-medium break-words">{value}</div>
+      </div>
+    </div>
+  );
+}
 
+function SiteDetailPanel({ site, onClose }: { site: Site; onClose: () => void }) {
+  const projMeta = PROJECT_STATUS_META[site.project_status] ?? PROJECT_STATUS_META['PLANNING'];
+  const siteDot  = SITE_STATUS_DOT[site.site_status]        ?? SITE_STATUS_DOT['INACTIVE'];
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/30 z-40 transition-opacity"
+        onClick={onClose}
+      />
+      <div className="fixed top-0 right-0 h-full w-full max-w-md bg-background border-l shadow-xl z-50 flex flex-col overflow-hidden">
+
+        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-5 h-5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-sm leading-tight truncate">{site.name}</h2>
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                <span className={`w-1.5 h-1.5 rounded-full ${siteDot.color}`} />
+                {siteDot.label}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Badge variant={projMeta.variant}>{projMeta.label}</Badge>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+
+          {site.description && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{site.description}</p>
+          )}
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              Basic Information
+            </p>
+            <div className="rounded-xl border bg-card px-4">
+              {site.location && <DetailRow icon={MapPin} label="Location" value={site.location} />}
+              <DetailRow icon={Calendar} label="Created"
+                value={site.created_at ? format(new Date(site.created_at), 'dd MMM yyyy, HH:mm') : '—'} />
+              {site.updated_at && (
+                <DetailRow icon={Clock} label="Last updated"
+                  value={site.updated_at ? format(new Date(site.updated_at), 'dd MMM yyyy, HH:mm') : '—'} />
+              )}
+              {site.completion_date && (
+                <DetailRow icon={Calendar} label="Completion date"
+                  value={site.completion_date ? format(new Date(site.completion_date), 'dd MMM yyyy') : '—'} />
+              )}
+              <DetailRow icon={Hash} label="Site ID" value={`#${site.id}`} />
+            </div>
+          </div>
+
+          {(site.tender_name || site.inquiring_entity) && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                Entity Details
+              </p>
+              <div className="rounded-xl border bg-card px-4">
+                {site.tender_name && (
+                  <DetailRow icon={FileText} label="Tender name" value={site.tender_name} />
+                )}
+                {site.inquiring_entity && (
+                  <DetailRow icon={Layers} label="Inquiring entity" value={site.inquiring_entity} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {(site.latitude !== null || site.longitude !== null) && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                Geo Coordinates
+              </p>
+              <div className="rounded-xl border bg-card px-4">
+                {site.latitude !== null && (
+                  <DetailRow icon={Navigation} label="Latitude" value={site.latitude} />
+                )}
+                {site.longitude !== null && (
+                  <DetailRow icon={Navigation} label="Longitude" value={site.longitude} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {site.tags && site.tags.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                Tags
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {site.tags.map((tag) => (
+                  <span key={tag}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-medium">
+                    <Tag className="w-3 h-3 text-muted-foreground" />{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              System
+            </p>
+            <div className="rounded-xl border bg-card px-4">
+              <DetailRow icon={User} label="Created by" value={`User #${site.created_by}`} />
+              {site.updated_by && (
+                <DetailRow icon={User} label="Last updated by" value={`User #${site.updated_by}`} />
+              )}
+              {site.field_operator_id && (
+                <DetailRow icon={User} label="Field operator" value={`User #${site.field_operator_id}`} />
+              )}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function ProjectsDashboardPage() {
   const [sites, setSites]               = useState<Site[]>([]);
   const [kpis, setKpis]                 = useState<OverviewKPIs | null>(null);
   const [loadingSites, setLoadingSites] = useState(true);
@@ -160,6 +306,7 @@ export default function ProjectsDashboardPage() {
   const [search, setSearch]             = useState('');
   const [projectFilter, setProjectFilter] = useState<ProjectStatus | 'ALL'>('ALL');
   const [siteFilter, setSiteFilter]       = useState<SiteStatus | 'ALL'>('ALL');
+  const [selectedSite, setSelectedSite]   = useState<Site | null>(null);
 
   const loadAll = useCallback(() => {
     setLoadingSites(true);
@@ -186,6 +333,12 @@ export default function ProjectsDashboardPage() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedSite(null); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   const filtered = sites.filter((s) => {
     const q = search.toLowerCase();
     const matchSearch =
@@ -208,17 +361,12 @@ export default function ProjectsDashboardPage() {
           <h1 className="text-xl font-semibold">Projects & Sites</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage and monitor all your field sites</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadAll} disabled={anyLoading}>
-            {anyLoading
-              ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-              : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
-            Refresh
-          </Button>
-          <Link href="/projects/new-project">
-            <Button size="sm"><Plus className="w-3.5 h-3.5 mr-1.5" />New project</Button>
-          </Link>
-        </div>
+        <Button variant="outline" size="sm" onClick={loadAll} disabled={anyLoading}>
+          {anyLoading
+            ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+          Refresh
+        </Button>
       </div>
 
       {kpisError && (
@@ -243,14 +391,14 @@ export default function ProjectsDashboardPage() {
           <StatCard label="Pending Invoices" value={kpis?.pendingInvoiceValue ?? 0} icon={FileText}      loading={loadingKpis} sub="Value pending" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard label="Total Permits"    value={kpis?.totalPermits ?? 0}                  icon={Shield}        loading={loadingKpis} />
-          <StatCard label="Avg Review"       value={kpis?.avgReviewRating?.toFixed(1) ?? '0.0'} icon={Star}        loading={loadingKpis} sub={`${kpis?.totalReviews ?? 0} reviews`} />
-          <StatCard label="Pending Transfers" value={kpis?.pendingTransactionsransfers ?? 0}  icon={ArrowLeftRight} loading={loadingKpis} />
-          <StatCard label="Present Today"    value={kpis?.presentToday ?? 0}                  icon={UserCheck}     loading={loadingKpis} sub="Attendance" />
+          <StatCard label="Total Permits"     value={kpis?.totalPermits ?? 0}                    icon={Shield}         loading={loadingKpis} />
+          <StatCard label="Avg Review"        value={kpis?.avgReviewRating?.toFixed(1) ?? '0.0'} icon={Star}           loading={loadingKpis} sub={`${kpis?.totalReviews ?? 0} reviews`} />
+          <StatCard label="Pending Transfers" value={kpis?.pendingTransactionsransfers ?? 0}     icon={ArrowLeftRight} loading={loadingKpis} />
+          <StatCard label="Present Today"     value={kpis?.presentToday ?? 0}                    icon={UserCheck}      loading={loadingKpis} sub="Attendance" />
         </div>
       </div>
 
-      <div className="flex items-center gap-3 mt-2">
+      <div className="flex items-center gap-3">
         <p className="text-sm font-medium whitespace-nowrap">All Sites</p>
         <div className="flex-1 border-t" />
         {!loadingSites && (
@@ -316,18 +464,17 @@ export default function ProjectsDashboardPage() {
           <p className="text-xs text-muted-foreground mt-1">
             {sites.length === 0 ? 'Create your first project to get started' : 'Try adjusting your search or filters'}
           </p>
-          {sites.length === 0 && (
-            <Link href="/projects/new-project" className="mt-4">
-              <Button size="sm"><Plus className="w-3.5 h-3.5 mr-1.5" />New project</Button>
-            </Link>
-          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((site) => (
-            <SiteCard key={site.id} site={site} onClick={() => router.push(`/projects/${site.id}`)} />
+            <SiteCard key={site.id} site={site} onClick={() => setSelectedSite(site)} />
           ))}
         </div>
+      )}
+
+      {selectedSite && (
+        <SiteDetailPanel site={selectedSite} onClose={() => setSelectedSite(null)} />
       )}
     </div>
   );
