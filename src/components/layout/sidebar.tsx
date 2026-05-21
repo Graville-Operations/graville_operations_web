@@ -31,6 +31,9 @@ const subRouteMap: Record<string, string> = {
   'store.dashboard':            '/stores/dashboard',
   'store.orders':               '/stores/orders',
   'store.stocks':               '/stores/stocks',
+  'department.menus':           '/department/menus',
+  'department.groups':          '/department/groups',
+  'department.users':           '/department/users',
     // add more as you build pages...
 };
 
@@ -116,22 +119,6 @@ export default function Sidebar() {
   };
 
   const getSubMenuHref = (sub: { link?: string | null; name: string }): string => {
-  const subRouteMap: Record<string, string> = {
-    'users.dashboard':            '/users/dashboard',
-    'users.add-user':             '/users/new',
-    'users.roles-and-permission': '/users/roles',
-    'users.reports':              '/users/reports',
-    'users.imports':              '/users/import',
-    'finance.dashboard':          '/finance',
-    'finance.invoices':           '/finance/invoices',
-    'finance.expenses':           '/finance/expenses',
-    'projects.dashboard':         '/projects',
-    'projects.new-project':       '/projects/new',
-    'department.menus':           '/department/menus',
-    'department.groups':          '/department/groups',
-    'department.users':           '/department/users',
-  };
-
   return subRouteMap[sub.name] ?? sub.link ?? '#';
 };
 
