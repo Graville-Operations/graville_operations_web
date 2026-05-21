@@ -2,9 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { Invoice, RawInvoice, RawPaginatedResponse, normaliseInvoice } from '@/types';
 import { Search, Eye, Plus, X, Receipt } from 'lucide-react';
-import CreateInvoiceModal from './supplier/createnew';
+import CreateSubcontractorModal from './components/subcontractormodal';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface SubcontractorInvoiceItem {
+  id:          number;
+  index:       number;
+  description: string;
+  quantity:    number;
+  unit_price:  number;
+  total_price: number;
+}
+
+interface SubcontractorInvoice {
+  id:                  number;
+  invoice_number:      string;
+  lpo_number:          string | null;
+  subcontractor_name:  string;
+  work_description:    string | null;
+  invoice_date:        string;
+  total_amount:        number;
+  amount_paid:         number;
+  status:              string;
+  site:                string | null;
+  submitted_by:        string | null;
+  notes:               string | null;
+  created_at:          string;
+  items:               SubcontractorInvoiceItem[];
+}
 
 // ── Status styles ─────────────────────────────────────────────────────────────
 
@@ -18,12 +45,12 @@ const statusStyles: Record<string, { bg: string; color: string }> = {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function InvoicesPage() {
-  const [invoices, setInvoices]     = useState<Invoice[]>([]);
-  const [filtered, setFiltered]     = useState<Invoice[]>([]);
+export default function SubcontractorInvoicesPage() {
+  const [invoices, setInvoices]     = useState<SubcontractorInvoice[]>([]);
+  const [filtered, setFiltered]     = useState<SubcontractorInvoice[]>([]);
   const [search, setSearch]         = useState('');
   const [isLoading, setIsLoading]   = useState(true);
-  const [selected, setSelected]     = useState<Invoice | null>(null);
+  const [selected, setSelected]     = useState<SubcontractorInvoice | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
   // ── data fetching ─────────────────────────────────────────────────────────
@@ -34,10 +61,11 @@ export default function InvoicesPage() {
     const q = search.toLowerCase();
     setFiltered(
       invoices.filter((i) =>
-        i.invoice_number.toLowerCase().includes(q) ||
-        i.supplier_name.toLowerCase().includes(q)  ||
+        i.invoice_number.toLowerCase().includes(q)     ||
+        i.subcontractor_name.toLowerCase().includes(q) ||
         (i.submitted_by ?? '').toLowerCase().includes(q) ||
-        (i.site ?? '').toLowerCase().includes(q)   ||
+        (i.site ?? '').toLowerCase().includes(q)       ||
+        (i.work_description ?? '').toLowerCase().includes(q) ||
         i.status.toLowerCase().includes(q)
       )
     );
@@ -46,15 +74,13 @@ export default function InvoicesPage() {
   const fetchInvoices = async () => {
     try {
       setIsLoading(true);
-      const { data }   = await api.get('/invoices/all');
-      console.log('RAW API RESPONSE:', JSON.stringify(data, null, 2));
-      const res        = data as RawPaginatedResponse<RawInvoice>;
-      const raw        = res?.data?.items ?? [];
-      const normalised = raw.map(normaliseInvoice);
-      setInvoices(normalised);
-      setFiltered(normalised);
+      const { data } = await api.get('/invoices/subcontractor/all');
+      console.log('RAW SUBCONTRACTOR RESPONSE:', JSON.stringify(data, null, 2));
+      const items = data?.data?.items ?? [];
+      setInvoices(items);
+      setFiltered(items);
     } catch (err) {
-      console.error('Failed to fetch invoices:', err);
+      console.error('Failed to fetch subcontractor invoices:', err);
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +94,9 @@ export default function InvoicesPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>Invoices</h2>
+          <h2 className="text-xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>
+            Sub-Contractor Invoices
+          </h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
             {filtered.length} invoice{filtered.length !== 1 ? 's' : ''}
           </p>
@@ -87,7 +115,7 @@ export default function InvoicesPage() {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--gv-text-subtle)' }} />
           <input
             type="text"
-            placeholder="Search by invoice no, supplier, site, status..."
+            placeholder="Search by invoice no, sub-contractor, site, work, status..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="gv-input !pl-9 !py-2 text-sm"
@@ -105,7 +133,7 @@ export default function InvoicesPage() {
           <div className="flex flex-col items-center justify-center h-48">
             <Receipt size={40} style={{ color: 'var(--gv-text-faint)' }} className="mb-3" />
             <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
-              {search ? `No results for "${search}"` : 'No invoices found'}
+              {search ? `No results for "${search}"` : 'No sub-contractor invoices found'}
             </p>
           </div>
         ) : (
@@ -113,7 +141,7 @@ export default function InvoicesPage() {
             <table className="w-full">
               <thead>
                 <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
-                  {['Invoice No', 'Supplier', 'Site', 'Submitted By', 'Amount', 'Paid', 'Status', ''].map((h) => (
+                  {['Invoice No', 'Sub-Contractor', 'Work Description', 'Site', 'Amount', 'Paid', 'Status', ''].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#33907c' }}>{h}</th>
                   ))}
                 </tr>
@@ -129,9 +157,11 @@ export default function InvoicesPage() {
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>{inv.invoice_number}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.supplier_name}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.subcontractor_name}</td>
+                      <td className="px-4 py-3 text-sm max-w-[180px] truncate" style={{ color: 'var(--gv-text-muted)' }}>
+                        {inv.work_description ?? '—'}
+                      </td>
                       <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.site ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.submitted_by ?? '—'}</td>
                       <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>KES {inv.total_amount.toLocaleString()}</td>
                       <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>KES {inv.amount_paid.toLocaleString()}</td>
                       <td className="px-4 py-3">
@@ -159,17 +189,15 @@ export default function InvoicesPage() {
         )}
       </div>
 
-      {/* ── Create Invoice Modal ── */}
+      {/* ── Create Modal ── */}
       {showCreate && (
-        <CreateInvoiceModal
+        <CreateSubcontractorModal
           onClose={() => setShowCreate(false)}
           onSuccess={fetchInvoices}
         />
       )}
 
-      {/* ══════════════════════════════════════════════════════
-          Invoice Detail Modal
-      ══════════════════════════════════════════════════════ */}
+      {/* ── Detail Modal ── */}
       {selected && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50 p-4"
@@ -180,10 +208,13 @@ export default function InvoicesPage() {
             className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
             style={{ background: '#0d1528', border: '1px solid var(--gv-glass-border)' }}
           >
+            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
               <div className="flex items-center gap-3">
                 <div className="gv-icon-box"><Receipt size={18} className="text-[#33907c]" /></div>
-                <h3 className="font-bold text-base" style={{ color: 'var(--gv-text-primary)' }}>Invoice #{selected.invoice_number}</h3>
+                <h3 className="font-bold text-base" style={{ color: 'var(--gv-text-primary)' }}>
+                  Invoice #{selected.invoice_number}
+                </h3>
               </div>
               <button onClick={() => setSelected(null)} className="p-2 rounded-lg" style={{ color: 'var(--gv-text-muted)' }}>
                 <X size={18} />
@@ -191,16 +222,17 @@ export default function InvoicesPage() {
             </div>
 
             <div className="p-6 space-y-6">
+              {/* Meta grid */}
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: 'Supplier',        value: selected.supplier_name },
-                  { label: 'LPO Number',      value: selected.lpo_number     ?? '—' },
-                  { label: 'Delivery Number', value: selected.delivery_number ?? '—' },
-                  { label: 'Invoice Date',    value: new Date(selected.invoice_date).toLocaleDateString() },
-                  { label: 'Site',            value: selected.site            ?? '—' },
-                  { label: 'Submitted By',    value: selected.submitted_by    ?? '—' },
-                  { label: 'Submitted On',    value: selected.created_at ? new Date(selected.created_at).toLocaleDateString() : '—' },
-                  { label: 'Status',          value: selected.status.replace(/_/g, ' ') },
+                  { label: 'Sub-Contractor',    value: selected.subcontractor_name },
+                  { label: 'LPO Number',         value: selected.lpo_number      ?? '—' },
+                  { label: 'Work Description',   value: selected.work_description ?? '—' },
+                  { label: 'Invoice Date',       value: new Date(selected.invoice_date).toLocaleDateString() },
+                  { label: 'Site',               value: selected.site             ?? '—' },
+                  { label: 'Submitted By',       value: selected.submitted_by     ?? '—' },
+                  { label: 'Submitted On',       value: selected.created_at ? new Date(selected.created_at).toLocaleDateString() : '—' },
+                  { label: 'Status',             value: selected.status.replace(/_/g, ' ') },
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <p className="gv-eyebrow mb-1">{label}</p>
@@ -209,6 +241,7 @@ export default function InvoicesPage() {
                 ))}
               </div>
 
+              {/* Items table */}
               {selected.items && selected.items.length > 0 && (
                 <div>
                   <p className="gv-eyebrow mb-3">Items</p>
@@ -216,7 +249,7 @@ export default function InvoicesPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr style={{ background: 'rgba(51,144,124,0.08)' }}>
-                          {['Particulars', 'Qty', 'Unit Price', 'Total'].map((h) => (
+                          {['Description', 'Qty', 'Unit Price', 'Total'].map((h) => (
                             <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#33907c' }}>{h}</th>
                           ))}
                         </tr>
@@ -224,7 +257,7 @@ export default function InvoicesPage() {
                       <tbody>
                         {selected.items.map((item, i) => (
                           <tr key={i} style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
-                            <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-primary)' }}>{item.particular}</td>
+                            <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-primary)' }}>{item.description}</td>
                             <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-muted)' }}>{item.quantity}</td>
                             <td className="px-4 py-2.5" style={{ color: 'var(--gv-text-muted)' }}>KES {item.unit_price.toLocaleString()}</td>
                             <td className="px-4 py-2.5 font-semibold" style={{ color: '#33907c' }}>KES {item.total_price.toLocaleString()}</td>
@@ -236,6 +269,7 @@ export default function InvoicesPage() {
                 </div>
               )}
 
+              {/* Totals */}
               <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
                 {[
                   { label: 'Total Amount', value: `KES ${selected.total_amount.toLocaleString()}`, color: 'var(--gv-text-primary)' },
