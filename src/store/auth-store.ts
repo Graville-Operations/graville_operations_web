@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { User } from '@/types';
 import { saveToken, saveRole, saveUser, clearSession, getUser, getToken, getRole } from '@/lib/auth';
-import api from '@/lib/api';
+import axios from 'axios';
+import { API_BASE_URL } from '@/lib/constants';
 
 interface AuthState {
   user: User | null;
@@ -29,25 +30,49 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      // Step 1: Login — use plain axios to avoid interceptor overwriting headers
+      const loginRes = await axios.post(
+        `${API_BASE_URL}/auth/login`,
+        { email, password },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
 
-      // API returns: { code, data: { token, role, user_id, expires_at }, message }
-      const payload = data?.data ?? data;
+      const payload = loginRes.data?.data ?? loginRes.data;
 
-      saveToken(payload.token);  
-      saveRole(payload.role);    
+      if (!payload?.token) {
+        throw new Error('Login failed — no token returned');
+      }
 
-      // Fetch full user profile
-      const meRes = await api.get('/auth/me', {
-        headers: { Authorization: `Bearer ${payload.token}` },
-      });
+      // Step 2: Fetch profile using the fresh token — plain axios again
+      const meRes = await axios.get(
+        `${API_BASE_URL}/auth/me`,
+        { headers: { Authorization: `Bearer ${payload.token}` } }
+      );
 
-      const user = meRes.data?.data ?? meRes.data;
+      const meData = meRes.data?.data ?? meRes.data;
 
+      // Guard: make sure we got real user data
+      if (!meData || !meData.email) {
+        throw new Error('Failed to fetch user profile');
+      }
+
+      // Map camelCase API fields → snake_case User type
+      const user: User = {
+        ...meData,
+        first_name:   meData.firstName  ?? '',
+        last_name:    meData.lastName   ?? '',
+        account_type: meData.role       ?? '',
+        phone_no:     meData.phone      ?? '',
+      };
+
+      // Step 3: Save to cookies and store
+      saveToken(payload.token);
+      saveRole(payload.role);
       saveUser(user);
+
       set({
-        token: payload.token,  
-        role: payload.role,    
+        token: payload.token,
+        role:  payload.role,
         user,
         isLoading: false,
       });

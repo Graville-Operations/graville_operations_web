@@ -28,6 +28,10 @@ const subRouteMap: Record<string, string> = {
     'finance.expenses':           '/finance/expenses',
     'projects.dashboard':         '/projects/dashboard',
     'projects.new-project':       '/projects/new-project',
+  'store.dashboard':            '/stores/dashboard',
+  'store.orders':               '/stores/orders',
+  'store.stocks':               '/stores/stocks',
+    // add more as you build pages...
 };
 
 export default function Sidebar() {
@@ -98,22 +102,38 @@ export default function Sidebar() {
 
   const getMenuHref = (menu: MenuItem): string => {
     const routeMap: Record<string, string> = {
-      home: '/home',
-      workers: '/workers',
-      inventory: '/store',
-      account: '/account',
-      users: '/users',
-      finance: '/finance',
-      admin: '/admin',
-      projects: '/projects',
-      departments: '/departments',
+      home:       '/home',
+      workers:    '/workers',
+      inventory:  '/store',
+      account:    '/account',
+      users:      '/users',
+      finance:    '/finance',
+      admin:      '/admin',
+      projects:   '/projects',
+      department: '/department/menus',
     };
     return routeMap[menu.name] ?? menu.link ?? '#';
   };
 
   const getSubMenuHref = (sub: { link?: string | null; name: string }): string => {
-    return subRouteMap[sub.name] ?? sub.link ?? '#';
+  const subRouteMap: Record<string, string> = {
+    'users.dashboard':            '/users/dashboard',
+    'users.add-user':             '/users/new',
+    'users.roles-and-permission': '/users/roles',
+    'users.reports':              '/users/reports',
+    'users.imports':              '/users/import',
+    'finance.dashboard':          '/finance',
+    'finance.invoices':           '/finance/invoices',
+    'finance.expenses':           '/finance/expenses',
+    'projects.dashboard':         '/projects',
+    'projects.new-project':       '/projects/new',
+    'department.menus':           '/department/menus',
+    'department.groups':          '/department/groups',
+    'department.users':           '/department/users',
   };
+
+  return subRouteMap[sub.name] ?? sub.link ?? '#';
+};
 
   const getSubSubMenuHref = (subsub: { link?: string | null; name: string }): string => {
     return subsub.link ?? subSubMenuLinks[subsub.name] ?? '#';
@@ -184,7 +204,7 @@ export default function Sidebar() {
                     />
                   </button>
 
-                  {/* Submenus — show on hover OR when toggled open */}
+                  {/* Submenus — show on hover*/}
                   {(openMenus.has(menu.id) || hoveredMenu === menu.id) && (
                     <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
                       {menu.submenus
@@ -192,7 +212,6 @@ export default function Sidebar() {
                         .map((sub) => (
                           <div key={sub.id}>
                             {sub.subsubmenus && sub.subsubmenus.length > 0 ? (
-                              /* Submenu with sub-submenus — split title link + chevron toggle */
                               <div>
                                 <div className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-all duration-150 hover:scale-[1.01] ${
                                   isSubActive(sub)
