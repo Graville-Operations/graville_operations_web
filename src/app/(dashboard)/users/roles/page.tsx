@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { Shield, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Shield, Plus, Pencil, Trash2, X, Check, UserCog } from 'lucide-react';
 
 interface Role {
   id: number;
@@ -12,6 +13,7 @@ interface Role {
 }
 
 export default function RolesPage() {
+  const router = useRouter();
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -101,13 +103,22 @@ export default function RolesPage() {
           <h2 className="text-xl font-bold text-white">Roles & Permissions</h2>
           <p className="text-sm text-blue-200/60">Manage user roles and access levels</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 bg-[#33907C] text-white px-4 py-2 rounded-xl hover:bg-[#2a7a69] transition-colors text-sm font-medium"
-        >
-          <Plus size={16} />
-          New Role
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/users/roles/assign')}
+            className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl hover:bg-white/20 transition-colors text-sm font-medium"
+          >
+            <UserCog size={16} />
+            Assign Role
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 bg-[#33907C] text-white px-4 py-2 rounded-xl hover:bg-[#2a7a69] transition-colors text-sm font-medium"
+          >
+            <Plus size={16} />
+            New Role
+          </button>
+        </div>
       </div>
 
       {/* Roles grid */}
