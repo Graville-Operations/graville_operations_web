@@ -9,12 +9,12 @@ import {
 interface Site { id: number; name: string; }
 
 interface StoreSummary {
-  totalMaterials: number;
-  lowStockCount:  number;
-  toolsAvailable: number;
-  toolsInUse:     number;
-  toolsDamaged:   number;
-  totalHireCost:  number;
+  total_materials: number;
+  low_stock_count: number;
+  tools_available: number;
+  tools_in_use:    number;
+  tools_damaged:   number;
+  total_hire_cost: number;
 }
 
 interface StatCardProps {
@@ -41,7 +41,6 @@ function StatCard({ label, value, sub, icon, variant = 'default' }: StatCardProp
   const tagMap: Record<string, string> = {
     warn: 'Warning', danger: 'Critical', success: 'Good', info: 'Info',
   };
-
   return (
     <div className={`gv-card flex flex-col gap-4 ${border[variant]}`}>
       <div className="flex items-start justify-between">
@@ -99,20 +98,53 @@ function ToolsBreakdownCard({ available, inUse, damaged }: { available: number; 
   );
 }
 
-export default function StoreDashboardPage() {
-  const [sites, setSites]           = useState<Site[]>([]);
-  const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
-  const [summary, setSummary]       = useState<StoreSummary | null>(null);
-  const [isSitesLoading, setIsSitesLoading] = useState(true);
-  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
-  const [error, setError]           = useState(false);
+// Reusable dark-styled site selector
+function SiteSelector({
+  sites, selectedSiteId, onChange, isLoading,
+}: {
+  sites: Site[];
+  selectedSiteId: number | null;
+  onChange: (id: number) => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 w-full sm:w-64">
+      <p className="gv-label">Viewing site</p>
+      {isLoading ? (
+        <div className="h-10 rounded-lg animate-pulse bg-white/8" />
+      ) : (
+        <div className="relative">
+          <select
+            style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'white' }}
+            className="w-full appearance-none pr-9 pl-3 h-10 rounded-lg border border-white/12 text-sm
+                       cursor-pointer outline-none transition-colors
+                       focus:border-white/30 hover:border-white/25
+                       [&>option]:bg-[#0d1528] [&>option]:text-white"
+            value={selectedSiteId ?? ''}
+            onChange={(e) => onChange(Number(e.target.value))}
+          >
+            {sites.length === 0 && <option value="">No sites available</option>}
+            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+        </div>
+      )}
+    </div>
+  );
+}
 
-  // Step 1: load sites list
+export default function StoreDashboardPage() {
+  const [sites, setSites]                       = useState<Site[]>([]);
+  const [selectedSiteId, setSelectedSiteId]     = useState<number | null>(null);
+  const [summary, setSummary]                   = useState<StoreSummary | null>(null);
+  const [isSitesLoading, setIsSitesLoading]     = useState(true);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [error, setError]                       = useState(false);
+
   useEffect(() => {
     api.get('/sites/list')
       .then((res) => {
         const raw  = res.data?.data;
-        // list_sites returns a paginated shape: { items: [...] } OR a plain array
         const list: Site[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
         setSites(list);
         if (list.length > 0) setSelectedSiteId(list[0].id);
@@ -121,18 +153,16 @@ export default function StoreDashboardPage() {
       .finally(() => setIsSitesLoading(false));
   }, []);
 
-  // Step 2: fetch analytics whenever selectedSiteId changes
-  // NOTE: /analytics/store currently has no site_id param — it returns company-wide data.
-  // To enable per-site filtering, add `site_id: Optional[int] = Query(default=None)`
-  // to your get_store_summary endpoint and filter in get_store_summary service.
-  // The frontend already passes site_id so it will work once the backend supports it.
   useEffect(() => {
     if (selectedSiteId === null) return;
     setIsSummaryLoading(true);
     setError(false);
     setSummary(null);
     api.get('/analytics/store', { params: { site_id: selectedSiteId } })
-      .then((res) => setSummary(res.data?.data ?? res.data))
+      .then((res) => {
+        const raw = res.data?.data ?? res.data;
+        if (raw) setSummary(raw as StoreSummary);
+      })
       .catch(() => setError(true))
       .finally(() => setIsSummaryLoading(false));
   }, [selectedSiteId]);
@@ -140,52 +170,36 @@ export default function StoreDashboardPage() {
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
   const cards: StatCardProps[] = summary ? [
-    { label: 'Total Materials', value: summary.totalMaterials, sub: 'Registered in store',
-      icon: <Package size={18} />, variant: 'default' },
-    { label: 'Low Stock Items', value: summary.lowStockCount,  sub: 'Below minimum level',
-      icon: <TrendingDown size={18} />, variant: summary.lowStockCount > 0 ? 'warn' : 'success' },
-    { label: 'Tools Available', value: summary.toolsAvailable, sub: 'Ready for deployment',
-      icon: <CheckCircle2 size={18} />, variant: 'success' },
-    { label: 'Tools Damaged',   value: summary.toolsDamaged,   sub: 'Requiring maintenance',
-      icon: <XCircle size={18} />, variant: summary.toolsDamaged > 0 ? 'danger' : 'default' },
-    { label: 'Tools In Use',    value: summary.toolsInUse,     sub: 'Currently deployed',
-      icon: <Activity size={18} />, variant: 'info' },
+    { label: 'Total Materials', value: summary.total_materials,
+      sub: 'Registered in store',     icon: <Package size={18} />,      variant: 'default'  },
+    { label: 'Low Stock Items', value: summary.low_stock_count,
+      sub: 'Below minimum level',     icon: <TrendingDown size={18} />, variant: summary.low_stock_count  > 0 ? 'warn'   : 'success' },
+    { label: 'Tools Available', value: summary.tools_available,
+      sub: 'Ready for deployment',    icon: <CheckCircle2 size={18} />, variant: 'success'  },
+    { label: 'Tools Damaged',   value: summary.tools_damaged,
+      sub: 'Requiring maintenance',   icon: <XCircle size={18} />,      variant: summary.tools_damaged    > 0 ? 'danger' : 'default' },
+    { label: 'Tools In Use',    value: summary.tools_in_use,
+      sub: 'Currently deployed',      icon: <Activity size={18} />,     variant: 'info'     },
     { label: 'Total Hire Cost',
-      value: `$${summary.totalHireCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      sub: 'Active + available tools', icon: <DollarSign size={18} />, variant: 'default' },
+      value: `$${(summary.total_hire_cost ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      sub: 'Active + available tools', icon: <DollarSign size={18} />,  variant: 'default'  },
   ] : [];
 
   return (
     <div className="space-y-6">
-      {/* Header + site selector in same row */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>
           <h1 className="text-2xl font-bold mt-1">Dashboard</h1>
         </div>
-
-        {/* Site selector */}
-        <div className="flex flex-col gap-1 w-full sm:w-64">
-          <p className="gv-label">Viewing site</p>
-          {isSitesLoading ? (
-            <div className="gv-input h-10 animate-pulse bg-muted" />
-          ) : (
-            <div className="relative">
-              <select
-                className="gv-input appearance-none pr-9 h-10 text-sm cursor-pointer"
-                value={selectedSiteId ?? ''}
-                onChange={(e) => setSelectedSiteId(Number(e.target.value))}
-              >
-                {sites.length === 0 && <option value="">No sites available</option>}
-                {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
-          )}
-        </div>
+        <SiteSelector
+          sites={sites}
+          selectedSiteId={selectedSiteId}
+          onChange={setSelectedSiteId}
+          isLoading={isSitesLoading}
+        />
       </div>
 
-      {/* Context pill */}
       {selectedSite && (
         <div className="flex items-center gap-2">
           <BarChart3 size={13} className="text-primary" />
@@ -195,22 +209,20 @@ export default function StoreDashboardPage() {
         </div>
       )}
 
-      {/* Loading */}
+      {!isSitesLoading && sites.length === 0 && (
+        <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
+          <BarChart3 size={40} className="text-muted-foreground opacity-30 mb-3" />
+          <p className="text-sm font-medium mb-1">No sites yet</p>
+          <p className="text-xs text-muted-foreground">Add a site to start viewing store analytics</p>
+        </div>
+      )}
+
       {isSummaryLoading && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[1,2,3,4,5,6].map((i) => <div key={i} className="gv-card h-36 animate-pulse" />)}
         </div>
       )}
 
-      {/* No site */}
-      {!isSummaryLoading && !summary && !isSitesLoading && !error && (
-        <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
-          <BarChart3 size={40} className="text-muted-foreground opacity-30 mb-3" />
-          <p className="text-sm text-muted-foreground">Select a site to view its store analytics</p>
-        </div>
-      )}
-
-      {/* Error */}
       {!isSummaryLoading && error && (
         <div className="gv-card flex flex-col items-center justify-center py-16 text-center border-destructive/30">
           <AlertTriangle size={36} className="text-destructive opacity-40 mb-3" />
@@ -218,53 +230,51 @@ export default function StoreDashboardPage() {
         </div>
       )}
 
-      {/* KPI grid */}
       {!isSummaryLoading && summary && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {cards.map((c) => <StatCard key={c.label} {...c} />)}
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ToolsBreakdownCard
-              available={summary.toolsAvailable}
-              inUse={summary.toolsInUse}
-              damaged={summary.toolsDamaged}
+              available={summary.tools_available}
+              inUse={summary.tools_in_use}
+              damaged={summary.tools_damaged}
             />
-            <div className={`gv-card flex flex-col gap-4 ${summary.lowStockCount > 0 ? 'border-yellow-500/30' : 'border-green-500/30'}`}>
+            <div className={`gv-card flex flex-col gap-4 ${summary.low_stock_count > 0 ? 'border-yellow-500/30' : 'border-green-500/30'}`}>
               <div className="flex items-center gap-2">
                 <div className="gv-icon-box">
-                  {summary.lowStockCount > 0
+                  {summary.low_stock_count > 0
                     ? <AlertTriangle size={18} className="text-yellow-400" />
                     : <CheckCircle2 size={18} className="text-green-400" />}
                 </div>
                 <div>
                   <p className="gv-label">Stock Health</p>
-                  <p className={`text-2xl font-bold ${summary.lowStockCount > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
-                    {summary.lowStockCount > 0
-                      ? `${summary.lowStockCount} item${summary.lowStockCount > 1 ? 's' : ''} low`
+                  <p className={`text-2xl font-bold ${summary.low_stock_count > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                    {summary.low_stock_count > 0
+                      ? `${summary.low_stock_count} item${summary.low_stock_count > 1 ? 's' : ''} low`
                       : 'All good'}
                   </p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground flex-1">
-                {summary.lowStockCount > 0
-                  ? `${summary.lowStockCount} material${summary.lowStockCount > 1 ? 's are' : ' is'} below the minimum stock threshold. Visit Stock Registers to review.`
-                  : `All ${summary.totalMaterials} material${summary.totalMaterials !== 1 ? 's are' : ' is'} above minimum stock levels.`}
+                {summary.low_stock_count > 0
+                  ? `${summary.low_stock_count} material${summary.low_stock_count > 1 ? 's are' : ' is'} below the minimum stock threshold. Visit Stock Registers to review.`
+                  : `All ${summary.total_materials} material${summary.total_materials !== 1 ? 's are' : ' is'} above minimum stock levels.`}
               </p>
               <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${summary.lowStockCount > 0 ? 'bg-yellow-400' : 'bg-green-400'}`}
+                  className={`h-full rounded-full transition-all duration-700 ${summary.low_stock_count > 0 ? 'bg-yellow-400' : 'bg-green-400'}`}
                   style={{
-                    width: summary.totalMaterials > 0
-                      ? `${Math.round(((summary.totalMaterials - summary.lowStockCount) / summary.totalMaterials) * 100)}%`
+                    width: summary.total_materials > 0
+                      ? `${Math.round(((summary.total_materials - summary.low_stock_count) / summary.total_materials) * 100)}%`
                       : '100%',
                   }}
                 />
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{summary.totalMaterials - summary.lowStockCount} healthy</span>
-                <span>{summary.lowStockCount} low stock</span>
+                <span>{summary.total_materials - summary.low_stock_count} healthy</span>
+                <span>{summary.low_stock_count} low stock</span>
               </div>
             </div>
           </div>

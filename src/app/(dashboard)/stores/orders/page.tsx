@@ -32,6 +32,40 @@ const USAGE_STATUS_META: Record<string, { label: string; cls: string; icon: Reac
 
 type ActiveTab = 'usage' | 'receipts';
 
+function SiteSelector({
+  sites, selectedSiteId, onChange, isLoading,
+}: {
+  sites: Site[];
+  selectedSiteId: number | null;
+  onChange: (id: number) => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 w-full sm:w-64">
+      <p className="gv-label">Viewing site</p>
+      {isLoading ? (
+        <div className="h-10 rounded-lg animate-pulse bg-white/8" />
+      ) : (
+        <div className="relative">
+          <select
+            style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'white' }}
+            className="w-full appearance-none pr-9 pl-3 h-10 rounded-lg border border-white/12 text-sm
+                       cursor-pointer outline-none transition-colors
+                       focus:border-white/30 hover:border-white/25
+                       [&>option]:bg-[#0d1528] [&>option]:text-white"
+            value={selectedSiteId ?? ''}
+            onChange={(e) => onChange(Number(e.target.value))}
+          >
+            {sites.length === 0 && <option value="">No sites available</option>}
+            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function StoreActivityPage() {
   const [tab, setTab]                             = useState<ActiveTab>('usage');
   const [sites, setSites]                         = useState<Site[]>([]);
@@ -43,24 +77,21 @@ export default function StoreActivityPage() {
   const [isUsageLoading, setIsUsageLoading]       = useState(false);
   const [isReceiptsLoading, setIsReceiptsLoading] = useState(false);
 
-  // Step 1 — load sites
   useEffect(() => {
     api.get('/sites/list')
       .then((res) => {
         const raw = res.data?.data;
         const list: Site[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
         setSites(list);
-        if (list.length > 0) setSelectedSiteId(list[0].id);  // triggers step 2
+        if (list.length > 0) setSelectedSiteId(list[0].id);
       })
       .catch(console.error)
       .finally(() => setIsSitesLoading(false));
   }, []);
 
-  // Step 2 — runs whenever selectedSiteId changes
   useEffect(() => {
     if (selectedSiteId === null) return;
 
-    // GET /api/v1/daily-usage/all?site_id=X
     setIsUsageLoading(true);
     api.get('/daily-usage/all', { params: { site_id: selectedSiteId } })
       .then((res) => {
@@ -70,13 +101,10 @@ export default function StoreActivityPage() {
       .catch(() => setUsageLogs([]))
       .finally(() => setIsUsageLoading(false));
 
-    // GET /api/v1/store/site/{site_id}
-    // store overview — receipts nested inside if service returns them
     setIsReceiptsLoading(true);
     api.get(`/store/site/${selectedSiteId}`)
       .then((res) => {
         const data = res.data?.data ?? res.data;
-        // adapt to whatever key your store overview returns for receipt list
         setReceipts(data?.receipts ?? data?.receipt_history ?? data?.material_receipts ?? []);
       })
       .catch(() => setReceipts([]))
@@ -97,32 +125,19 @@ export default function StoreActivityPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header + site selector */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>
           <h1 className="text-2xl font-bold mt-1">Store Activity</h1>
         </div>
-        <div className="flex flex-col gap-1 w-full sm:w-64">
-          <p className="gv-label">Viewing site</p>
-          {isSitesLoading ? (
-            <div className="gv-input h-10 animate-pulse bg-muted" />
-          ) : (
-            <div className="relative">
-              <select
-                className="gv-input appearance-none pr-9 h-10 text-sm cursor-pointer"
-                value={selectedSiteId ?? ''}
-                onChange={(e) => setSelectedSiteId(Number(e.target.value))}
-              >
-                {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
-          )}
-        </div>
+        <SiteSelector
+          sites={sites}
+          selectedSiteId={selectedSiteId}
+          onChange={setSelectedSiteId}
+          isLoading={isSitesLoading}
+        />
       </div>
 
-      {/* Summary strip */}
       {selectedSite && !isUsageLoading && !isReceiptsLoading && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
@@ -146,7 +161,6 @@ export default function StoreActivityPage() {
         </div>
       )}
 
-      {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-lg bg-muted w-fit">
         {([
           { key: 'usage',    label: 'Daily Usage', icon: <ClipboardList size={14} /> },
