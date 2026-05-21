@@ -36,6 +36,40 @@ function stockStatus(m: StoreMaterial) {
   return   { label: 'In stock',     cls: 'border-green-500/30 text-green-400'    };
 }
 
+function SiteSelector({
+  sites, selectedSiteId, onChange, isLoading,
+}: {
+  sites: Site[];
+  selectedSiteId: number | null;
+  onChange: (id: number) => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 w-full sm:w-64">
+      <p className="gv-label">Viewing site</p>
+      {isLoading ? (
+        <div className="h-10 rounded-lg animate-pulse bg-white/8" />
+      ) : (
+        <div className="relative">
+          <select
+            style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'white' }}
+            className="w-full appearance-none pr-9 pl-3 h-10 rounded-lg border border-white/12 text-sm
+                       cursor-pointer outline-none transition-colors
+                       focus:border-white/30 hover:border-white/25
+                       [&>option]:bg-[#0d1528] [&>option]:text-white"
+            value={selectedSiteId ?? ''}
+            onChange={(e) => onChange(Number(e.target.value))}
+          >
+            {sites.length === 0 && <option value="">No sites available</option>}
+            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function StockRegistersPage() {
   const [tab, setTab]                       = useState<Tab>('materials');
   const [sites, setSites]                   = useState<Site[]>([]);
@@ -47,25 +81,22 @@ export default function StockRegistersPage() {
   const [isMatsLoading, setIsMatsLoading]   = useState(false);
   const [isToolsLoading, setIsToolsLoading] = useState(false);
 
-  // Step 1 — load sites, then trigger data load via state
   useEffect(() => {
     api.get('/sites/list')
       .then((res) => {
         const raw  = res.data?.data;
         const list: Site[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
         setSites(list);
-        if (list.length > 0) setSelectedSiteId(list[0].id);  // triggers step 2
+        if (list.length > 0) setSelectedSiteId(list[0].id);
       })
       .catch(console.error)
       .finally(() => setIsSitesLoading(false));
   }, []);
 
-  // Step 2 — runs whenever selectedSiteId is set/changed
   useEffect(() => {
     if (selectedSiteId === null) return;
     setSearch('');
 
-    // GET /api/v1/store/materials/{site_id}/all
     setIsMatsLoading(true);
     api.get(`/store/materials/${selectedSiteId}/all`)
       .then((res) => {
@@ -75,7 +106,6 @@ export default function StockRegistersPage() {
       .catch(console.error)
       .finally(() => setIsMatsLoading(false));
 
-    // GET /api/v1/store/tools/{site_id}/all
     setIsToolsLoading(true);
     api.get(`/store/tools/${selectedSiteId}/all`)
       .then((res) => {
@@ -95,33 +125,19 @@ export default function StockRegistersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header + site selector */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>
           <h1 className="text-2xl font-bold mt-1">Stock Registers</h1>
         </div>
-        <div className="flex flex-col gap-1 w-full sm:w-64">
-          <p className="gv-label">Viewing site</p>
-          {isSitesLoading ? (
-            <div className="gv-input h-10 animate-pulse bg-muted" />
-          ) : (
-            <div className="relative">
-              <select
-                className="gv-input appearance-none pr-9 h-10 text-sm cursor-pointer"
-                value={selectedSiteId ?? ''}
-                onChange={(e) => setSelectedSiteId(Number(e.target.value))}
-              >
-                {sites.length === 0 && <option value="">No sites available</option>}
-                {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
-          )}
-        </div>
+        <SiteSelector
+          sites={sites}
+          selectedSiteId={selectedSiteId}
+          onChange={setSelectedSiteId}
+          isLoading={isSitesLoading}
+        />
       </div>
 
-      {/* Summary pills */}
       {!isMatsLoading && !isToolsLoading && selectedSiteId && (
         <div className="flex flex-wrap gap-2">
           <span className="gv-tag">{materials.length} material{materials.length !== 1 ? 's' : ''}</span>
@@ -144,7 +160,6 @@ export default function StockRegistersPage() {
         </div>
       )}
 
-      {/* Tabs + Search */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="flex gap-1 p-1 rounded-lg bg-muted">
           {(['materials', 'tools'] as Tab[]).map((t) => (
@@ -171,14 +186,12 @@ export default function StockRegistersPage() {
         </div>
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="space-y-2">
           {[1,2,3,4,5].map((i) => <div key={i} className="gv-card h-14 animate-pulse" />)}
         </div>
       )}
 
-      {/* Materials table */}
       {!isLoading && tab === 'materials' && (
         <div className="gv-card p-0 overflow-hidden">
           <table className="w-full text-sm">
@@ -231,7 +244,6 @@ export default function StockRegistersPage() {
         </div>
       )}
 
-      {/* Tools table */}
       {!isLoading && tab === 'tools' && (
         <div className="gv-card p-0 overflow-hidden">
           <table className="w-full text-sm">
