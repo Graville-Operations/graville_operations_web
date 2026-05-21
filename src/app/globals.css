@@ -310,4 +310,13 @@
     height:     1px;
     background: rgba(255, 255, 255, 0.06);
   }
+
+  .gv-footer-link {
+  font-size:   0.875rem;
+  color:       var(--gv-text-muted);
+  transition:  color 0.2s ease;
+  }
+  .gv-footer-link:hover {
+    color: var(--gv-text-primary);
+  }
 }
