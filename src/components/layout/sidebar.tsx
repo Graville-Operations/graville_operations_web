@@ -27,7 +27,7 @@ const subRouteMap: Record<string, string> = {
 'finance.invoices':           '/finance/invoices',
     'finance.expenses':           '/finance/expenses',
     'projects.dashboard':         '/projects/dashboard',
-    'projects.new-project':       '/projects/new-project',
+    'projects.new-project':       '/projects/new',
   'store.dashboard':            '/stores/dashboard',
   'store.orders':               '/stores/orders',
   'store.stocks':               '/stores/stocks',

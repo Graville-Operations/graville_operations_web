@@ -4,9 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { fetchSites, fetchOverviewKPIs } from '@/lib/api/sites';
 import { Site, ProjectStatus, SiteStatus, OverviewKPIs } from '@/types/site';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import {
   MapPin, Search, Calendar, Tag, Building2,
   RefreshCw, AlertCircle, Layers, ChevronRight,
@@ -17,19 +14,19 @@ import {
 
 const PROJECT_STATUS_META: Record<
   ProjectStatus,
-  { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+  { label: string; color: string; bg: string }
 > = {
-  PLANNING:    { label: 'Planning',    variant: 'secondary' },
-  IN_PROGRESS: { label: 'In Progress', variant: 'default' },
-  ON_HOLD:     { label: 'On Hold',     variant: 'outline' },
-  COMPLETED:   { label: 'Completed',   variant: 'secondary' },
-  CANCELLED:   { label: 'Cancelled',   variant: 'destructive' },
+  PLANNING:    { label: 'Planning',    color: 'text-blue-300',   bg: 'bg-blue-500/15 border border-blue-500/30' },
+  IN_PROGRESS: { label: 'In Progress', color: 'text-green-300',  bg: 'bg-green-500/15 border border-green-500/30' },
+  ON_HOLD:     { label: 'On Hold',     color: 'text-yellow-300', bg: 'bg-yellow-500/15 border border-yellow-500/30' },
+  COMPLETED:   { label: 'Completed',   color: 'text-teal-300',   bg: 'bg-teal-500/15 border border-teal-500/30' },
+  CANCELLED:   { label: 'Cancelled',   color: 'text-red-300',    bg: 'bg-red-500/15 border border-red-500/30' },
 };
 
-const SITE_STATUS_DOT: Record<SiteStatus, { label: string; color: string }> = {
-  ACTIVE:   { label: 'Active',   color: 'bg-green-500' },
-  INACTIVE: { label: 'Inactive', color: 'bg-gray-400' },
-  CLOSED:   { label: 'Closed',   color: 'bg-red-500' },
+const SITE_STATUS_META: Record<SiteStatus, { label: string; dot: string }> = {
+  ACTIVE:   { label: 'Active',   dot: 'bg-green-400' },
+  INACTIVE: { label: 'Inactive', dot: 'bg-gray-400' },
+  CLOSED:   { label: 'Closed',   dot: 'bg-red-400' },
 };
 
 const PROJECT_FILTERS: { label: string; value: ProjectStatus | 'ALL' }[] = [
@@ -51,19 +48,19 @@ function StatCard({
   loading?: boolean;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 flex items-start gap-3">
+    <div className="gv-card gv-stat-card flex items-start gap-3">
       {Icon && (
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <Icon className="w-4 h-4 text-primary" />
+        <div className="gv-icon-box">
+          <Icon className="w-4 h-4" style={{ color: 'var(--gv-brand)' }} />
         </div>
       )}
       <div className="min-w-0">
-        <p className="text-xs text-muted-foreground mb-1">{label}</p>
+        <p className="gv-label">{label}</p>
         {loading
-          ? <div className="h-6 w-10 rounded bg-muted animate-pulse" />
-          : <p className="text-2xl font-semibold">{value}</p>
+          ? <div className="h-7 w-12 rounded-md animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
+          : <p className="text-2xl font-semibold text-white">{value}</p>
         }
-        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs mt-0.5" style={{ color: 'var(--gv-text-subtle)' }}>{sub}</p>}
       </div>
     </div>
   );
@@ -71,79 +68,80 @@ function StatCard({
 
 function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
   const projMeta = PROJECT_STATUS_META[site.project_status] ?? PROJECT_STATUS_META['PLANNING'];
-  const siteDot  = SITE_STATUS_DOT[site.site_status]        ?? SITE_STATUS_DOT['INACTIVE'];
+  const siteMeta = SITE_STATUS_META[site.site_status]       ?? SITE_STATUS_META['INACTIVE'];
 
   return (
-    <Card
-      onClick={onClick}
-      className="flex flex-col hover:shadow-md hover:border-primary/40 transition-all duration-200 cursor-pointer group"
-    >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-4 h-4 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm leading-tight truncate group-hover:text-primary transition-colors">
-                {site.name}
-              </p>
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className={`w-1.5 h-1.5 rounded-full ${siteDot.color}`} />
-                {siteDot.label}
-              </span>
-            </div>
+    <div onClick={onClick} className="gv-card gv-card-hover flex flex-col gap-3 group">
+      {/* header */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="gv-icon-box">
+            <Building2 className="w-4 h-4" style={{ color: 'var(--gv-brand)' }} />
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <Badge variant={projMeta.variant}>{projMeta.label}</Badge>
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+          <div className="min-w-0">
+            <p className="font-medium text-sm text-white leading-tight truncate group-hover:text-[var(--gv-brand)] transition-colors">
+              {site.name}
+            </p>
+            <span className="inline-flex items-center gap-1.5 text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+              <span className={`w-1.5 h-1.5 rounded-full ${siteMeta.dot}`} />
+              {siteMeta.label}
+            </span>
           </div>
         </div>
-      </CardHeader>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${projMeta.bg} ${projMeta.color}`}>
+            {projMeta.label}
+          </span>
+          <ChevronRight className="w-3.5 h-3.5 transition-colors" style={{ color: 'var(--gv-text-faint)' }} />
+        </div>
+      </div>
 
-      <CardContent className="pb-3 flex-1 space-y-2">
+      {/* body */}
+      <div className="space-y-1.5 flex-1">
         {site.location && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-muted)' }}>
             <MapPin className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">{site.location}</span>
           </div>
         )}
         {site.inquiring_entity && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-muted)' }}>
             <Layers className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">{site.inquiring_entity}</span>
           </div>
         )}
         {site.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2">{site.description}</p>
+          <p className="text-xs line-clamp-2" style={{ color: 'var(--gv-text-subtle)' }}>
+            {site.description}
+          </p>
         )}
         {site.tags && site.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-1">
             {site.tags.slice(0, 3).map((tag) => (
-              <span key={tag}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] bg-muted text-muted-foreground">
+              <span key={tag} className="gv-tag inline-flex items-center gap-1">
                 <Tag className="w-2.5 h-2.5" />{tag}
               </span>
             ))}
             {site.tags.length > 3 && (
-              <span className="text-[11px] text-muted-foreground px-1">+{site.tags.length - 3}</span>
+              <span className="text-[11px]" style={{ color: 'var(--gv-text-faint)' }}>+{site.tags.length - 3}</span>
             )}
           </div>
         )}
-      </CardContent>
+      </div>
 
-      <CardFooter className="pt-3 border-t flex items-center justify-between">
-        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+      {/* footer */}
+      <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
+        <div className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--gv-text-subtle)' }}>
           <Calendar className="w-3 h-3" />
           {site.created_at ? format(new Date(site.created_at), 'dd MMM yyyy') : '—'}
         </div>
         {site.completion_date && (
-          <span className="text-[11px] text-muted-foreground">
-            Due {site.completion_date ? format(new Date(site.completion_date), 'dd MMM yyyy') : '—'}
+          <span className="text-[11px]" style={{ color: 'var(--gv-text-subtle)' }}>
+            Due {format(new Date(site.completion_date), 'dd MMM yyyy')}
           </span>
         )}
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -153,13 +151,14 @@ function DetailRow({ icon: Icon, label, value }: {
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3 py-3 border-b last:border-0">
-      <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+    <div className="flex items-start gap-3 py-3" style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
+      <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
+        style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+        <Icon className="w-3.5 h-3.5" style={{ color: 'var(--gv-text-muted)' }} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-        <div className="text-sm font-medium break-words">{value}</div>
+        <p className="text-xs mb-0.5" style={{ color: 'var(--gv-text-subtle)' }}>{label}</p>
+        <div className="text-sm font-medium text-white break-words">{value}</div>
       </div>
     </div>
   );
@@ -167,126 +166,117 @@ function DetailRow({ icon: Icon, label, value }: {
 
 function SiteDetailPanel({ site, onClose }: { site: Site; onClose: () => void }) {
   const projMeta = PROJECT_STATUS_META[site.project_status] ?? PROJECT_STATUS_META['PLANNING'];
-  const siteDot  = SITE_STATUS_DOT[site.site_status]        ?? SITE_STATUS_DOT['INACTIVE'];
+  const siteMeta = SITE_STATUS_META[site.site_status]       ?? SITE_STATUS_META['INACTIVE'];
 
   return (
     <>
-      <div
-        className="fixed inset-0 bg-black/30 z-40 transition-opacity"
-        onClick={onClose}
-      />
-      <div className="fixed top-0 right-0 h-full w-full max-w-md bg-background border-l shadow-xl z-50 flex flex-col overflow-hidden">
+      {/* backdrop */}
+      <div className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={onClose} />
 
-        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b flex-shrink-0">
+      {/* panel */}
+      <div className="fixed top-0 right-0 h-full w-full max-w-md z-50 flex flex-col overflow-hidden"
+        style={{ background: 'var(--gv-nav-bg)', borderLeft: '1px solid var(--gv-glass-border)', backdropFilter: 'blur(24px)' }}>
+
+        {/* panel header */}
+        <div className="flex items-start justify-between gap-3 px-5 py-4 flex-shrink-0"
+          style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-5 h-5 text-primary" />
+            <div className="gv-icon-box">
+              <Building2 className="w-5 h-5" style={{ color: 'var(--gv-brand)' }} />
             </div>
             <div className="min-w-0">
-              <h2 className="font-semibold text-sm leading-tight truncate">{site.name}</h2>
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${siteDot.color}`} />
-                {siteDot.label}
+              <h2 className="font-semibold text-sm text-white leading-tight truncate">{site.name}</h2>
+              <span className="inline-flex items-center gap-1.5 text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+                <span className={`w-1.5 h-1.5 rounded-full ${siteMeta.dot}`} />
+                {siteMeta.label}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Badge variant={projMeta.variant}>{projMeta.label}</Badge>
-            <button
-              onClick={onClose}
-              className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
+            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${projMeta.bg} ${projMeta.color}`}>
+              {projMeta.label}
+            </span>
+            <button onClick={onClose}
+              className="w-7 h-7 rounded-md flex items-center justify-center transition-colors"
+              style={{ color: 'var(--gv-text-muted)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        {/* scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
 
           {site.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{site.description}</p>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--gv-text-muted)' }}>
+              {site.description}
+            </p>
           )}
 
+          {/* basic info */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-              Basic Information
-            </p>
-            <div className="rounded-xl border bg-card px-4">
+            <p className="gv-eyebrow mb-2">Basic Information</p>
+            <div className="gv-card" style={{ padding: '0 1rem' }}>
               {site.location && <DetailRow icon={MapPin} label="Location" value={site.location} />}
               <DetailRow icon={Calendar} label="Created"
                 value={site.created_at ? format(new Date(site.created_at), 'dd MMM yyyy, HH:mm') : '—'} />
               {site.updated_at && (
                 <DetailRow icon={Clock} label="Last updated"
-                  value={site.updated_at ? format(new Date(site.updated_at), 'dd MMM yyyy, HH:mm') : '—'} />
+                  value={format(new Date(site.updated_at), 'dd MMM yyyy, HH:mm')} />
               )}
               {site.completion_date && (
                 <DetailRow icon={Calendar} label="Completion date"
-                  value={site.completion_date ? format(new Date(site.completion_date), 'dd MMM yyyy') : '—'} />
+                  value={format(new Date(site.completion_date), 'dd MMM yyyy')} />
               )}
               <DetailRow icon={Hash} label="Site ID" value={`#${site.id}`} />
             </div>
           </div>
 
+          {/* entity details */}
           {(site.tender_name || site.inquiring_entity) && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Entity Details
-              </p>
-              <div className="rounded-xl border bg-card px-4">
-                {site.tender_name && (
-                  <DetailRow icon={FileText} label="Tender name" value={site.tender_name} />
-                )}
-                {site.inquiring_entity && (
-                  <DetailRow icon={Layers} label="Inquiring entity" value={site.inquiring_entity} />
-                )}
+              <p className="gv-eyebrow mb-2">Entity Details</p>
+              <div className="gv-card" style={{ padding: '0 1rem' }}>
+                {site.tender_name && <DetailRow icon={FileText} label="Tender name" value={site.tender_name} />}
+                {site.inquiring_entity && <DetailRow icon={Layers} label="Inquiring entity" value={site.inquiring_entity} />}
               </div>
             </div>
           )}
 
+          {/* coordinates */}
           {(site.latitude !== null || site.longitude !== null) && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Geo Coordinates
-              </p>
-              <div className="rounded-xl border bg-card px-4">
-                {site.latitude !== null && (
-                  <DetailRow icon={Navigation} label="Latitude" value={site.latitude} />
-                )}
-                {site.longitude !== null && (
-                  <DetailRow icon={Navigation} label="Longitude" value={site.longitude} />
-                )}
+              <p className="gv-eyebrow mb-2">Geo Coordinates</p>
+              <div className="gv-card" style={{ padding: '0 1rem' }}>
+                {site.latitude !== null && <DetailRow icon={Navigation} label="Latitude" value={site.latitude} />}
+                {site.longitude !== null && <DetailRow icon={Navigation} label="Longitude" value={site.longitude} />}
               </div>
             </div>
           )}
 
+          {/* tags */}
           {site.tags && site.tags.length > 0 && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                Tags
-              </p>
+              <p className="gv-eyebrow mb-2">Tags</p>
               <div className="flex flex-wrap gap-2">
                 {site.tags.map((tag) => (
-                  <span key={tag}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted text-xs font-medium">
-                    <Tag className="w-3 h-3 text-muted-foreground" />{tag}
+                  <span key={tag} className="gv-tag inline-flex items-center gap-1.5">
+                    <Tag className="w-3 h-3" />{tag}
                   </span>
                 ))}
               </div>
             </div>
           )}
 
+          {/* system */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-              System
-            </p>
-            <div className="rounded-xl border bg-card px-4">
+            <p className="gv-eyebrow mb-2">System</p>
+            <div className="gv-card" style={{ padding: '0 1rem' }}>
               <DetailRow icon={User} label="Created by" value={`User #${site.created_by}`} />
-              {site.updated_by && (
-                <DetailRow icon={User} label="Last updated by" value={`User #${site.updated_by}`} />
-              )}
-              {site.field_operator_id && (
-                <DetailRow icon={User} label="Field operator" value={`User #${site.field_operator_id}`} />
-              )}
+              {site.updated_by && <DetailRow icon={User} label="Last updated by" value={`User #${site.updated_by}`} />}
+              {site.field_operator_id && <DetailRow icon={User} label="Field operator" value={`User #${site.field_operator_id}`} />}
             </div>
           </div>
 
@@ -354,35 +344,42 @@ export default function ProjectsDashboardPage() {
   const anyLoading = loadingSites || loadingKpis;
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="gv-page-dashboard flex flex-col gap-6 p-6">
 
+      {/* header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Projects & Sites</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Manage and monitor all your field sites</p>
+          <h1 className="text-xl font-semibold text-white">Projects & Sites</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+            Manage and monitor all your field sites
+          </p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadAll} disabled={anyLoading}>
+        <button className="gv-btn-outline flex items-center gap-1.5 text-sm px-3 py-1.5"
+          onClick={loadAll} disabled={anyLoading}>
           {anyLoading
-            ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-            : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : <RefreshCw className="w-3.5 h-3.5" />}
           Refresh
-        </Button>
+        </button>
       </div>
 
+      {/* analytics error */}
       {kpisError && (
-        <div className="flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
+        <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+          style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', color: '#fde68a' }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           Analytics unavailable. Check your backend connection.
         </div>
       )}
 
+      {/* analytics */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Site Analytics</p>
+        <p className="gv-eyebrow mb-3">Site Analytics</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-          <StatCard label="Total Sites"    value={kpis?.totalSites ?? 0}    icon={Building2}     loading={loadingKpis} />
-          <StatCard label="Active Sites"   value={kpis?.activeSites ?? 0}   icon={Building2}     loading={loadingKpis} sub="Currently running" />
-          <StatCard label="Planning"       value={kpis?.planningSites ?? 0} icon={ClipboardList} loading={loadingKpis} />
-          <StatCard label="Total Workers"  value={kpis?.totalWorkers ?? 0}  icon={Users}         loading={loadingKpis} />
+          <StatCard label="Total Sites"   value={kpis?.totalSites ?? 0}    icon={Building2}     loading={loadingKpis} />
+          <StatCard label="Active Sites"  value={kpis?.activeSites ?? 0}   icon={Building2}     loading={loadingKpis} sub="Currently running" />
+          <StatCard label="Planning"      value={kpis?.planningSites ?? 0} icon={ClipboardList} loading={loadingKpis} />
+          <StatCard label="Total Workers" value={kpis?.totalWorkers ?? 0}  icon={Users}         loading={loadingKpis} />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
           <StatCard label="Total Tasks"      value={kpis?.totalTasks ?? 0}          icon={ClipboardList} loading={loadingKpis} />
@@ -398,70 +395,84 @@ export default function ProjectsDashboardPage() {
         </div>
       </div>
 
+      {/* sites header */}
       <div className="flex items-center gap-3">
-        <p className="text-sm font-medium whitespace-nowrap">All Sites</p>
-        <div className="flex-1 border-t" />
+        <p className="text-sm font-medium text-white whitespace-nowrap">All Sites</p>
+        <div className="flex-1" style={{ height: '1px', background: 'var(--gv-glass-border)' }} />
         {!loadingSites && (
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
+          <span className="text-xs whitespace-nowrap" style={{ color: 'var(--gv-text-subtle)' }}>
             {sites.length} site{sites.length !== 1 ? 's' : ''}
           </span>
         )}
       </div>
 
+      {/* filters */}
       <div className="flex flex-col gap-3 -mt-2">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+            style={{ color: 'var(--gv-text-faint)' }} />
           <input type="text" placeholder="Search by name, location or entity..."
             value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-md border border-input bg-background pl-9 pr-4 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            className="gv-input pl-9" />
         </div>
+
         <div className="flex flex-wrap gap-2">
-          {PROJECT_FILTERS.map((f) => (
-            <button key={f.value} onClick={() => setProjectFilter(f.value)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                projectFilter === f.value
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background text-muted-foreground border-border hover:border-primary/50'
-              }`}>
-              {f.label}
-            </button>
-          ))}
+          {['ALL', 'PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED'].map((v) => {
+            const f = ['ALL', 'Planning', 'In Progress', 'On Hold', 'Completed', 'Cancelled'];
+            const idx = ['ALL', 'PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED'].indexOf(v);
+            const active = projectFilter === v;
+            return (
+              <button key={v}
+                onClick={() => setProjectFilter(v as ProjectStatus | 'ALL')}
+                className="gv-btn-pill text-xs"
+                style={active ? { background: 'var(--gv-brand)', borderColor: 'var(--gv-brand)', color: '#fff' } : {}}>
+                {f[idx]}
+              </button>
+            );
+          })}
         </div>
+
         <div className="flex flex-wrap gap-2">
-          {(['ALL', 'ACTIVE', 'INACTIVE', 'CLOSED'] as const).map((s) => (
-            <button key={s} onClick={() => setSiteFilter(s)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                siteFilter === s
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background text-muted-foreground border-border hover:border-primary/50'
-              }`}>
-              {s === 'ALL' ? 'All sites' : SITE_STATUS_DOT[s].label}
-            </button>
-          ))}
+          {(['ALL', 'ACTIVE', 'INACTIVE', 'CLOSED'] as const).map((s) => {
+            const active = siteFilter === s;
+            const labels: Record<string, string> = { ALL: 'All sites', ACTIVE: 'Active', INACTIVE: 'Inactive', CLOSED: 'Closed' };
+            return (
+              <button key={s} onClick={() => setSiteFilter(s)} className="gv-btn-pill text-xs"
+                style={active ? { background: 'var(--gv-brand)', borderColor: 'var(--gv-brand)', color: '#fff' } : {}}>
+                {labels[s]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
+      {/* sites error */}
       {sitesError && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {sitesError}
           <button onClick={loadAll} className="ml-auto underline underline-offset-2 text-xs">Retry</button>
         </div>
       )}
 
+      {/* grid */}
       {loadingSites ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-48 rounded-xl border bg-muted/40 animate-pulse" />
+            <div key={i} className="h-48 rounded-2xl animate-pulse"
+              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Building2 className="w-10 h-10 text-muted-foreground/40 mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">
+          <div className="gv-icon-box w-14 h-14 mb-4" style={{ opacity: 0.4 }}>
+            <Building2 className="w-7 h-7" style={{ color: 'var(--gv-brand)' }} />
+          </div>
+          <p className="text-sm font-medium text-white">
             {sites.length === 0 ? 'No sites yet' : 'No results found'}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>
             {sites.length === 0 ? 'Create your first project to get started' : 'Try adjusting your search or filters'}
           </p>
         </div>
