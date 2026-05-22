@@ -8,40 +8,10 @@ import api from '@/lib/api';
 import { MenuItem } from '@/types';
 import { ChevronDown, ChevronRight, LogOut, User, Bell } from 'lucide-react';
 
-// Hardcoded links for subsubmenus until backend seeds them
-const subSubMenuLinks: Record<string, string> = {
-  'finance.invoices.company':        '/finance/invoices/company',
-  'finance.invoices.client':         '/finance/invoices/client',
-  'finance.invoices.supplier':       '/finance/invoices/supplier',
-  'finance.invoices.sub-contractor': '/finance/invoices/sub-contractor',
-};
-
-// Hardcoded submenu routes until backend seeds them
-const subRouteMap: Record<string, string> = {
-  'users.dashboard':            '/users/dashboard',
-  'users.add-user':             '/users/new',
-  'users.roles-and-permission': '/users/roles',
-  'users.reports':              '/users/reports',
-  'users.imports':              '/users/import',
-  'finance.dashboard':          '/finance',
-  'finance.invoices':           '/finance/invoices',
-  'finance.expenses':           '/finance/expenses',
-  'projects.dashboard':         '/projects',
-  'projects.new-project':       '/projects/new',
-  'store.dashboard':            '/stores/dashboard',
-  'store.orders':               '/stores/orders',
-  'store.stocks':               '/stores/stocks',
-  'department.menus':           '/department/menus',
-  'department.groups':          '/department/groups',
-  'department.users':           '/department/users',
-    // add more as you build pages...
-};
-
 export default function Sidebar() {
   const { menus, isLoaded, setMenus, clearMenus } = useMenuStore();
   const [isLoading, setIsLoading] = useState(!isLoaded);
   const [openMenus, setOpenMenus] = useState<Set<number>>(new Set());
-  const [hoveredMenu, setHoveredMenu] = useState<number | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { user, role, logout } = useAuthStore();
@@ -50,12 +20,11 @@ export default function Sidebar() {
     fetchMenus();
   }, []);
 
-  // Auto-open active menus when pathname changes
   useEffect(() => {
     if (menus.length > 0) {
       menus.forEach((menu: MenuItem) => {
         if (menu.submenus?.some((sub) => {
-          const href = subRouteMap[sub.name] ?? sub.link ?? '#';
+          const href = sub.link ?? '#';
           return href !== '#' && pathname.startsWith(href);
         })) {
           setOpenMenus((prev) => new Set(prev).add(menu.id));
@@ -66,21 +35,17 @@ export default function Sidebar() {
 
   const fetchMenus = async () => {
     if (isLoaded) return;
-
     try {
       setIsLoading(true);
       const { data } = await api.get('/menus/list');
       const menuData = data?.data ?? data;
-
       if (!Array.isArray(menuData)) return;
-
       const seen = new Set<string>();
       const unique = menuData.filter((m: MenuItem) => {
         if (seen.has(m.name)) return false;
         seen.add(m.name);
         return true;
       });
-
       setMenus(unique);
     } catch (error) {
       console.error('Failed to fetch menus:', error);
@@ -105,25 +70,8 @@ export default function Sidebar() {
 
   const getMenuHref = (menu: MenuItem): string => {
     const routeMap: Record<string, string> = {
-      home:       '/home',
-      workers:    '/workers',
-      inventory:  '/store',
-      account:    '/account',
-      users:      '/users',
-      finance:    '/finance',
-      admin:      '/admin',
-      projects:   '/projects',
-      department: '/department/menus',
     };
-    return routeMap[menu.name] ?? menu.link ?? '#';
-  };
-
-  const getSubMenuHref = (sub: { link?: string | null; name: string }): string => {
-  return subRouteMap[sub.name] ?? sub.link ?? '#';
-};
-
-  const getSubSubMenuHref = (subsub: { link?: string | null; name: string }): string => {
-    return subsub.link ?? subSubMenuLinks[subsub.name] ?? '#';
+    return menu.link ?? routeMap[menu.name] ?? '#';
   };
 
   const isMenuActive = (menu: MenuItem): boolean => {
@@ -131,13 +79,13 @@ export default function Sidebar() {
     return pathname === href || pathname.startsWith(href + '/');
   };
 
-  const isSubActive = (sub: { link?: string | null; name: string }): boolean => {
-    const href = getSubMenuHref(sub);
+  const isSubActive = (sub: { link?: string | null }): boolean => {
+    const href = sub.link ?? '#';
     return href !== '#' && (pathname === href || pathname.startsWith(href + '/'));
   };
 
-  const isSubSubActive = (subsub: { link?: string | null; name: string }): boolean => {
-    const href = getSubSubMenuHref(subsub);
+  const isSubSubActive = (subsub: { link?: string | null }): boolean => {
+    const href = subsub.link ?? '#';
     return href !== '#' && (pathname === href || pathname.startsWith(href + '/'));
   };
 
@@ -166,20 +114,16 @@ export default function Sidebar() {
           </div>
         ) : (
           menus.map((menu) => (
-            <div
-              key={menu.id}
-              onMouseEnter={() => setHoveredMenu(menu.id)}
-              onMouseLeave={() => setHoveredMenu(null)}
-            >
+            <div key={menu.id}>
               {menu.submenus && menu.submenus.length > 0 ? (
                 <>
-                  {/* Parent with submenus */}
+                  {/* Parent with submenus — tap to open/close */}
                   <button
                     onClick={() => toggleMenu(menu.id)}
-                    className={`group flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 hover:scale-[1.01] ${
+                    className={`group flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
                       isMenuActive(menu)
                         ? 'bg-[#33907C]/20 text-[#33907C]'
-                        : 'text-white/70 hover:bg-white/20 hover:text-white'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     <span className="flex-1 text-left">{menu.title}</span>
@@ -187,12 +131,12 @@ export default function Sidebar() {
                       size={14}
                       className={`transition-transform duration-200 shrink-0 ${
                         openMenus.has(menu.id) ? 'rotate-180' : ''
-                      } ${isMenuActive(menu) ? 'text-[#33907C]' : 'text-white/40 group-hover:text-white/70'}`}
+                      } ${isMenuActive(menu) ? 'text-[#33907C]' : 'text-white/40 group-hover:text-white/60'}`}
                     />
                   </button>
 
-                  {/* Submenus — show on hover*/}
-                  {(openMenus.has(menu.id) || hoveredMenu === menu.id) && (
+                  {/* Submenus — only show when toggled open */}
+                  {openMenus.has(menu.id) && (
                     <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
                       {menu.submenus
                         .sort((a, b) => a.order - b.order)
@@ -200,14 +144,15 @@ export default function Sidebar() {
                           <div key={sub.id}>
                             {sub.subsubmenus && sub.subsubmenus.length > 0 ? (
                               <div>
-                                <div className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-all duration-150 hover:scale-[1.01] ${
+                                {/* Submenu with children */}
+                                <div className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
                                   isSubActive(sub)
                                     ? 'bg-[#33907C]/20 text-[#33907C] font-medium'
-                                    : 'text-white/50 hover:bg-white/20 hover:text-white'
+                                    : 'text-white/50 hover:bg-white/10 hover:text-white'
                                 }`}>
                                   <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" />
-                                  {getSubMenuHref(sub) !== '#' ? (
-                                    <Link href={getSubMenuHref(sub)} className="flex-1 text-left">
+                                  {sub.link ? (
+                                    <Link href={sub.link} className="flex-1 text-left">
                                       {sub.title}
                                     </Link>
                                   ) : (
@@ -234,11 +179,11 @@ export default function Sidebar() {
                                       .map((subsub) => (
                                         <Link
                                           key={subsub.id}
-                                          href={getSubSubMenuHref(subsub)}
-                                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all duration-150 hover:scale-[1.01] ${
+                                          href={subsub.link ?? '#'}
+                                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors duration-150 ${
                                             isSubSubActive(subsub)
                                               ? 'bg-[#33907C] text-white font-medium'
-                                              : 'text-white/40 hover:bg-white/20 hover:text-white'
+                                              : 'text-white/40 hover:bg-white/10 hover:text-white'
                                           }`}
                                         >
                                           <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
@@ -249,13 +194,13 @@ export default function Sidebar() {
                                 )}
                               </div>
                             ) : (
-                              /* Regular submenu — direct link */
+                              /* Regular submenu — use link from database */
                               <Link
-                                href={getSubMenuHref(sub)}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-150 hover:scale-[1.01] ${
+                                href={sub.link ?? '#'}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
                                   isSubActive(sub)
                                     ? 'bg-[#33907C] text-white font-medium'
-                                    : 'text-white/50 hover:bg-white/20 hover:text-white'
+                                    : 'text-white/50 hover:bg-white/10 hover:text-white'
                                 }`}
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" />
@@ -271,10 +216,10 @@ export default function Sidebar() {
                 /* Single link — no submenus */
                 <Link
                   href={getMenuHref(menu)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 hover:scale-[1.01] ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
                     isMenuActive(menu)
                       ? 'bg-[#33907C] text-white'
-                      : 'text-white/70 hover:bg-white/20 hover:text-white'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <ChevronRight size={14} className="shrink-0 opacity-40" />
@@ -289,7 +234,7 @@ export default function Sidebar() {
       {/* Notification + User + Logout */}
       <div className="p-3 border-t border-white/10 space-y-1">
         {/* Notifications */}
-        <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/20 hover:text-white hover:scale-[1.01] transition-all duration-150">
+        <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors duration-150">
           <div className="relative">
             <Bell size={16} />
             <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
@@ -300,7 +245,7 @@ export default function Sidebar() {
         {/* Profile */}
         <Link
           href="/account"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/20 hover:text-white hover:scale-[1.01] transition-all duration-150"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors duration-150"
         >
           <div className="w-7 h-7 bg-[#33907C] rounded-full flex items-center justify-center shrink-0">
             <span className="text-white text-xs font-bold">
@@ -319,7 +264,7 @@ export default function Sidebar() {
         {/* Logout */}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/20 hover:text-red-300 hover:scale-[1.01] transition-all duration-150"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors duration-150"
         >
           <LogOut size={16} />
           Logout
