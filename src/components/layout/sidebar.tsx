@@ -20,7 +20,6 @@ export default function Sidebar() {
     fetchMenus();
   }, []);
 
-  // Auto-open active menus when pathname changes
   useEffect(() => {
     if (menus.length > 0) {
       menus.forEach((menu: MenuItem) => {
@@ -71,15 +70,6 @@ export default function Sidebar() {
 
   const getMenuHref = (menu: MenuItem): string => {
     const routeMap: Record<string, string> = {
-      home:       '/home',
-      users:      '/users',
-      finance:    '/finance',
-      projects:   '/projects',
-      workers:    '/workers',
-      store:      '/store',
-      account:    '/account',
-      admin:      '/admin',
-      department: '/department',
     };
     return menu.link ?? routeMap[menu.name] ?? '#';
   };
