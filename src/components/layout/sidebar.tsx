@@ -16,51 +16,47 @@ export default function Sidebar() {
   const router = useRouter();
   const { user, role, logout } = useAuthStore();
 
-  useEffect(() => {
-    fetchMenus();
-  }, []);
+const fetchMenus = async () => {
+  if (isLoaded) return;
+  try {
+    setIsLoading(true);
+    const { data } = await api.get('/menus/list');
+    const menuData = data?.data ?? data;
+    if (!Array.isArray(menuData)) return;
+    const seen = new Set<string>();
+    const unique = menuData.filter((m: MenuItem) => {
+      if (seen.has(m.name)) return false;
+      seen.add(m.name);
+      return true;
+    });
+    setMenus(unique);
+  } catch (error) {
+    console.error('Failed to fetch menus:', error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  useEffect(() => {
-    if (menus.length > 0) {
-      menus.forEach((menu: MenuItem) => {
-        if (menu.submenus?.some((sub) => {
-          const href = sub.link ?? '#';
-          return href !== '#' && pathname.startsWith(href);
-        })) {
-          setOpenMenus((prev) => new Set(prev).add(menu.id));
-        }
-      });
-    }
-  }, [pathname, menus]);
+useEffect(() => {
+  fetchMenus();
+}, []);
 
-  const fetchMenus = async () => {
-    if (isLoaded) return;
-    try {
-      setIsLoading(true);
-      const { data } = await api.get('/menus/list');
-      const menuData = data?.data ?? data;
-      if (!Array.isArray(menuData)) return;
-      const seen = new Set<string>();
-      const unique = menuData.filter((m: MenuItem) => {
-        if (seen.has(m.name)) return false;
-        seen.add(m.name);
-        return true;
-      });
-      setMenus(unique);
-    } catch (error) {
-      console.error('Failed to fetch menus:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+useEffect(() => {
+  if (menus.length > 0) {
+  }
+}, [pathname, menus]);
 
   const toggleMenu = (id: number) => {
-    setOpenMenus((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+  setOpenMenus((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    return next;
+  });
+};
 
   const handleLogout = () => {
     clearMenus();
