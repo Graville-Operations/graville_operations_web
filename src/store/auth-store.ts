@@ -29,7 +29,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      const loginRes = await axios.post(
+        `${API_BASE_URL}/auth/login`,
+        { email, password },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
 
       // API returns: { code, data: { token, role, user_id, expires_at }, message }
       const payload = data?.data ?? data;
@@ -37,13 +41,27 @@ export const useAuthStore = create<AuthState>((set) => ({
       saveToken(payload.token);  
       saveRole(payload.role);    
 
-      // Fetch full user profile
-      const meRes = await api.get('/auth/me', {
-        headers: { Authorization: `Bearer ${payload.token}` },
-      });
+      const meRes = await axios.get(
+        `${API_BASE_URL}/auth/me`,
+        { headers: { Authorization: `Bearer ${payload.token}` } }
+      );
 
       const user = meRes.data?.data ?? meRes.data;
 
+      if (!meData || !meData.email) {
+        throw new Error('Failed to fetch user profile');
+      }
+
+      const user: User = {
+        ...meData,
+        first_name:   meData.firstName  ?? '',
+        last_name:    meData.lastName   ?? '',
+        account_type: meData.role       ?? '',
+        phone_no:     meData.phone      ?? '',
+      };
+
+      saveToken(payload.token);
+      saveRole(payload.role);
       saveUser(user);
       set({
         token: payload.token,  
