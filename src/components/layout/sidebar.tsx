@@ -34,6 +34,8 @@ const subRouteMap: Record<string, string> = {
   'department.menus':           '/department/menus',
   'department.groups':          '/department/groups',
   'department.users':           '/department/users',
+  'sections.groups':            '/sections/departments',
+  
     // add more as you build pages...
 };
 
@@ -113,7 +115,8 @@ export default function Sidebar() {
       finance:    '/finance',
       admin:      '/admin',
       projects:   '/projects',
-      department: '/department/menus',
+      department: '/department',
+      sections:   '/sections/departments',
     };
     return routeMap[menu.name] ?? menu.link ?? '#';
   };
