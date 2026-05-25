@@ -1,10 +1,12 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import {
-  Package, AlertTriangle, Wrench, TrendingDown,
-  DollarSign, BarChart3, Activity, CheckCircle2, XCircle, ChevronDown,
+  Package, AlertTriangle, TrendingDown, BarChart3, Activity, CheckCircle2, XCircle, ChevronDown,
+  Coins, X, ChevronRight, Loader2,
 } from 'lucide-react';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Site { id: number; name: string; }
 
@@ -17,15 +19,56 @@ interface StoreSummary {
   total_hire_cost: number;
 }
 
-interface StatCardProps {
-  label: string;
-  value: string | number;
-  sub?:  string;
-  icon:  React.ReactNode;
-  variant?: 'default' | 'warn' | 'danger' | 'success' | 'info';
+interface UnitBrief {
+  id:     number;
+  name:   string;
+  symbol: string;
 }
 
-function StatCard({ label, value, sub, icon, variant = 'default' }: StatCardProps) {
+interface MaterialItem {
+  id:            number;
+  name:          string;
+  unit:          UnitBrief;
+  quantity:      number;
+  minimum_stock: number;
+}
+
+interface ToolItem {
+  id:         number;
+  name:       string;
+  status:     string;
+  hire_cost?: number;
+}
+
+type DetailType = 'materials' | 'tools' | null;
+type ToolTab    = 'all' | 'available' | 'in_use' | 'damaged';
+
+const TOOL_TABS: { key: ToolTab; label: string }[] = [
+  { key: 'all',       label: 'All'       },
+  { key: 'available', label: 'Available' },
+  { key: 'in_use',    label: 'In Use'    },
+  { key: 'damaged',   label: 'Damaged'   },
+];
+
+const TAB_STATUS: Record<ToolTab, string | undefined> = {
+  all:       undefined,
+  available: 'AVAILABLE',
+  in_use:    'IN_USE',
+  damaged:   'DAMAGED',
+};
+
+// ─── StatCard ─────────────────────────────────────────────────────────────────
+
+interface StatCardProps {
+  label:     string;
+  value:     string | number;
+  sub?:      string;
+  icon:      React.ReactNode;
+  variant?:  'default' | 'warn' | 'danger' | 'success' | 'info';
+  onClick?:  () => void;
+}
+
+function StatCard({ label, value, sub, icon, variant = 'default', onClick }: StatCardProps) {
   const border: Record<string, string> = {
     default: '', warn: 'border-yellow-500/30', danger: 'border-destructive/30',
     success: 'border-green-500/30', info: 'border-blue-500/30',
@@ -42,17 +85,23 @@ function StatCard({ label, value, sub, icon, variant = 'default' }: StatCardProp
     warn: 'Warning', danger: 'Critical', success: 'Good', info: 'Info',
   };
   return (
-    <div className={`gv-card flex flex-col gap-4 ${border[variant]}`}>
+    <div
+      className={`gv-card flex flex-col gap-4 ${border[variant]} ${onClick ? 'cursor-pointer hover:border-white/20 transition-colors' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between">
         <div className="gv-icon-box"><span className={iconCls[variant]}>{icon}</span></div>
-        {variant !== 'default' && (
-          <span className={`gv-tag ${
-            variant === 'warn'    ? 'border-yellow-500/30 text-yellow-400' :
-            variant === 'danger'  ? 'border-destructive/30 text-destructive' :
-            variant === 'success' ? 'border-green-500/30 text-green-400' :
-                                    'border-blue-500/30 text-blue-400'
-          }`}>{tagMap[variant]}</span>
-        )}
+        <div className="flex items-center gap-2">
+          {variant !== 'default' && (
+            <span className={`gv-tag ${
+              variant === 'warn'    ? 'border-yellow-500/30 text-yellow-400' :
+              variant === 'danger'  ? 'border-destructive/30 text-destructive' :
+              variant === 'success' ? 'border-green-500/30 text-green-400' :
+                                      'border-blue-500/30 text-blue-400'
+            }`}>{tagMap[variant]}</span>
+          )}
+          {onClick && <ChevronRight size={14} className="text-white/30" />}
+        </div>
       </div>
       <div>
         <p className="gv-label">{label}</p>
@@ -63,49 +112,15 @@ function StatCard({ label, value, sub, icon, variant = 'default' }: StatCardProp
   );
 }
 
-function ToolsBreakdownCard({ available, inUse, damaged }: { available: number; inUse: number; damaged: number }) {
-  const total = available + inUse + damaged;
-  const pct   = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
-  const segs  = [
-    { label: 'Available', value: available, color: 'bg-green-400',   text: 'text-green-400',   pct: pct(available) },
-    { label: 'In Use',    value: inUse,     color: 'bg-blue-400',    text: 'text-blue-400',    pct: pct(inUse)     },
-    { label: 'Damaged',   value: damaged,   color: 'bg-destructive', text: 'text-destructive', pct: pct(damaged)   },
-  ];
-  return (
-    <div className="gv-card flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <div className="gv-icon-box"><Wrench size={18} className="text-primary" /></div>
-        <div><p className="gv-label">Tools Fleet</p><p className="text-2xl font-bold">{total}</p></div>
-      </div>
-      <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
-        {segs.map((s) => s.pct > 0 && (
-          <div key={s.label} className={`${s.color} transition-all duration-700`} style={{ width: `${s.pct}%` }} />
-        ))}
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        {segs.map((s) => (
-          <div key={s.label} className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${s.color}`} />
-              <span className="text-xs text-muted-foreground">{s.label}</span>
-            </div>
-            <p className={`text-lg font-bold ${s.text}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground">{s.pct}%</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// ─── SiteSelector ─────────────────────────────────────────────────────────────
 
-// Reusable dark-styled site selector
 function SiteSelector({
   sites, selectedSiteId, onChange, isLoading,
 }: {
-  sites: Site[];
+  sites:          Site[];
   selectedSiteId: number | null;
-  onChange: (id: number) => void;
-  isLoading: boolean;
+  onChange:       (id: number) => void;
+  isLoading:      boolean;
 }) {
   return (
     <div className="flex flex-col gap-1 w-full sm:w-64">
@@ -133,6 +148,301 @@ function SiteSelector({
   );
 }
 
+// ─── MaterialsDetail ──────────────────────────────────────────────────────────
+
+function MaterialsDetail({ siteId }: { siteId: number }) {
+  const [items, setItems]       = useState<MaterialItem[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError]       = useState(false);
+  const [skip, setSkip]         = useState(0);
+  const [hasMore, setHasMore]   = useState(true);
+  const LIMIT = 20;
+
+  const fetchPage = useCallback(async (pageSkip: number, append: boolean) => {
+    try {
+      const res  = await api.get(`/store/materials/${siteId}/all`, { params: { skip: pageSkip, limit: LIMIT } });
+      const raw  = res.data?.data ?? res.data;
+      const list: MaterialItem[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
+      setItems((prev) => append ? [...prev, ...list] : list);
+      setHasMore(list.length === LIMIT);
+    } catch {
+      setError(true);
+    }
+  }, [siteId]);
+
+  useEffect(() => {
+    setLoading(true);
+    setItems([]);
+    setSkip(0);
+    setHasMore(true);
+    setError(false);
+    fetchPage(0, false).finally(() => setLoading(false));
+  }, [fetchPage]);
+
+  const loadMore = async () => {
+    const next = skip + LIMIT;
+    setLoadingMore(true);
+    await fetchPage(next, true);
+    setSkip(next);
+    setLoadingMore(false);
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center py-12">
+      <Loader2 size={22} className="animate-spin text-primary" />
+    </div>
+  );
+
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <AlertTriangle size={28} className="text-destructive opacity-40 mb-2" />
+      <p className="text-xs text-muted-foreground">Failed to load materials.</p>
+    </div>
+  );
+
+  if (items.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-10 text-center">
+      <Package size={28} className="opacity-20 mb-2" />
+      <p className="text-xs text-muted-foreground">No materials registered.</p>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-0">
+      {/* Column headers */}
+      <div className="grid gap-x-2 px-3 py-1.5 mb-1 border-b border-white/8"
+           style={{ gridTemplateColumns: '1fr 52px 64px' }}>
+        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Material</p>
+        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide text-center">Unit</p>
+        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide text-right">Qty</p>
+      </div>
+
+      {items.map((m) => {
+        const isLow = m.quantity <= m.minimum_stock;
+        return (
+          <div key={m.id} className="grid gap-x-2 items-center px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors"
+               style={{ gridTemplateColumns: '1fr 52px 64px' }}>
+            <p className="text-sm font-medium truncate">{m.name}</p>
+            <p className="text-xs text-muted-foreground text-center">{m.unit.symbol}</p>
+            <div className="text-right">
+              <p className={`text-sm font-semibold tabular-nums ${isLow ? 'text-yellow-400' : 'text-foreground'}`}>
+                {m.quantity.toLocaleString()}
+              </p>
+              {isLow && <p className="text-[10px] text-yellow-400/70 leading-none mt-0.5">Low</p>}
+            </div>
+          </div>
+        );
+      })}
+
+      {hasMore && (
+        <button
+          onClick={loadMore}
+          disabled={loadingMore}
+          className="mt-2 w-full h-9 rounded-lg border border-white/10 text-xs text-muted-foreground
+                     hover:bg-white/5 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {loadingMore ? <Loader2 size={13} className="animate-spin" /> : 'Load more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── ToolsDetail ──────────────────────────────────────────────────────────────
+
+function ToolsDetail({ siteId, initialTab = 'all' }: { siteId: number; initialTab?: ToolTab }) {
+  const [activeTab, setActiveTab] = useState<ToolTab>(initialTab);
+  const [cache, setCache]         = useState<Partial<Record<ToolTab, ToolItem[]>>>({});
+  const [loading, setLoading]     = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError]         = useState(false);
+  const [skips, setSkips]         = useState<Partial<Record<ToolTab, number>>>({});
+  const [hasMore, setHasMore]     = useState<Partial<Record<ToolTab, boolean>>>({});
+  const LIMIT = 20;
+
+  const fetchTab = useCallback(async (tab: ToolTab, pageSkip: number, append: boolean) => {
+    const status = TAB_STATUS[tab];
+    const res    = await api.get(`/store/tools/${siteId}/all`, {
+      params: { skip: pageSkip, limit: LIMIT, ...(status ? { status } : {}) },
+    });
+    const raw   = res.data?.data ?? res.data;
+    const list: ToolItem[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
+    setCache((prev) => ({ ...prev, [tab]: append ? [...(prev[tab] ?? []), ...list] : list }));
+    setHasMore((prev) => ({ ...prev, [tab]: list.length === LIMIT }));
+  }, [siteId]);
+
+  useEffect(() => {
+    if (cache[activeTab] !== undefined) return; // already fetched
+    setLoading(true);
+    setError(false);
+    fetchTab(activeTab, 0, false)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [activeTab, cache, fetchTab]);
+
+  const loadMore = async () => {
+    const next = (skips[activeTab] ?? 0) + LIMIT;
+    setLoadingMore(true);
+    await fetchTab(activeTab, next, true).catch(() => {});
+    setSkips((prev) => ({ ...prev, [activeTab]: next }));
+    setLoadingMore(false);
+  };
+
+  const statusColor: Record<string, string> = {
+    AVAILABLE: 'text-green-400',
+    IN_USE:    'text-blue-400',
+    DAMAGED:   'text-destructive',
+  };
+  const statusLabel: Record<string, string> = {
+    AVAILABLE: 'Available',
+    IN_USE:    'In Use',
+    DAMAGED:   'Damaged',
+  };
+
+  const items = cache[activeTab] ?? [];
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 rounded-lg bg-white/5">
+        {TOOL_TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`flex-1 h-7 rounded-md text-xs font-medium transition-all ${
+              activeTab === t.key
+                ? 'bg-white/10 text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {loading && (
+        <div className="flex items-center justify-center py-10">
+          <Loader2 size={22} className="animate-spin text-primary" />
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <AlertTriangle size={26} className="text-destructive opacity-40 mb-2" />
+          <p className="text-xs text-muted-foreground">Failed to load tools.</p>
+        </div>
+      )}
+
+      {!loading && !error && items.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <CheckCircle2 size={26} className="opacity-20 mb-2" />
+          <p className="text-xs text-muted-foreground">No tools in this category.</p>
+        </div>
+      )}
+
+      {!loading && !error && items.length > 0 && (
+        <div className="flex flex-col gap-1">
+          {items.map((t) => (
+            <div key={t.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-md bg-white/8 flex items-center justify-center flex-shrink-0">
+                  <Activity size={13} className="text-primary" />
+                </div>
+                <p className="text-sm font-medium">{t.name}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {t.hire_cost !== undefined && (
+                  <p className="text-xs text-muted-foreground">
+                    KES {t.hire_cost.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                  </p>
+                )}
+                <span className={`text-xs font-medium ${statusColor[t.status] ?? 'text-muted-foreground'}`}>
+                  {statusLabel[t.status] ?? t.status}
+                </span>
+              </div>
+            </div>
+          ))}
+
+          {hasMore[activeTab] && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="mt-2 w-full h-9 rounded-lg border border-white/10 text-xs text-muted-foreground
+                         hover:bg-white/5 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {loadingMore ? <Loader2 size={13} className="animate-spin" /> : 'Load more'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── DetailOverlay ────────────────────────────────────────────────────────────
+
+function DetailOverlay({
+  type, siteId, siteName, initialTab = 'all', onClose,
+}: {
+  type:         DetailType;
+  siteId:       number;
+  siteName:     string;
+  initialTab?:  ToolTab;
+  onClose:      () => void;
+}) {
+  if (!type) return null;
+
+  const title = type === 'materials' ? 'Materials' : 'Tools';
+  const Icon  = type === 'materials' ? Package : Activity;
+
+  return (
+    /* Backdrop */
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      {/* Card — stops click propagation so it doesn't close when clicking inside */}
+      <div
+        className="gv-card w-full max-w-md max-h-[80vh] flex flex-col gap-0 overflow-hidden"
+        style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/8">
+          <div className="flex items-center gap-2">
+            <div className="gv-icon-box !w-7 !h-7">
+              <Icon size={14} className="text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">{title}</p>
+              <p className="text-[11px] text-muted-foreground">{siteName}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-white/8 transition-colors"
+          >
+            <X size={14} className="text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 px-4 py-3">
+          {type === 'materials'
+            ? <MaterialsDetail siteId={siteId} />
+            : <ToolsDetail siteId={siteId} initialTab={initialTab} />
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function StoreDashboardPage() {
   const [sites, setSites]                       = useState<Site[]>([]);
   const [selectedSiteId, setSelectedSiteId]     = useState<number | null>(null);
@@ -140,6 +450,8 @@ export default function StoreDashboardPage() {
   const [isSitesLoading, setIsSitesLoading]     = useState(true);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [error, setError]                       = useState(false);
+  const [detailType, setDetailType]             = useState<DetailType>(null);
+  const [detailTab,  setDetailTab]              = useState<ToolTab>('all');
 
   useEffect(() => {
     api.get('/sites/list')
@@ -158,7 +470,8 @@ export default function StoreDashboardPage() {
     setIsSummaryLoading(true);
     setError(false);
     setSummary(null);
-    api.get('/analytics/store', { params: { site_id: selectedSiteId } })
+    // Per-site overview endpoint
+    api.get(`/store/site/${selectedSiteId}`)
       .then((res) => {
         const raw = res.data?.data ?? res.data;
         if (raw) setSummary(raw as StoreSummary);
@@ -171,18 +484,22 @@ export default function StoreDashboardPage() {
 
   const cards: StatCardProps[] = summary ? [
     { label: 'Total Materials', value: summary.total_materials,
-      sub: 'Registered in store',     icon: <Package size={18} />,      variant: 'default'  },
+      sub: 'Registered in store',     icon: <Package size={18} />,      variant: 'default',
+      onClick: () => { setDetailTab('all'); setDetailType('materials'); },
+    },
     { label: 'Low Stock Items', value: summary.low_stock_count,
       sub: 'Below minimum level',     icon: <TrendingDown size={18} />, variant: summary.low_stock_count  > 0 ? 'warn'   : 'success' },
     { label: 'Tools Available', value: summary.tools_available,
-      sub: 'Ready for deployment',    icon: <CheckCircle2 size={18} />, variant: 'success'  },
+      sub: 'Ready for deployment',    icon: <CheckCircle2 size={18} />, variant: 'success',
+      onClick: () => { setDetailTab('available'); setDetailType('tools'); },
+    },
     { label: 'Tools Damaged',   value: summary.tools_damaged,
       sub: 'Requiring maintenance',   icon: <XCircle size={18} />,      variant: summary.tools_damaged    > 0 ? 'danger' : 'default' },
     { label: 'Tools In Use',    value: summary.tools_in_use,
       sub: 'Currently deployed',      icon: <Activity size={18} />,     variant: 'info'     },
     { label: 'Total Hire Cost',
-      value: `$${(summary.total_hire_cost ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      sub: 'Active + available tools', icon: <DollarSign size={18} />,  variant: 'default'  },
+      value: `KES ${(summary.total_hire_cost ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      sub: 'Active + available tools', icon: <Coins size={18} />,  variant: 'default'  },
   ] : [];
 
   return (
@@ -195,7 +512,7 @@ export default function StoreDashboardPage() {
         <SiteSelector
           sites={sites}
           selectedSiteId={selectedSiteId}
-          onChange={setSelectedSiteId}
+          onChange={(id) => { setDetailType(null); setSelectedSiteId(id); }}
           isLoading={isSitesLoading}
         />
       </div>
@@ -231,54 +548,20 @@ export default function StoreDashboardPage() {
       )}
 
       {!isSummaryLoading && summary && (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {cards.map((c) => <StatCard key={c.label} {...c} />)}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ToolsBreakdownCard
-              available={summary.tools_available}
-              inUse={summary.tools_in_use}
-              damaged={summary.tools_damaged}
-            />
-            <div className={`gv-card flex flex-col gap-4 ${summary.low_stock_count > 0 ? 'border-yellow-500/30' : 'border-green-500/30'}`}>
-              <div className="flex items-center gap-2">
-                <div className="gv-icon-box">
-                  {summary.low_stock_count > 0
-                    ? <AlertTriangle size={18} className="text-yellow-400" />
-                    : <CheckCircle2 size={18} className="text-green-400" />}
-                </div>
-                <div>
-                  <p className="gv-label">Stock Health</p>
-                  <p className={`text-2xl font-bold ${summary.low_stock_count > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
-                    {summary.low_stock_count > 0
-                      ? `${summary.low_stock_count} item${summary.low_stock_count > 1 ? 's' : ''} low`
-                      : 'All good'}
-                  </p>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground flex-1">
-                {summary.low_stock_count > 0
-                  ? `${summary.low_stock_count} material${summary.low_stock_count > 1 ? 's are' : ' is'} below the minimum stock threshold. Visit Stock Registers to review.`
-                  : `All ${summary.total_materials} material${summary.total_materials !== 1 ? 's are' : ' is'} above minimum stock levels.`}
-              </p>
-              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${summary.low_stock_count > 0 ? 'bg-yellow-400' : 'bg-green-400'}`}
-                  style={{
-                    width: summary.total_materials > 0
-                      ? `${Math.round(((summary.total_materials - summary.low_stock_count) / summary.total_materials) * 100)}%`
-                      : '100%',
-                  }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{summary.total_materials - summary.low_stock_count} healthy</span>
-                <span>{summary.low_stock_count} low stock</span>
-              </div>
-            </div>
-          </div>
-        </>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {cards.map((c) => <StatCard key={c.label} {...c} />)}
+        </div>
+      )}
+
+      {/* Detail overlay */}
+      {detailType && selectedSiteId && selectedSite && (
+        <DetailOverlay
+          type={detailType}
+          siteId={selectedSiteId}
+          siteName={selectedSite.name}
+          initialTab={detailTab}
+          onClose={() => setDetailType(null)}
+        />
       )}
     </div>
   );
