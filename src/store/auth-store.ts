@@ -30,7 +30,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      // Step 1: Login — use plain axios to avoid interceptor overwriting headers
       const loginRes = await axios.post(
         `${API_BASE_URL}/auth/login`,
         { email, password },
@@ -43,7 +42,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw new Error('Login failed — no token returned');
       }
 
-      // Step 2: Fetch profile using the fresh token — plain axios again
       const meRes = await axios.get(
         `${API_BASE_URL}/auth/me`,
         { headers: { Authorization: `Bearer ${payload.token}` } }
@@ -51,12 +49,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const meData = meRes.data?.data ?? meRes.data;
 
-      // Guard: make sure we got real user data
       if (!meData || !meData.email) {
         throw new Error('Failed to fetch user profile');
       }
 
-      // Map camelCase API fields → snake_case User type
       const user: User = {
         ...meData,
         first_name:   meData.firstName  ?? '',
@@ -65,7 +61,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         phone_no:     meData.phone      ?? '',
       };
 
-      // Step 3: Save to cookies and store
       saveToken(payload.token);
       saveRole(payload.role);
       saveUser(user);
