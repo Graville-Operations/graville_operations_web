@@ -11,6 +11,7 @@ interface Role {
 }
 
 interface ApiUser {
+  id: number;       
   ref_id: string;
   email: string;
   firstName: string;
@@ -25,7 +26,7 @@ export default function AssignRolePage() {
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [filtered, setFiltered] = useState<ApiUser[]>([]);
   const [search, setSearch] = useState('');
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set()); 
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
@@ -78,29 +79,27 @@ export default function AssignRolePage() {
     return () => clearTimeout(timer);
   }, [search, users]);
 
-  const toggleUser = (ref_id: string) => {
+  const toggleUser = (id: number) => {
     setSelectedUserIds((prev) => {
       const next = new Set(prev);
-      next.has(ref_id) ? next.delete(ref_id) : next.add(ref_id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
-  const isAllSelected = filtered.length > 0 && filtered.every((u) => selectedUserIds.has(u.ref_id));
+  const isAllSelected = filtered.length > 0 && filtered.every((u) => selectedUserIds.has(u.id));
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      // Deselect all filtered users
       setSelectedUserIds((prev) => {
         const next = new Set(prev);
-        filtered.forEach((u) => next.delete(u.ref_id));
+        filtered.forEach((u) => next.delete(u.id));
         return next;
       });
     } else {
-      // Select all filtered users
       setSelectedUserIds((prev) => {
         const next = new Set(prev);
-        filtered.forEach((u) => next.add(u.ref_id));
+        filtered.forEach((u) => next.add(u.id));
         return next;
       });
     }
@@ -121,8 +120,8 @@ export default function AssignRolePage() {
     setSuccess('');
 
     const results = await Promise.allSettled(
-      Array.from(selectedUserIds).map((ref_id) =>
-        api.post(`/roles/${selectedRoleId}/assign/${ref_id}`)
+      Array.from(selectedUserIds).map((userId) =>
+        api.post(`/roles/${selectedRoleId}/assign/${userId}`)
       )
     );
 
@@ -223,11 +222,11 @@ export default function AssignRolePage() {
         ) : (
           <div className="divide-y divide-white/5">
             {filtered.map((user) => {
-              const isSelected = selectedUserIds.has(user.ref_id);
+              const isSelected = selectedUserIds.has(user.id);
               return (
                 <button
-                  key={user.ref_id}
-                  onClick={() => toggleUser(user.ref_id)}
+                  key={user.id}
+                  onClick={() => toggleUser(user.id)}
                   className={`flex items-center gap-4 w-full px-5 py-3.5 text-left transition-all ${
                     isSelected ? 'bg-[#33907C]/15' : 'hover:bg-white/5'
                   }`}
