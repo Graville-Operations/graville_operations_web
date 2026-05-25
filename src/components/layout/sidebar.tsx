@@ -8,36 +8,6 @@ import api from '@/lib/api';
 import { MenuItem } from '@/types';
 import { ChevronDown, ChevronRight, LogOut, User, Bell } from 'lucide-react';
 
-// Hardcoded links for subsubmenus until backend seeds them
-const subSubMenuLinks: Record<string, string> = {
-  'finance.invoices.company':        '/finance/invoices/company',
-  'finance.invoices.client':         '/finance/invoices/client',
-  'finance.invoices.supplier':       '/finance/invoices/supplier',
-  'finance.invoices.sub-contractor': '/finance/invoices/sub-contractor',
-};
-
-// Hardcoded submenu routes until backend seeds them
-const subRouteMap: Record<string, string> = {
-  'users.dashboard':            '/users/dashboard',
-  'users.add-user':             '/users/new',
-  'users.roles-and-permission': '/users/roles',
-  'users.reports':              '/users/reports',
-  'users.imports':              '/users/import',
-  'finance.dashboard':          '/finance',
-  'finance.invoices':           '/finance/invoices',
-  'finance.expenses':           '/finance/expenses',
-  'finance.budgets':            '/finance/budgets',
-  'finance.payments':           '/finance/payments',
-  'finance.reports':           '/finance/reports',
-  'finance.templates':           '/finance/templates',
-  'projects.dashboard':         '/projects',
-  'projects.new-project':       '/projects/new',
-  'store.dashboard':            '/stores/dashboard',
-  'store.orders':               '/stores/orders',
-  'store.stocks':               '/stores/stocks',
-    // add more as you build pages...
-};
-
 export default function Sidebar() {
   const { menus, isLoaded, setMenus, clearMenus } = useMenuStore();
   const [isLoading, setIsLoading] = useState(!isLoaded);
