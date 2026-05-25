@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
@@ -16,43 +16,35 @@ export default function Sidebar() {
   const router = useRouter();
   const { user, role, logout } = useAuthStore();
 
-  const fetchMenus = useCallback(async () => {
-    if (isLoaded) return;
-    try {
-      setIsLoading(true);
-      const { data } = await api.get('/menus/list');
-      const menuData = data?.data ?? data;
-      if (!Array.isArray(menuData)) return;
-      const seen = new Set<string>();
-      const unique = menuData.filter((m: MenuItem) => {
-        if (seen.has(m.name)) return false;
-        seen.add(m.name);
-        return true;
-      });
-      setTimeout(() => setMenus(unique), 0);
-    } catch (error) {
-      console.error('Failed to fetch menus:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoaded, setMenus]);
+const fetchMenus = async () => {
+  if (isLoaded) return;
+  try {
+    setIsLoading(true);
+    const { data } = await api.get('/menus/list');
+    const menuData = data?.data ?? data;
+    if (!Array.isArray(menuData)) return;
+    const seen = new Set<string>();
+    const unique = menuData.filter((m: MenuItem) => {
+      if (seen.has(m.name)) return false;
+      seen.add(m.name);
+      return true;
+    });
+    setMenus(unique);
+  } catch (error) {
+    console.error('Failed to fetch menus:', error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
-  useEffect(() => {
-    fetchMenus();
-  }, [fetchMenus]);
+useEffect(() => {
+  fetchMenus();
+}, []);
 
-  useEffect(() => {
-    if (menus.length > 0) {
-      menus.forEach((menu: MenuItem) => {
-        if (menu.submenus?.some((sub) => {
-          const href = sub.link ?? '#';
-          return href !== '#' && pathname.startsWith(href);
-        })) {
-          setOpenMenus((prev) => new Set(prev).add(menu.id));
-        }
-      });
-    }
-  }, [pathname, menus]);
+useEffect(() => {
+  if (menus.length > 0) {
+  }
+}, [pathname, menus]);
 
   const toggleMenu = (id: number) => {
   setOpenMenus((prev) => {
@@ -94,7 +86,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-white/5 backdrop-blur-md [box-shadow:2px_0_0_rgba(255,255,255,0.06),8px_0_32px_rgba(0,0,0,0.6)]">
+    <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-white/5 backdrop-blur-md border-r border-white/10">
       {/* Logo */}
       <div className="p-5 border-b border-white/10">
         <Link href="/home" className="flex items-center gap-3">
