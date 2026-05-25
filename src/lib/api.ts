@@ -8,7 +8,6 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  // Don't overwrite if Authorization is already set (e.g. during login flow)
   if (!config.headers.Authorization) {
     const token = getToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
