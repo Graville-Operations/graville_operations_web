@@ -79,7 +79,7 @@ function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
             <Building2 className="w-4 h-4" style={{ color: 'var(--gv-brand)' }} />
           </div>
           <div className="min-w-0">
-            <p className="font-medium text-sm text-white leading-tight truncate group-hover:text-[var(--gv-brand)] transition-colors">
+            <p className="font-medium text-sm text-white leading-tight truncate group-hover:text-(--gv-brand) transition-colors">
               {site.name}
             </p>
             <span className="inline-flex items-center gap-1.5 text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
@@ -88,7 +88,7 @@ function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${projMeta.bg} ${projMeta.color}`}>
             {projMeta.label}
           </span>
@@ -100,13 +100,13 @@ function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
       <div className="space-y-1.5 flex-1">
         {site.location && (
           <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-muted)' }}>
-            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{site.location}</span>
           </div>
         )}
         {site.inquiring_entity && (
           <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-muted)' }}>
-            <Layers className="w-3 h-3 flex-shrink-0" />
+            <Layers className="w-3 h-3 shrink-0" />
             <span className="truncate">{site.inquiring_entity}</span>
           </div>
         )}
@@ -152,13 +152,13 @@ function DetailRow({ icon: Icon, label, value }: {
 }) {
   return (
     <div className="flex items-start gap-3 py-3" style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
-      <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
+      <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5"
         style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
         <Icon className="w-3.5 h-3.5" style={{ color: 'var(--gv-text-muted)' }} />
       </div>
       <div className="min-w-0">
         <p className="text-xs mb-0.5" style={{ color: 'var(--gv-text-subtle)' }}>{label}</p>
-        <div className="text-sm font-medium text-white break-words">{value}</div>
+        <div className="text-sm font-medium text-white wrap-break-word">{value}</div>
       </div>
     </div>
   );
@@ -178,7 +178,7 @@ function SiteDetailPanel({ site, onClose }: { site: Site; onClose: () => void })
         style={{ background: 'var(--gv-nav-bg)', borderLeft: '1px solid var(--gv-glass-border)', backdropFilter: 'blur(24px)' }}>
 
         {/* panel header */}
-        <div className="flex items-start justify-between gap-3 px-5 py-4 flex-shrink-0"
+        <div className="flex items-start justify-between gap-3 px-5 py-4 shrink-0"
           style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
           <div className="flex items-center gap-3 min-w-0">
             <div className="gv-icon-box">
@@ -192,7 +192,7 @@ function SiteDetailPanel({ site, onClose }: { site: Site; onClose: () => void })
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${projMeta.bg} ${projMeta.color}`}>
               {projMeta.label}
             </span>
@@ -367,7 +367,7 @@ export default function ProjectsDashboardPage() {
       {kpisError && (
         <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
           style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', color: '#fde68a' }}>
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           Analytics unavailable. Check your backend connection.
         </div>
       )}
@@ -450,7 +450,7 @@ export default function ProjectsDashboardPage() {
       {sitesError && (
         <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           {sitesError}
           <button onClick={loadAll} className="ml-auto underline underline-offset-2 text-xs">Retry</button>
         </div>
