@@ -28,17 +28,18 @@ export default function InvoicesPage() {
   }, [search, invoices]);
 
   const fetchInvoices = async () => {
-    try {
-      setIsLoading(true);
-      const { data } = await api.get('/invoices/all');
-      setInvoices(data);
-      setFiltered(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  try {
+    setIsLoading(true);
+    const { data } = await api.get('/invoices/all');
+    const list = Array.isArray(data) ? data : data.items ?? data.results ?? data.invoices ?? [];
+    setInvoices(list);
+    setFiltered(list);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const fetchDetail = async (id: number) => {
     try {
@@ -75,7 +76,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* ── Search ── */}
-      <div className="gv-card !p-3">
+      <div className="gv-card p-3!">
         <div className="relative">
           <Search
             size={15}
@@ -87,13 +88,13 @@ export default function InvoicesPage() {
             placeholder="Search by invoice no, supplier, date..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="gv-input !pl-9 !py-2 text-sm"
+            className="gv-input pl-9! py-2! text-sm"
           />
         </div>
       </div>
 
       {/* ── Table ── */}
-      <div className="gv-card !p-0 overflow-hidden">
+      <div className="gv-card p-0! overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center h-48">
             <div className="w-6 h-6 border-2 border-[#33907c] border-t-transparent rounded-full animate-spin" />
