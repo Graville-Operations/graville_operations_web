@@ -118,9 +118,7 @@ export default function SupplierInvoicesPage() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════
-          DESKTOP — table
-      ══════════════════════════════════════════════════════ */}
+    
       <div className="gv-card !p-0 overflow-hidden hidden md:block">
         {isLoading ? <Spinner /> : filtered.length === 0 ? <EmptyState /> : (
           <div className="overflow-x-auto">
@@ -166,9 +164,7 @@ export default function SupplierInvoicesPage() {
         )}
       </div>
 
-      {/* ══════════════════════════════════════════════════════
-          MOBILE — tap cards
-      ══════════════════════════════════════════════════════ */}
+  
       <div className="space-y-2 md:hidden">
         {isLoading ? <Spinner /> : filtered.length === 0 ? <EmptyState /> : (
           filtered.map((inv) => {
@@ -219,9 +215,7 @@ export default function SupplierInvoicesPage() {
         />
       )}
 
-      {/* ══════════════════════════════════════════════════════
-          Invoice Detail — bottom sheet on mobile, modal on desktop
-      ══════════════════════════════════════════════════════ */}
+     
       {selected && (
         <div
           className="fixed inset-0 flex items-end md:items-center justify-center z-50 p-0 md:p-4"
