@@ -57,7 +57,7 @@ export default function NewUserPage() {
         department_id: form.department_id,
         site_ids:      form.site_ids,
       });
-      router.push('/users');
+      router.push('/users/dashboard');
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; detail?: string } } };
       setError(e.response?.data?.message || e.response?.data?.detail || 'Failed to create user');
