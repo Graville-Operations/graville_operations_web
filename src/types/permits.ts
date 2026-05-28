@@ -1,37 +1,46 @@
-export interface PermitCategory {
-  id: string;
-  name: string;
-  description?: string;
-  created_at?: string;
+export type PermitStatus =
+  | "Draft"
+  | "Submitted"
+  | "Under Review"
+  | "Approved"
+  | "Rejected"
+  | "Revision Requested";
+
+export type ApprovalStatus = "Pending" | "Approved" | "Rejected";
+
+export interface PermitApproval {
+  id: number;
+  permit_id: number;
+  approver_id: number;
+  step_order: number;
+  status: ApprovalStatus;
+  comment: string | null;
+  actioned_at: string | null;
+  created_at: string;
 }
 
-export type PermitStatus =
-  | "draft"
-  | "submitted"
-  | "under_review"
-  | "approved"
-  | "rejected"
-  | "revision_requested";
-
 export interface Permit {
-  id: string;
+  id: number;
   title: string;
-  description?: string;
-  category_id: string;
-  category?: PermitCategory;
+  description: string;
   status: PermitStatus;
-  created_by?: string;
+  currentStep: number;
+  siteId: number;
+  siteName: string;
+  categoryId: number;
+  permitCategory: string;
+  requested_by: number;
+  requester: string;
   created_at: string;
-  updated_at?: string;
-  submitted_at?: string;
-  notes?: string;
+  updated_at: string;
+  approvals: PermitApproval[];
 }
 
 export interface CreatePermitPayload {
   title: string;
-  description?: string;
-  category_id: string;
-  notes?: string;
+  description: string;
+  siteId: number;
+  categoryId: number;
 }
 
 export interface TakeActionPayload {
@@ -39,14 +48,9 @@ export interface TakeActionPayload {
   comment?: string;
 }
 
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total?: number;
-  page?: number;
-  per_page?: number;
+export interface PaginatedPermits {
+  data: Permit[];
+  total: number;
+  skip: number;
+  limit: number;
 }
