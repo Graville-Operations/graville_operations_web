@@ -3,20 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { ApiUser } from '@/types';
 import { UserPlus, Search, Trash2, Shield } from 'lucide-react';
-
-// API response shape
-interface ApiUser {
-  ref_id: string;
-  email: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  phone?: string;
-  nationalId?: string;
-  accountStatus?: string;
-  role?: string;
-}
 
 const roleColors: Record<string, string> = {
   Admin:          'bg-red-500/20 text-red-300 border border-red-500/20',
@@ -33,22 +21,6 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    const q = search.toLowerCase();
-    setFiltered(
-      users.filter(
-        (u) =>
-          `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q) ||
-          (u.role ?? '').toLowerCase().includes(q)
-      )
-    );
-  }, [search, users]);
-
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
@@ -63,6 +35,26 @@ export default function UsersPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const q = search.toLowerCase();
+      setFiltered(
+        users.filter(
+          (u) =>
+            `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
+            u.email.toLowerCase().includes(q) ||
+            (u.role ?? '').toLowerCase().includes(q)
+        )
+      );
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [search, users]);
 
   const deleteUser = async (ref_id: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
