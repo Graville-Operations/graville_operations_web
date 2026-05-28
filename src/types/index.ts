@@ -11,6 +11,19 @@ export interface User {
   enabled: boolean;
 }
 
+export interface ApiUser {
+  ref_id: string;
+  id?: number;       
+  email: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  phone?: string;
+  nationalId?: string;
+  accountStatus?: string;
+  role?: string;
+}
+
 export interface LoginResponse {
   token: string;
   token_type: string;
