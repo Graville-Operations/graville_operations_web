@@ -100,7 +100,7 @@ export default function HomePage() {
           </p>
         </div>
         <div className="flex gap-4 flex-wrap justify-center">
-          <Link href="/demo"    className="gv-btn-brand">See How It Works</Link>
+          <Link href="/demo" className="gv-btn-brand">See How It Works</Link>
           <Link href="/contact" className="gv-btn-outline">Talk to Us</Link>
         </div>
       </section>
@@ -167,7 +167,7 @@ export default function HomePage() {
           Get full visibility over your operations starting today.
         </h2>
         <div className="flex gap-4 justify-center flex-wrap mt-8">
-          <Link href="/demo"    className="gv-btn-brand">Request a Demo</Link>
+          <Link href="/demo" className="gv-btn-brand">Request a Demo</Link>
           <Link href="/contact" className="gv-btn-outline">Contact Us</Link>
         </div>
       </section>

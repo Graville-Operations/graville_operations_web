@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+//import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
+import { useUserStore } from '@/store/user-store';
+import { useInvoiceStore } from '@/store/invoice-store';
 import api from '@/lib/api';
 import { fetchOverviewKPIs } from '@/lib/api/sites';
 import { OverviewKPIs } from '@/types/site';
@@ -12,23 +14,8 @@ import {
   ArrowRight, Clock, Receipt, CheckCircle2,
   AlertCircle, Loader2, UserCircle, Building2,
 } from 'lucide-react';
-
-interface InvoiceItem {
-  id: number;
-  invoice_number: string;
-  supplier_name: string;
-  total_invoice_value: number;
-  invoice_date: string;
-  status?: string;
-}
-
-interface ApiUser {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role?: string;
-}
+// import { ApiUser } from '@/types';
+// import { InvoiceItem } from '@/store/invoice-store';
 
 function StatusIcon({ status }: { status?: string }) {
   if (!status) return null;
@@ -52,8 +39,6 @@ function StatCard({
   href?: string;
   loading?: boolean;
 }) {
-  const router = useRouter();
-
   const content = (
     <div className="gv-card gv-stat-card p-5 flex flex-col gap-4 cursor-pointer">
       <div className="flex items-center justify-between">
@@ -84,24 +69,26 @@ function StatCard({
     </div>
   );
 
-  if (href) {
-    return <Link href={href}>{content}</Link>;
-  }
+  if (href) return <Link href={href}>{content}</Link>;
   return <div>{content}</div>;
 }
 
 export default function HomePage() {
   const { user, role } = useAuthStore();
+
+  const { users, isLoaded: usersLoaded, setUsers } = useUserStore();
+  const [usersLoading, setUsersLoading] = useState(!usersLoaded);
+  const recentUsers = users.slice(0, 5);
+
+  const { invoices, isLoaded: invoicesLoaded, setInvoices } = useInvoiceStore();
+  const [invoicesLoading, setInvoicesLoading] = useState(!invoicesLoaded);
+  const recentInvoices = invoices.slice(0, 5);
+
   const [kpis, setKpis] = useState<OverviewKPIs | null>(null);
   const [kpisLoading, setKpisLoading] = useState(true);
-  const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
-  const [recentUsers, setRecentUsers] = useState<ApiUser[]>([]);
-  const [invoicesLoading, setInvoicesLoading] = useState(true);
-  const [usersLoading, setUsersLoading] = useState(true);
 
   const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   useEffect(() => {
     fetchOverviewKPIs()
@@ -112,29 +99,30 @@ export default function HomePage() {
       .catch(console.error)
       .finally(() => setKpisLoading(false));
 
-    // Fetch recent invoices
-    api
-      .get('/invoices/all?limit=5')
-      .then(({ data }) => {
-        const payload = data?.data ?? data;
-        const list = Array.isArray(payload)
-          ? payload
-          : payload?.items ?? payload?.results ?? [];
-        setInvoices(list.slice(0, 5));
-      })
-      .catch(console.error)
-      .finally(() => setInvoicesLoading(false));
+    if (!usersLoaded) {
+      api.get('/users/list')
+        .then(({ data }) => {
+          const payload = data?.data ?? data;
+          const list = Array.isArray(payload) ? payload : payload?.items ?? [];
+          setUsers(list);
+        })
+        .catch(console.error)
+        .finally(() => setUsersLoading(false));
+    }
 
-    api
-      .get('/users/list')
-      .then(({ data }) => {
-        const payload = data?.data ?? data;
-        const list = Array.isArray(payload) ? payload : payload?.items ?? [];
-        setRecentUsers(list.slice(0, 5));
-      })
-      .catch(console.error)
-      .finally(() => setUsersLoading(false));
-  }, []);
+    if (!invoicesLoaded) {
+      api.get('/invoices/all?limit=5')
+        .then(({ data }) => {
+          const payload = data?.data ?? data;
+          const list = Array.isArray(payload)
+            ? payload
+            : payload?.items ?? payload?.results ?? [];
+          setInvoices(list);
+        })
+        .catch(console.error)
+        .finally(() => setInvoicesLoading(false));
+    }
+  }, [invoicesLoaded, setInvoices, setUsers, usersLoaded]);
 
   const stats = [
     {
@@ -211,12 +199,12 @@ export default function HomePage() {
             >
               {role}
             </span>
-            Here's what's happening today.
+            Here&apos;s what&apos;s happening today.
           </p>
         </div>
       </div>
 
-      {/* Stat cards — live from backend */}
+      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} loading={kpisLoading} />
@@ -250,17 +238,17 @@ export default function HomePage() {
               <div className="flex items-center justify-center py-10">
                 <Loader2 size={20} className="animate-spin" style={{ color: '#33907c' }} />
               </div>
-            ) : invoices.length === 0 ? (
+            ) : recentInvoices.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10">
                 <Receipt size={32} style={{ color: 'var(--gv-text-faint)' }} className="mb-2" />
                 <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>No invoices yet</p>
               </div>
             ) : (
-              invoices.map((inv, idx) => (
+              recentInvoices.map((inv, idx) => (
                 <div
                   key={inv.id}
                   className="flex items-center justify-between py-2.5 rounded-lg px-2"
-                  style={{ borderBottom: idx < invoices.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}
+                  style={{ borderBottom: idx < recentInvoices.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(51,144,124,0.12)' }}>
@@ -334,7 +322,7 @@ export default function HomePage() {
               <div className="space-y-1">
                 {recentUsers.map((u, idx) => (
                   <div
-                    key={u.id}
+                    key={u.ref_id}
                     className="flex items-center gap-3 py-2.5 px-2 rounded-lg"
                     style={{ borderBottom: idx < recentUsers.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}
                   >

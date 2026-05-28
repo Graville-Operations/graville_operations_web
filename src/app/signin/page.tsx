@@ -34,13 +34,13 @@ export default function LoginPage() {
         axiosErr.response?.data?.message ||
         axiosErr.response?.data?.detail ||
         'Login failed'
-      );
+      ); 
       setPassword('');
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_#1a3a6e_0%,_#0a0f1e_60%,_#000000_100%)]">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,#1a3a6e_0%,#0a0f1e_60%,#000000_100%)]">
       {/* Decorative blobs */}
       <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl" />
       <div className="absolute bottom-20 right-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
