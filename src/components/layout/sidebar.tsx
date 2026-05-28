@@ -38,7 +38,9 @@ const fetchMenus = async () => {
 };
 
 useEffect(() => {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   fetchMenus();
+// eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
 useEffect(() => {
@@ -86,7 +88,7 @@ useEffect(() => {
   };
 
   return (
-    <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-white/5 backdrop-blur-md border-r border-white/10">
+    <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-white/5 backdrop-blur-md [box-shadow:2px_0_0_rgba(255,255,255,0.06),8px_0_32px_rgba(0,0,0,0.6)]">
       {/* Logo */}
       <div className="p-5 border-b border-white/10">
         <Link href="/home" className="flex items-center gap-3">
@@ -215,7 +217,7 @@ useEffect(() => {
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
                     isMenuActive(menu)
                       ? 'bg-[#33907C] text-white'
-                      : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      : 'text-white/70 hover:bg-white/10 ehover:text-white'
                   }`}
                 >
                   <ChevronRight size={14} className="shrink-0 opacity-40" />
