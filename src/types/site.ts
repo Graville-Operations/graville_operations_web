@@ -7,6 +7,7 @@ export type ProjectStatus =
 
 export type SiteStatus = 'ACTIVE' | 'INACTIVE' | 'CLOSED';
 
+// From GET /api/v1/sites/list (snake_case)
 export interface Site {
   id: number;
   name: string;
@@ -27,6 +28,73 @@ export interface Site {
   field_operator_id: number | null;
 }
 
+// From GET /api/v1/sites/{site_id} (camelCase)
+export interface SiteDetail {
+  id: number;
+  name: string;
+  location: string | null;
+  description: string | null;
+  projectStatus: string;
+  siteStatus: string;
+  latitude: number | null;
+  longitude: number | null;
+  completionDate: string | null;
+  tags: string[];
+  tendererName: string | null;
+  inquiringEntity: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+// From GET /api/v1/workers/list-by-id/{site_id}
+export interface SiteWorker {
+  id: number;
+  first_name: string;
+  last_name: string;
+  skill: {
+    id: number;
+    name: string;
+    amount: number;
+  } | null;
+  status: string;
+}
+
+// From GET /api/v1/attendance/summary/{site_id}
+export interface AttendanceRecord {
+  id: number;
+  site_id: number;
+  workerName: string;
+  date: string;
+  checkInTime: string;
+  phone: string | null;
+  nationalId: string | null;
+}
+
+// From GET /api/v1/tasks/list/{site_id}
+export interface SubTask {
+  id: number;
+  name: string;
+  description: string | null;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  task_id: number;
+  [key: string]: unknown;
+}
+
+export interface SiteTask {
+  id: number;
+  name: string;
+  description: string | null;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  site_id: number;
+  created_by: number | null;
+  subtasks: SubTask[];
+}
+
 export interface CreateSitePayload {
   name: string;
   location?: string;
@@ -42,6 +110,7 @@ export interface CreateSitePayload {
   field_operator_id?: number;
 }
 
+// From GET /api/v1/analytics/overview
 export interface OverviewKPIs {
   totalSites: number;
   activeSites: number;
