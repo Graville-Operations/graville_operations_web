@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useUserStore } from '@/store/user-store';
 
 interface Role {
   id: number;
@@ -12,6 +13,7 @@ interface Role {
 
 export default function NewUserPage() {
   const router = useRouter();
+  const { clearUsers } = useUserStore();
   const [roles, setRoles] = useState<Role[]>([]);
   const [form, setForm] = useState({
     first_name: '',
@@ -26,7 +28,11 @@ export default function NewUserPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch roles from backend
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
+    fetchRoles();
+  }, []);
+
   const fetchRoles = async () => {
     try {
       const { data } = await api.get('/roles/list');
@@ -37,10 +43,6 @@ export default function NewUserPage() {
       console.error('Failed to fetch roles:', err);
     }
   };
-
-  useEffect(() => {
-    fetchRoles();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +59,8 @@ export default function NewUserPage() {
         department_id: form.department_id,
         site_ids:      form.site_ids,
       });
-      router.push('/users');
+      clearUsers(); // bust cache so dashboard re-fetches
+      router.push('/users/dashboard');
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; detail?: string } } };
       setError(e.response?.data?.message || e.response?.data?.detail || 'Failed to create user');
@@ -100,7 +103,7 @@ export default function NewUserPage() {
         <div className="grid grid-cols-2 gap-4">
           {[
             { label: 'First Name', key: 'first_name', required: true },
-            { label: 'Last Name', key: 'last_name', required: true },
+            { label: 'Last Name',  key: 'last_name',  required: true },
           ].map(({ label, key, required }) => (
             <div key={key}>
               <label className="block text-sm font-medium text-blue-100/80 mb-1">
@@ -144,9 +147,7 @@ export default function NewUserPage() {
 
         {/* Password */}
         <div>
-          <label className="block text-sm font-medium text-blue-100/80 mb-1">
-            Default Password *
-          </label>
+          <label className="block text-sm font-medium text-blue-100/80 mb-1">Default Password *</label>
           <input
             type="text"
             value={form.password}
