@@ -93,6 +93,7 @@ function AttendanceBarChart({ tab, dateFrom, dateTo }: {
   const lbls = new Set(bars.map((_, i) => i).filter((i) => i === 0 || i === bars.length - 1 || i % step === 0));
 
   return (
+<<<<<<< HEAD
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 160 }}>
       {yTicks.map((tick) => {
         const y = PT + cH - (tick / yMax) * cH;
@@ -116,6 +117,61 @@ function AttendanceBarChart({ tab, dateFrom, dateTo }: {
             {b.late    > 0 && <rect x={x} y={lY} width={barW} height={lH} rx="2" fill="#ef4444" opacity="0.85" />}
             {lbls.has(i) && (
               <text x={cx} y={H - 6} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.35)">{b.date}</text>
+=======
+    <div onClick={onClick} className="gv-card gv-card-hover flex flex-col gap-3 group">
+      {/* header */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="gv-icon-box">
+            <Building2 className="w-4 h-4" style={{ color: 'var(--gv-brand)' }} />
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium text-sm text-white leading-tight truncate group-hover:text-(--gv-brand) transition-colors">
+              {site.name}
+            </p>
+            <span className="inline-flex items-center gap-1.5 text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+              <span className={`w-1.5 h-1.5 rounded-full ${siteMeta.dot}`} />
+              {siteMeta.label}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${projMeta.bg} ${projMeta.color}`}>
+            {projMeta.label}
+          </span>
+          <ChevronRight className="w-3.5 h-3.5 transition-colors" style={{ color: 'var(--gv-text-faint)' }} />
+        </div>
+      </div>
+
+      {/* body */}
+      <div className="space-y-1.5 flex-1">
+        {site.location && (
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-muted)' }}>
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="truncate">{site.location}</span>
+          </div>
+        )}
+        {site.inquiring_entity && (
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-muted)' }}>
+            <Layers className="w-3 h-3 shrink-0" />
+            <span className="truncate">{site.inquiring_entity}</span>
+          </div>
+        )}
+        {site.description && (
+          <p className="text-xs line-clamp-2" style={{ color: 'var(--gv-text-subtle)' }}>
+            {site.description}
+          </p>
+        )}
+        {site.tags && site.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {site.tags.slice(0, 3).map((tag) => (
+              <span key={tag} className="gv-tag inline-flex items-center gap-1">
+                <Tag className="w-2.5 h-2.5" />{tag}
+              </span>
+            ))}
+            {site.tags.length > 3 && (
+              <span className="text-[11px]" style={{ color: 'var(--gv-text-faint)' }}>+{site.tags.length - 3}</span>
+>>>>>>> main
             )}
           </g>
         );
@@ -161,6 +217,7 @@ function SiteStatusDonut({ active, planning, paused, done, loading }: {
   const CX = 70, CY = 70;
   if (loading) return <div className="flex items-center justify-center" style={{ width: 140, height: 140 }}><Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} /></div>;
   return (
+<<<<<<< HEAD
     <svg viewBox="0 0 140 140" style={{ width: 140, height: 140 }}>
       {rings.map((ring) => {
         const circ = 2 * Math.PI * ring.r;
@@ -182,6 +239,142 @@ function SiteStatusDonut({ active, planning, paused, done, loading }: {
 // ─────────────────────────────────────────────
 //  Page
 // ─────────────────────────────────────────────
+=======
+    <div className="flex items-start gap-3 py-3" style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
+      <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5"
+        style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+        <Icon className="w-3.5 h-3.5" style={{ color: 'var(--gv-text-muted)' }} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs mb-0.5" style={{ color: 'var(--gv-text-subtle)' }}>{label}</p>
+        <div className="text-sm font-medium text-white wrap-break-word">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function SiteDetailPanel({ site, onClose }: { site: Site; onClose: () => void }) {
+  const projMeta = PROJECT_STATUS_META[site.project_status] ?? PROJECT_STATUS_META['PLANNING'];
+  const siteMeta = SITE_STATUS_META[site.site_status]       ?? SITE_STATUS_META['INACTIVE'];
+
+  return (
+    <>
+      {/* backdrop */}
+      <div className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={onClose} />
+
+      {/* panel */}
+      <div className="fixed top-0 right-0 h-full w-full max-w-md z-50 flex flex-col overflow-hidden"
+        style={{ background: 'var(--gv-nav-bg)', borderLeft: '1px solid var(--gv-glass-border)', backdropFilter: 'blur(24px)' }}>
+
+        {/* panel header */}
+        <div className="flex items-start justify-between gap-3 px-5 py-4 shrink-0"
+          style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="gv-icon-box">
+              <Building2 className="w-5 h-5" style={{ color: 'var(--gv-brand)' }} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="font-semibold text-sm text-white leading-tight truncate">{site.name}</h2>
+              <span className="inline-flex items-center gap-1.5 text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+                <span className={`w-1.5 h-1.5 rounded-full ${siteMeta.dot}`} />
+                {siteMeta.label}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${projMeta.bg} ${projMeta.color}`}>
+              {projMeta.label}
+            </span>
+            <button onClick={onClose}
+              className="w-7 h-7 rounded-md flex items-center justify-center transition-colors"
+              style={{ color: 'var(--gv-text-muted)', background: 'transparent' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+
+          {site.description && (
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--gv-text-muted)' }}>
+              {site.description}
+            </p>
+          )}
+
+          {/* basic info */}
+          <div>
+            <p className="gv-eyebrow mb-2">Basic Information</p>
+            <div className="gv-card" style={{ padding: '0 1rem' }}>
+              {site.location && <DetailRow icon={MapPin} label="Location" value={site.location} />}
+              <DetailRow icon={Calendar} label="Created"
+                value={site.created_at ? format(new Date(site.created_at), 'dd MMM yyyy, HH:mm') : '—'} />
+              {site.updated_at && (
+                <DetailRow icon={Clock} label="Last updated"
+                  value={format(new Date(site.updated_at), 'dd MMM yyyy, HH:mm')} />
+              )}
+              {site.completion_date && (
+                <DetailRow icon={Calendar} label="Completion date"
+                  value={format(new Date(site.completion_date), 'dd MMM yyyy')} />
+              )}
+              <DetailRow icon={Hash} label="Site ID" value={`#${site.id}`} />
+            </div>
+          </div>
+
+          {/* entity details */}
+          {(site.tender_name || site.inquiring_entity) && (
+            <div>
+              <p className="gv-eyebrow mb-2">Entity Details</p>
+              <div className="gv-card" style={{ padding: '0 1rem' }}>
+                {site.tender_name && <DetailRow icon={FileText} label="Tender name" value={site.tender_name} />}
+                {site.inquiring_entity && <DetailRow icon={Layers} label="Inquiring entity" value={site.inquiring_entity} />}
+              </div>
+            </div>
+          )}
+
+          {/* coordinates */}
+          {(site.latitude !== null || site.longitude !== null) && (
+            <div>
+              <p className="gv-eyebrow mb-2">Geo Coordinates</p>
+              <div className="gv-card" style={{ padding: '0 1rem' }}>
+                {site.latitude !== null && <DetailRow icon={Navigation} label="Latitude" value={site.latitude} />}
+                {site.longitude !== null && <DetailRow icon={Navigation} label="Longitude" value={site.longitude} />}
+              </div>
+            </div>
+          )}
+
+          {/* tags */}
+          {site.tags && site.tags.length > 0 && (
+            <div>
+              <p className="gv-eyebrow mb-2">Tags</p>
+              <div className="flex flex-wrap gap-2">
+                {site.tags.map((tag) => (
+                  <span key={tag} className="gv-tag inline-flex items-center gap-1.5">
+                    <Tag className="w-3 h-3" />{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* system */}
+          <div>
+            <p className="gv-eyebrow mb-2">System</p>
+            <div className="gv-card" style={{ padding: '0 1rem' }}>
+              <DetailRow icon={User} label="Created by" value={`User #${site.created_by}`} />
+              {site.updated_by && <DetailRow icon={User} label="Last updated by" value={`User #${site.updated_by}`} />}
+              {site.field_operator_id && <DetailRow icon={User} label="Field operator" value={`User #${site.field_operator_id}`} />}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </>
+  );
+}
+>>>>>>> main
 
 export default function ProjectsDashboardPage() {
   const [sites, setSites]         = useState<Site[]>([]);
@@ -244,8 +437,13 @@ export default function ProjectsDashboardPage() {
       {kpisError && (
         <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
           style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', color: '#fde68a' }}>
+<<<<<<< HEAD
           <AlertCircle className="w-4 h-4 flex-shrink-0" />{kpisError}
           <button onClick={load} className="ml-auto underline text-xs">Retry</button>
+=======
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          Analytics unavailable. Check your backend connection.
+>>>>>>> main
         </div>
       )}
 
@@ -286,6 +484,7 @@ export default function ProjectsDashboardPage() {
           })}
         </div>
 
+<<<<<<< HEAD
         {/* Custom date picker */}
         {attendanceTab === 'Custom' && (
           <div className="flex items-center gap-2 mb-3">
@@ -299,6 +498,44 @@ export default function ProjectsDashboardPage() {
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
                 className="gv-input w-full text-sm" style={{ colorScheme: 'dark' }} />
             </div>
+=======
+        <div className="flex flex-wrap gap-2">
+          {(['ALL', 'ACTIVE', 'INACTIVE', 'CLOSED'] as const).map((s) => {
+            const active = siteFilter === s;
+            const labels: Record<string, string> = { ALL: 'All sites', ACTIVE: 'Active', INACTIVE: 'Inactive', CLOSED: 'Closed' };
+            return (
+              <button key={s} onClick={() => setSiteFilter(s)} className="gv-btn-pill text-xs"
+                style={active ? { background: 'var(--gv-brand)', borderColor: 'var(--gv-brand)', color: '#fff' } : {}}>
+                {labels[s]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* sites error */}
+      {sitesError && (
+        <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {sitesError}
+          <button onClick={loadAll} className="ml-auto underline underline-offset-2 text-xs">Retry</button>
+        </div>
+      )}
+
+      {/* grid */}
+      {loadingSites ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-48 rounded-2xl animate-pulse"
+              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }} />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="gv-icon-box w-14 h-14 mb-4" style={{ opacity: 0.4 }}>
+            <Building2 className="w-7 h-7" style={{ color: 'var(--gv-brand)' }} />
+>>>>>>> main
           </div>
         )}
 

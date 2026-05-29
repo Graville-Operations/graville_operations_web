@@ -16,7 +16,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     router.replace('/signin');
   }
   setTimeout(() => setChecked(true), 0);
-}, []);
+}, [loadFromStorage, router]);
 
   useEffect(() => {
     if (checked && !token) {
@@ -25,7 +25,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         router.replace('/signin');
       }
     }
-  }, [token, checked]);
+  }, [token, checked, router]);
 
   // Don't render children until auth check is complete
   if (!checked) return null;
