@@ -234,7 +234,7 @@ export default function StoreActivityPage() {
                       <tr key={`${log.id}-${idx}`} className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--accent)] transition-colors">
                         <td className="px-4 py-3 font-medium">{item.material?.name ?? '—'}</td>
                         <td className="px-4 py-3 tabular-nums">
-                          <span className="font-semibold">{item.quantity_used}</span>
+                          <span className="font-semibold">{item.quantityUsed != null ? item.quantityUsed : '—'}</span>
                           {unitSymbol && <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">{unitSymbol}</span>}
                         </td>
                         <td className="px-4 py-3 text-xs text-[color:var(--muted-foreground)]">{item.notes ?? '—'}</td>

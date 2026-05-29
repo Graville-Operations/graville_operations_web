@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import {
   Package, AlertTriangle, TrendingDown, BarChart3,
   CheckCircle2, XCircle, ChevronDown, Coins, X, ChevronRight, Loader2, RefreshCw,
-  Activity,
+  Activity, Wrench,
 } from 'lucide-react';
 import { useCachedApi } from '@/hooks/useCachedApi';
 import type {
@@ -165,14 +165,14 @@ export default function StoreDashboardPage() {
         variant: (summary.low_stock_count > 0 ? 'warn' : 'default') as const,
       },
       {
-        label: 'Tools Available', value: summary.tools_available, sub: 'Tap to view tools available and their details',
-        icon: <CheckCircle2 size={18} />, variant: 'default' as const,
-        onClick: () => router.push(`/stores/tools/${resolvedSiteId}?tab=available`),
+        label: 'Total Tools', value: summary.total_tools, sub: 'Tap to view tools and their details',
+        icon: <Wrench size={18} />, variant: 'default' as const,
+        onClick: () => router.push(`/stores/tools/${resolvedSiteId}`),
       },
       {
-        label: 'Tools Damaged', value: summary.tools_damaged, sub: 'Tools that require maintenance',
+        label: 'Overdue Tools', value: summary.overdue_tools, sub: 'Tools past their hire end date',
         icon: <XCircle size={18} />,
-        variant: (summary.tools_damaged > 0 ? 'danger' : 'default') as const,
+        variant: (summary.overdue_tools > 0 ? 'danger' : 'default') as const,
       },
       {
         label: 'Total Hire Cost', value: fmtKES(summary.total_hire_cost ?? 0),
