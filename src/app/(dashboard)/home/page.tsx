@@ -2,20 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-//import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { useUserStore } from '@/store/user-store';
 import { useInvoiceStore } from '@/store/invoice-store';
 import api from '@/lib/api';
 import { fetchOverviewKPIs } from '@/lib/api/sites';
 import { OverviewKPIs } from '@/types/site';
+import { API } from '@/lib/endpoints';
+import { ROUTES } from '@/lib/routes';
 import {
   Users, BarChart2, Briefcase, TrendingUp,
   ArrowRight, Clock, Receipt, CheckCircle2,
   AlertCircle, Loader2, UserCircle, Building2,
 } from 'lucide-react';
-// import { ApiUser } from '@/types';
-// import { InvoiceItem } from '@/store/invoice-store';
 
 function StatusIcon({ status }: { status?: string }) {
   if (!status) return null;
@@ -96,11 +95,11 @@ export default function HomePage() {
         const kpiData = (res as unknown as { data?: OverviewKPIs }).data ?? res;
         setKpis(kpiData as OverviewKPIs);
       })
-      .catch(console.error)
+      .catch(() => setKpis(null))
       .finally(() => setKpisLoading(false));
 
     if (!usersLoaded) {
-      api.get('/users/list')
+      api.get(API.users.list)
         .then(({ data }) => {
           const payload = data?.data ?? data;
           const list = Array.isArray(payload) ? payload : payload?.items ?? [];
@@ -111,7 +110,7 @@ export default function HomePage() {
     }
 
     if (!invoicesLoaded) {
-      api.get('/invoices/all?limit=5')
+      api.get(`${API.invoices.all}?limit=5`)
         .then(({ data }) => {
           const payload = data?.data ?? data;
           const list = Array.isArray(payload)
@@ -133,7 +132,7 @@ export default function HomePage() {
       iconColor: '#60a5fa',
       change: `${kpis?.activeSites ?? 0} active`,
       positive: true,
-      href: '/projects/dashboard',
+      href: ROUTES.projects.dashboard,
     },
     {
       label: 'Total Workers',
@@ -143,7 +142,7 @@ export default function HomePage() {
       iconColor: '#33907c',
       change: `${kpis?.presentToday ?? 0} today`,
       positive: true,
-      href: '/workers',
+      href: ROUTES.workers,
     },
     {
       label: 'Pending Invoices',
@@ -153,7 +152,7 @@ export default function HomePage() {
       iconColor: '#fb923c',
       change: `${kpis?.totalInvoiced ?? 0} total`,
       positive: false,
-      href: '/finance/invoices/supplier',
+      href: ROUTES.finance.invoices,
     },
     {
       label: 'Completed Tasks',
@@ -163,7 +162,7 @@ export default function HomePage() {
       iconColor: '#a78bfa',
       change: `${kpis?.totalTasks ?? 0} total`,
       positive: true,
-      href: '/projects/dashboard',
+      href: ROUTES.projects.dashboard,
     },
   ];
 
@@ -228,7 +227,11 @@ export default function HomePage() {
                 Recent Invoices
               </h3>
             </div>
-            <Link href="/finance/invoices" className="flex items-center gap-1 text-xs font-medium" style={{ color: '#33907c' }}>
+            <Link
+              href={ROUTES.finance.invoices}
+              className="flex items-center gap-1 text-xs font-medium"
+              style={{ color: '#33907c' }}
+            >
               View all <ArrowRight size={12} />
             </Link>
           </div>
@@ -251,7 +254,10 @@ export default function HomePage() {
                   style={{ borderBottom: idx < recentInvoices.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(51,144,124,0.12)' }}>
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: 'rgba(51,144,124,0.12)' }}
+                    >
                       <StatusIcon status={inv.status} />
                     </div>
                     <div className="min-w-0">
@@ -279,7 +285,7 @@ export default function HomePage() {
           {!invoicesLoading && (
             <div className="px-5 py-3" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
               <Link
-                href="/finance/invoices/new"
+                href={ROUTES.finance.new}
                 className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium"
                 style={{ background: 'rgba(51,144,124,0.10)', color: '#33907c', border: '1px solid rgba(51,144,124,0.20)' }}
               >
@@ -303,7 +309,11 @@ export default function HomePage() {
                 Recent Users
               </h3>
             </div>
-            <Link href="/users/dashboard" className="flex items-center gap-1 text-xs font-medium" style={{ color: '#33907c' }}>
+            <Link
+              href={ROUTES.users.dashboard}
+              className="flex items-center gap-1 text-xs font-medium"
+              style={{ color: '#33907c' }}
+            >
               View all <ArrowRight size={12} />
             </Link>
           </div>
@@ -354,9 +364,9 @@ export default function HomePage() {
 
           <div className="px-5 py-4 grid grid-cols-3 gap-2" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
             {[
-              { label: 'Add User', href: '/users/new', icon: Users },
-              { label: 'Roles', href: '/users/roles', icon: BarChart2 },
-              { label: 'Reports', href: '/users/reports', icon: Briefcase },
+              { label: 'Add User', href: ROUTES.users.new,     icon: Users },
+              { label: 'Roles',    href: ROUTES.users.roles,   icon: BarChart2 },
+              { label: 'Reports',  href: ROUTES.users.reports, icon: Briefcase },
             ].map(({ label, href, icon: Icon }) => (
               <Link
                 key={label}

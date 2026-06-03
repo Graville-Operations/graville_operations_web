@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Shield, Plus, Pencil, Trash2, X, Check, UserCog } from 'lucide-react';
+import { API } from '@/lib/endpoints';
 
 interface Role {
   id: number;
@@ -25,7 +26,7 @@ export default function RolesPage() {
   const fetchRoles = async () => {
     try {
       setIsLoading(true);
-      const { data } = await api.get('/roles/list');
+      const { data } = await api.get(API.roles.list);
       const payload = data?.data ?? data;
       const list = Array.isArray(payload) ? payload : payload?.items ?? [];
       setRoles(list);
@@ -37,6 +38,7 @@ export default function RolesPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRoles();
   }, []);
 
@@ -67,12 +69,11 @@ export default function RolesPage() {
       return;
     }
     setSaving(true);
-    setError('');
-    try {
-      if (editingRole) {
-        await api.patch(`/roles/${editingRole.id}`, formData);
+    setError('');try {
+  if (editingRole) {
+    await api.patch(API.roles.update(editingRole.id), formData);
       } else {
-        await api.post('/roles/create', formData);
+        await api.post(API.roles.create, formData);
       }
       await fetchRoles();
       closeModal();
@@ -87,7 +88,7 @@ export default function RolesPage() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this role?')) return;
     try {
-      await api.delete(`/roles/${id}`);
+      await api.delete(API.roles.delete(id));
       await fetchRoles();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };

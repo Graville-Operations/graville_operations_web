@@ -7,6 +7,8 @@ import { useMenuStore } from '@/store/menu-store';
 import api from '@/lib/api';
 import { MenuItem } from '@/types';
 import { ChevronDown, ChevronRight, LogOut, User, Bell } from 'lucide-react';
+import { API } from '@/lib/endpoints';
+import { ROUTES } from '@/lib/routes';
 
 export default function Sidebar() {
   const { menus, isLoaded, setMenus, clearMenus } = useMenuStore();
@@ -20,7 +22,7 @@ const fetchMenus = async () => {
   if (isLoaded) return;
   try {
     setIsLoading(true);
-    const { data } = await api.get('/menus/list');
+    const { data } = await api.get(API.menus.list);
     const menuData = data?.data ?? data;
     if (!Array.isArray(menuData)) return;
     const seen = new Set<string>();
@@ -63,7 +65,7 @@ useEffect(() => {
   const handleLogout = () => {
     clearMenus();
     logout();
-    router.push('/signin');
+    router.push(ROUTES.signin);
   };
 
   const getMenuHref = (menu: MenuItem): string => {

@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronRight, Plus, Pencil,
   Trash2, X, Check, Layers, List, AlignLeft,
 } from 'lucide-react';
+import { API } from '@/lib/endpoints';
 
 interface SubSubMenu {
   id: number;
@@ -62,11 +63,11 @@ export default function MenusPage() {
   const fetchMenus = useCallback(async () => {
     try {
       setIsLoading(true);
-      const { data } = await api.get('/menus/list');
+      const { data } = await api.get(API.menus.list);
       const payload = data?.data ?? data;
       const list = Array.isArray(payload) ? payload : [];
-      setMenus(list);        // saves to store + localStorage
-      setLocalMenus(list);   // updates local state for immediate render
+      setMenus(list); 
+      setLocalMenus(list);   
     } catch {
       setLocalMenus([]);
     } finally {
@@ -114,15 +115,15 @@ export default function MenusPage() {
       };
 
       if (modal.type === 'menu-create')
-        await api.post('/menus/create', body);
+        await api.post(API.menus.create, body);
       else if (modal.type === 'menu-edit')
-        await api.patch(`/menus/${modal.menu.id}`, body);
+        await api.patch(`menus/${modal.menu.id}`, body);
       else if (modal.type === 'submenu-create')
-        await api.post('/menus/submenus', { ...body, menu_id: modal.menuId });
+        await api.post(API.menus.submenus, { ...body, menu_id: modal.menuId });
       else if (modal.type === 'submenu-edit')
         await api.patch(`/menus/submenus/${modal.submenu.id}`, body);
       else if (modal.type === 'subsubmenu-create')
-        await api.post('/menus/subsubmenus', { ...body, submenu_id: modal.submenuId });
+        await api.post(API.menus.subsubmenus, { ...body, submenu_id: modal.submenuId });
       else if (modal.type === 'subsubmenu-edit')
         await api.patch(`/menus/subsubmenus/${modal.subsubmenu.id}`, body);
 
@@ -139,9 +140,9 @@ export default function MenusPage() {
   const handleDelete = async (type: 'menu' | 'submenu' | 'subsubmenu', id: number) => {
     if (!confirm('Are you sure you want to delete this item?')) return;
     try {
-      if (type === 'menu') await api.delete(`/menus/${id}`);
-      else if (type === 'submenu') await api.delete(`/menus/submenus/${id}`);
-      else await api.delete(`/menus/subsubmenus/${id}`);
+      if (type === 'menu') await api.delete(API.menus.delete(id));
+      else if (type === 'submenu') await api.delete(API.menus.deleteSubmenu(id));
+      else await api.delete(API.menus.deleteSubsubmenu(id));
       await invalidateAndRefresh();
     } catch {
       alert('Failed to delete');
