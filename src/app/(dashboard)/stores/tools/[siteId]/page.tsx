@@ -2,7 +2,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Activity, AlertTriangle, ChevronLeft, CheckCircle2, Loader2 } from 'lucide-react';
-import { useCachedApi } from '@/hooks/useCachedApi';
+import { useApi } from '@/hooks/useApi';
 import type { ToolItem, PagedResponse, Site, ToolTab } from '@/types/store';
 
 const LIMIT = 20;
@@ -16,7 +16,7 @@ const TOOL_TABS: { key: ToolTab; label: string }[] = [
 const TAB_STATUS: Record<ToolTab, string | undefined> = {
   all:       undefined,
   available: 'AVAILABLE',
-  in_use:    'IN_USE',   
+  in_use:    'IN_USE',
   damaged:   'DAMAGED',
 };
 
@@ -37,37 +37,93 @@ function extractList<T>(data: T[] | PagedResponse<T> | null | undefined): T[] {
   return Array.isArray(data) ? data : (data.items ?? []);
 }
 
-export default function ToolsPage() {
-  const params        = useParams<{ siteId: string }>();
-  const router        = useRouter();
-  const searchParams  = useSearchParams();
-  const siteId        = Number(params.siteId);
 
-  const initialTab = (searchParams.get('tab') as ToolTab | null) ?? 'all';
+
+function TableSkeleton() {
+  return (
+    <div className="gv-card flex flex-col gap-0 p-0 overflow-hidden">
+      {/* Header */}
+      <div
+        className="grid gap-x-2 px-4 py-2.5 border-b border-[color:var(--border)] bg-[color:var(--muted)]"
+        style={{ gridTemplateColumns: '1fr 1fr 90px' }}
+      >
+        {['w-14', 'w-20', 'w-16'].map((w, i) => (
+          <div key={i} className={`relative overflow-hidden h-3 bg-[color:var(--muted)] rounded ${w} ${i === 2 ? 'ml-auto' : ''}`}>
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                            bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+          </div>
+        ))}
+      </div>
+      {/* Rows */}
+      <div className="divide-y divide-[color:var(--border)]">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            className="grid gap-x-2 items-center px-4 py-3"
+            style={{ gridTemplateColumns: '1fr 1fr 90px' }}
+          >
+            <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[75%]">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                              bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                   style={{ animationDelay: `${i * 50}ms` }} />
+            </div>
+            <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[60%]">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                              bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                   style={{ animationDelay: `${i * 70}ms` }} />
+            </div>
+            <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-16 ml-auto">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                              bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                   style={{ animationDelay: `${i * 90}ms` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+
+export default function ToolsPage() {
+  const params       = useParams<{ siteId: string }>();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const siteId       = Number(params.siteId);
+
+  const initialTab   = (searchParams.get('tab') as ToolTab | null) ?? 'all';
   const [activeTab,   setActiveTab]   = useState<ToolTab>(
     TOOL_TABS.some((t) => t.key === initialTab) ? initialTab : 'all',
   );
   const [extraItems,  setExtraItems]  = useState<Partial<Record<ToolTab, ToolItem[]>>>({});
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const { data: sitesRaw } = useCachedApi<Site[] | { items: Site[] }>('/sites/list');
-  const sites: Site[] = useMemo(() =>
-    sitesRaw ? (Array.isArray(sitesRaw) ? sitesRaw : (sitesRaw.items ?? [])) : [],
+  const { data: sitesRaw } = useApi<Site[] | { items: Site[] }>('/sites/list');
+  const sites: Site[] = useMemo(
+    () => sitesRaw ? (Array.isArray(sitesRaw) ? sitesRaw : (sitesRaw.items ?? [])) : [],
     [sitesRaw],
   );
   const siteName = sites.find((s) => s.id === siteId)?.name ?? 'Site';
 
   const status = TAB_STATUS[activeTab];
 
-  const { data, loading, error } = useCachedApi<PagedResponse<ToolItem> | ToolItem[]>(
+  const { data, loading, error } = useApi<PagedResponse<ToolItem> | ToolItem[]>(
     `/store/tools/${siteId}/all`,
-    { limit: LIMIT, skip: 0, ...(status ? { status } : {}) },
+    {
+      params: { limit: LIMIT, skip: 0, ...(status ? { status } : {}) },
+    },
   );
 
   const firstPage = useMemo(() => extractList(data), [data]);
   const extra     = extraItems[activeTab] ?? [];
-  const items     = extra.length > 0 ? extra : firstPage;
+  const items     = extra.length > 0 ? [...firstPage, ...extra] : firstPage;
   const hasMore   = items.length > 0 && items.length % LIMIT === 0;
+
+  const handleTabChange = useCallback((tab: ToolTab) => {
+    setActiveTab(tab);
+    setExtraItems({});
+  }, []);
 
   const loadMore = useCallback(async () => {
     setLoadingMore(true);
@@ -78,17 +134,22 @@ export default function ToolsPage() {
       });
       const raw  = res.data?.data ?? res.data;
       const list: ToolItem[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
-      setExtraItems((prev) => ({ ...prev, [activeTab]: [...items, ...list] }));
+      setExtraItems((prev) => ({
+        ...prev,
+        [activeTab]: [...(prev[activeTab] ?? []), ...list],
+      }));
     } catch { /* silent */ }
     setLoadingMore(false);
-  }, [siteId, activeTab, status, items]);
+  }, [siteId, activeTab, status, items.length]);
 
   return (
     <div className="space-y-4">
+
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.back()}
-          className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[color:var(--accent)] transition-colors flex-shrink-0"
+          className="w-8 h-8 rounded-lg flex items-center justify-center
+                     hover:bg-[color:var(--accent)] transition-colors flex-shrink-0"
         >
           <ChevronLeft size={18} className="text-[color:var(--muted-foreground)]" />
         </button>
@@ -103,7 +164,7 @@ export default function ToolsPage() {
         {TOOL_TABS.map((t) => (
           <button
             key={t.key}
-            onClick={() => setActiveTab(t.key)}
+            onClick={() => handleTabChange(t.key)}
             className={`flex-1 h-7 rounded-md text-xs font-medium transition-all ${
               activeTab === t.key
                 ? 'bg-[color:var(--accent)] text-[color:var(--foreground)]'
@@ -115,11 +176,7 @@ export default function ToolsPage() {
         ))}
       </div>
 
-      {loading && !data && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="animate-spin text-[color:var(--primary)]" />
-        </div>
-      )}
+      {loading && !data && <TableSkeleton />}
 
       {!loading && error && !data && (
         <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
@@ -128,11 +185,14 @@ export default function ToolsPage() {
         </div>
       )}
 
+      {/* ── Empty ── */}
       {!loading && !error && items.length === 0 && (
         <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
           <CheckCircle2 size={36} className="opacity-20 mb-3" />
           <p className="text-sm font-medium mb-1">No tools in this category</p>
-          <p className="text-xs text-[color:var(--muted-foreground)]">Try switching to a different tab.</p>
+          <p className="text-xs text-[color:var(--muted-foreground)]">
+            Try switching to a different tab.
+          </p>
         </div>
       )}
 
@@ -142,21 +202,32 @@ export default function ToolsPage() {
             className="grid gap-x-2 px-4 py-2.5 border-b border-[color:var(--border)] bg-[color:var(--muted)]"
             style={{ gridTemplateColumns: '1fr 1fr 90px' }}
           >
-            <p className="text-[11px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide">Name</p>
-            <p className="text-[11px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide">Vendor</p>
-            <p className="text-[11px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide text-right">Status</p>
+            <p className="text-[11px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide">
+              Name
+            </p>
+            <p className="text-[11px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide">
+              Vendor
+            </p>
+            <p className="text-[11px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide text-right">
+              Status
+            </p>
           </div>
 
           <div className="divide-y divide-[color:var(--border)]">
             {items.map((t) => (
               <div
                 key={t.id}
-                className="grid gap-x-2 items-center px-4 py-3 hover:bg-[color:var(--accent)] transition-colors"
+                className="grid gap-x-2 items-center px-4 py-3
+                           hover:bg-[color:var(--accent)] transition-colors"
                 style={{ gridTemplateColumns: '1fr 1fr 90px' }}
               >
                 <p className="text-sm font-medium truncate">{t.name}</p>
-                <p className="text-sm text-[color:var(--muted-foreground)] truncate">{t.vendor ?? '—'}</p>
-                <span className={`text-xs font-medium text-right ${TOOL_STATUS_COLOR[t.status] ?? 'text-[color:var(--muted-foreground)]'}`}>
+                <p className="text-sm text-[color:var(--muted-foreground)] truncate">
+                  {t.vendor ?? '—'}
+                </p>
+                <span className={`text-xs font-medium text-right ${
+                  TOOL_STATUS_COLOR[t.status] ?? 'text-[color:var(--muted-foreground)]'
+                }`}>
                   {TOOL_STATUS_LABEL[t.status] ?? t.status}
                 </span>
               </div>
@@ -169,8 +240,8 @@ export default function ToolsPage() {
                 onClick={loadMore}
                 disabled={loadingMore}
                 className="w-full h-9 rounded-lg border border-[color:var(--border)] text-xs
-                           text-[color:var(--muted-foreground)] hover:bg-[color:var(--accent)] transition-colors
-                           flex items-center justify-center gap-2 disabled:opacity-50"
+                           text-[color:var(--muted-foreground)] hover:bg-[color:var(--accent)]
+                           transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {loadingMore ? <Loader2 size={13} className="animate-spin" /> : 'Load more'}
               </button>
@@ -178,6 +249,7 @@ export default function ToolsPage() {
           )}
         </div>
       )}
+
     </div>
   );
 }
