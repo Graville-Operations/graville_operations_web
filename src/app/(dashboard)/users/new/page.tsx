@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useUserStore } from '@/store/user-store';
+import { API } from '@/lib/endpoints';
+import { ROUTES } from '@/lib/routes';
 
 interface Role {
   id: number;
@@ -35,7 +37,7 @@ export default function NewUserPage() {
 
   const fetchRoles = async () => {
     try {
-      const { data } = await api.get('/roles/list');
+      const { data } = await api.get(API.roles.list);
       const payload = data?.data ?? data;
       const list = Array.isArray(payload) ? payload : payload?.items ?? [];
       setRoles(list);
@@ -49,7 +51,7 @@ export default function NewUserPage() {
     setError('');
     setIsLoading(true);
     try {
-      await api.post('/users/create', {
+      await api.post(API.users.create, {
         first_name:    form.first_name,
         last_name:     form.last_name,
         email:         form.email,
@@ -59,8 +61,8 @@ export default function NewUserPage() {
         department_id: form.department_id,
         site_ids:      form.site_ids,
       });
-      clearUsers(); // bust cache so dashboard re-fetches
-      router.push('/users/dashboard');
+      clearUsers();
+      router.push(ROUTES.users.dashboard);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; detail?: string } } };
       setError(e.response?.data?.message || e.response?.data?.detail || 'Failed to create user');
