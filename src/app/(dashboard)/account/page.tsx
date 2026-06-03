@@ -1,33 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/auth-store';
+import { useProfileStore } from '@/store/profile-store';
 import api from '@/lib/api';
 import {
   User, Mail, Phone, Shield, KeyRound,
   Eye, EyeOff, Check, AlertCircle, ArrowLeft,
 } from 'lucide-react';
-
-interface ProfileData {
-  ref_id: string;
-  email: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  phone?: string;
-  role?: string;
-  accountStatus?: string;
-}
+import { API } from '@/lib/endpoints';
 
 type View = 'profile' | 'change-password';
 
 export default function AccountPage() {
   const { role, logout } = useAuthStore();
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { profile, isLoaded, setProfile } = useProfileStore();
+
+  const [isLoading, setIsLoading] = useState(!isLoaded);
   const [view, setView] = useState<View>('profile');
 
-  // Password change state
   const [passwordForm, setPasswordForm] = useState({
     current_password: '',
     new_password: '',
@@ -40,21 +31,23 @@ export default function AccountPage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setIsLoading(true);
-      const { data } = await api.get('/auth/me');
-      setProfile(data?.data ?? data);
+      const { data } = await api.get(API.auth.me);
+      const profileData = data?.data ?? data;
+      setProfile(profileData);
     } catch (err) {
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setProfile]);
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!isLoaded) fetchProfile();
+  }, [isLoaded, fetchProfile]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,13 +65,12 @@ export default function AccountPage() {
 
     setPasswordLoading(true);
     try {
-      await api.post('/auth/change-password', {
+      await api.post(API.auth.changePassword, {
         current_password: passwordForm.current_password,
         new_password:     passwordForm.new_password,
       });
       setPasswordSuccess('Password changed successfully');
       setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
-      // Go back to profile after 2 seconds
       setTimeout(() => {
         setPasswordSuccess('');
         setView('profile');
@@ -145,7 +137,6 @@ export default function AccountPage() {
             <h4 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">
               Account Details
             </h4>
-
             {[
               { icon: Mail,   label: 'Email',          value: profile?.email },
               { icon: Phone,  label: 'Phone',          value: profile?.phone },
@@ -164,7 +155,7 @@ export default function AccountPage() {
             ))}
           </div>
 
-          {/* Actions */}
+          {/* Security */}
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-lg space-y-3">
             <h4 className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">
               Security
@@ -188,12 +179,7 @@ export default function AccountPage() {
 
           {/* Sign out */}
           <div className="bg-red-500/5 backdrop-blur-md border border-red-500/20 rounded-2xl p-6 shadow-lg">
-            {/* <h4 className="text-sm font-semibold text-red-300/70 uppercase tracking-wider mb-3">
-              Danger Zone
-            </h4> */}
-            <p className="text-sm text-white/40 mb-4">
-              This will end your current session !.
-            </p>
+            <p className="text-sm text-white/40 mb-4">This will end your current session.</p>
             <button
               onClick={() => logout()}
               className="px-5 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all text-sm font-medium"
@@ -220,9 +206,9 @@ export default function AccountPage() {
             )}
 
             {[
-              { label: 'Current Password',     key: 'current_password', show: showCurrent, toggle: () => setShowCurrent(!showCurrent) },
-              { label: 'New Password',          key: 'new_password',     show: showNew,     toggle: () => setShowNew(!showNew) },
-              { label: 'Confirm New Password',  key: 'confirm_password', show: showConfirm, toggle: () => setShowConfirm(!showConfirm) },
+              { label: 'Current Password',    key: 'current_password', show: showCurrent, toggle: () => setShowCurrent(!showCurrent) },
+              { label: 'New Password',         key: 'new_password',     show: showNew,     toggle: () => setShowNew(!showNew) },
+              { label: 'Confirm New Password', key: 'confirm_password', show: showConfirm, toggle: () => setShowConfirm(!showConfirm) },
             ].map(({ label, key, show, toggle }) => (
               <div key={key}>
                 <label className="block text-sm font-medium text-blue-100/80 mb-1">{label}</label>

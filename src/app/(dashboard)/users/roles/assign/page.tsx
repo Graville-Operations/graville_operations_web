@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { ArrowLeft, Search, Check, Users } from 'lucide-react';
+import { API } from '@/lib/endpoints';
 
 interface Role {
   id: number;
@@ -35,7 +36,7 @@ export default function AssignRolePage() {
 
   const fetchRoles = async () => {
     try {
-      const { data } = await api.get('/roles/list');
+      const { data } = await api.get(API.roles.list);
       const payload = data?.data ?? data;
       const list = Array.isArray(payload) ? payload : payload?.items ?? [];
       setRoles(list);
@@ -47,7 +48,7 @@ export default function AssignRolePage() {
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const { data } = await api.get('/users/list');
+      const { data } = await api.get(API.users.list);
       const payload = data?.data ?? data;
       const list = Array.isArray(payload) ? payload : payload?.items ?? [];
       setUsers(list);
@@ -60,6 +61,7 @@ export default function AssignRolePage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRoles();
     fetchUsers();
   }, []);
@@ -82,6 +84,7 @@ export default function AssignRolePage() {
   const toggleUser = (id: number) => {
     setSelectedUserIds((prev) => {
       const next = new Set(prev);
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
