@@ -4,14 +4,19 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
+import { ROUTES } from '@/lib/routes';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, token } = useAuthStore();
   const router = useRouter();
+
+  useEffect(() => {
+    if (token) router.replace(ROUTES.home);
+  }, [router, token]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -27,14 +32,14 @@ export default function LoginPage() {
     setError('');
     try {
       await login(email, password);
-      router.push('/home');
+      router.replace(ROUTES.home);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string; message?: string } } };
       setError(
         axiosErr.response?.data?.message ||
         axiosErr.response?.data?.detail ||
         'Login failed'
-      ); 
+      );
       setPassword('');
     }
   };
@@ -94,7 +99,6 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            {/* Forgot password link */}
             <div className="text-right mt-1.5">
               <Link
                 href="signin/forgot-password"
