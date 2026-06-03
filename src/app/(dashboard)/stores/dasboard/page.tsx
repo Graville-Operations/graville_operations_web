@@ -8,8 +8,6 @@ import {
 import { useApi } from '@/hooks/useApi';
 import type { Site, StoreSummary } from '@/types/store';
 
-
-
 const BORDER_CLS: Record<string, string> = {
   default: 'border-[color:var(--border)]',
   warn:    'border-[color:var(--gv-border-warn)]',
@@ -45,12 +43,9 @@ const TAG_LABEL: Record<string, string> = {
   warn: 'Warning', danger: 'Critical', success: 'Good', info: 'Info',
 };
 
-
 function fmtKES(n: number) {
   return `KSH ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
-
-
 
 function CardSkeleton() {
   return (
@@ -60,8 +55,6 @@ function CardSkeleton() {
     </div>
   );
 }
-
-
 
 interface StatCardProps {
   label:    string;
@@ -99,7 +92,6 @@ function StatCard({ label, value, sub, icon, variant = 'default', onClick }: Sta
     </div>
   );
 }
-
 
 
 function SiteSelector({
@@ -140,12 +132,10 @@ function SiteSelector({
 }
 
 
-
 export default function StoreDashboardPage() {
   const router = useRouter();
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
 
-  // ── Sites — always fetch fresh ──
   const { data: sitesRaw, loading: isSitesLoading } =
     useApi<Site[] | { items: Site[] }>('/sites/list');
 
@@ -241,7 +231,6 @@ export default function StoreDashboardPage() {
         </div>
       )}
 
-      {/* ── No sites ── */}
       {!isSitesLoading && sites.length === 0 && (
         <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
           <BarChart3 size={40} className="text-[color:var(--muted-foreground)] opacity-30 mb-3" />

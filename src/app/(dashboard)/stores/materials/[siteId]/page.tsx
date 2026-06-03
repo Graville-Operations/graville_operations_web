@@ -12,7 +12,6 @@ function extractList<T>(data: T[] | PagedResponse<T> | null | undefined): T[] {
   return Array.isArray(data) ? data : (data.items ?? []);
 }
 
-
 function TableSkeleton() {
   return (
     <div className="gv-card p-0 overflow-hidden">
@@ -35,7 +34,7 @@ function TableSkeleton() {
           {Array.from({ length: 8 }).map((_, i) => (
             <tr key={i} className="border-b border-[color:var(--border)] last:border-0">
               <td className="px-6 py-4">
-                {/* Shimmer bars */}
+                
                 <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[85%]">
                   <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
                                   bg-gradient-to-r from-transparent via-white/5 to-transparent" />
@@ -60,7 +59,6 @@ function TableSkeleton() {
     </div>
   );
 }
-
 
 export default function MaterialsPage() {
   const params = useParams<{ siteId: string }>();

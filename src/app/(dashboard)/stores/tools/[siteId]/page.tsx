@@ -37,12 +37,10 @@ function extractList<T>(data: T[] | PagedResponse<T> | null | undefined): T[] {
   return Array.isArray(data) ? data : (data.items ?? []);
 }
 
-
-
 function TableSkeleton() {
   return (
     <div className="gv-card flex flex-col gap-0 p-0 overflow-hidden">
-      {/* Header */}
+     
       <div
         className="grid gap-x-2 px-4 py-2.5 border-b border-[color:var(--border)] bg-[color:var(--muted)]"
         style={{ gridTemplateColumns: '1fr 1fr 90px' }}
@@ -54,7 +52,6 @@ function TableSkeleton() {
           </div>
         ))}
       </div>
-      {/* Rows */}
       <div className="divide-y divide-[color:var(--border)]">
         {Array.from({ length: 8 }).map((_, i) => (
           <div
@@ -83,7 +80,6 @@ function TableSkeleton() {
     </div>
   );
 }
-
 
 
 export default function ToolsPage() {
@@ -185,7 +181,6 @@ export default function ToolsPage() {
         </div>
       )}
 
-      {/* ── Empty ── */}
       {!loading && !error && items.length === 0 && (
         <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
           <CheckCircle2 size={36} className="opacity-20 mb-3" />
