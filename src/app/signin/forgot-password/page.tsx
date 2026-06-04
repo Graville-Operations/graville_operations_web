@@ -6,6 +6,8 @@ import { ArrowLeft, Mail, KeyRound } from 'lucide-react';
 import api from '@/lib/api';
 import { saveToken, saveRole, saveUser } from '@/lib/auth';
 import { useAuthStore } from '@/store/auth-store';
+import { API } from '@/lib/endpoints';
+import { ROUTES } from '@/lib/routes';
 
 type Step = 'email' | 'otp';
 
@@ -24,9 +26,8 @@ export default function ForgotPasswordPage() {
     setError('');
     setIsLoading(true);
     try {
-      await api.post('/auth/login', { email, password: '' });
+      await api.post(API.auth.login, { email, password: '' });
     } catch {
-      // Intentionally swallow all errors — don't tip off the user
     } finally {
       setIsLoading(false);
       setStep('otp');
@@ -39,30 +40,26 @@ export default function ForgotPasswordPage() {
     setError('');
     setIsLoading(true);
     try {
-      const { data } = await api.post('/auth/verify-otp', { email, otp });
+      const { data } = await api.post(API.auth.verifyOtp, { email, otp });
       const payload = data?.data ?? data;
 
       if (payload?.token) {
-        // Save session exactly like login does
         saveToken(payload.token);
         saveRole(payload.role);
 
-        // Fetch full user profile
-        const meRes = await api.get('/auth/me', {
+        const meRes = await api.get(API.auth.me, {
           headers: { Authorization: `Bearer ${payload.token}` },
         });
         const user = meRes.data?.data ?? meRes.data;
         saveUser(user);
 
-        // Sync store
         loadFromStorage();
 
         setSuccess('Verified! Redirecting to dashboard...');
-        setTimeout(() => router.replace('/home'), 1500);
+        setTimeout(() => router.replace(ROUTES.home), 1500);
       } else {
-        // OTP verified but no token returned — send to signin
         setSuccess('Verified! Please sign in.');
-        setTimeout(() => router.replace('/signin'), 1500);
+        setTimeout(() => router.replace(ROUTES.signin), 1500);
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; detail?: string } } };
