@@ -16,10 +16,6 @@ import {
   Download, PiggyBank, Receipt,
 } from 'lucide-react';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Local types
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface AttendanceSummary {
   site_id: number;
   start_date: string;
@@ -44,9 +40,6 @@ interface StoreTool {
   [key: string]: unknown;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// API unwrappers
-// ─────────────────────────────────────────────────────────────────────────────
 
 function unwrapItems<T>(raw: unknown): T[] {
   if (Array.isArray(raw)) return raw as T[];
@@ -83,11 +76,6 @@ function unwrapObject<T>(raw: unknown): T {
   }
   return raw as T;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Status helpers — fully case-insensitive
-// Both list endpoint ("Active") and detail endpoint ("Active"/"ACTIVE") handled
-// ─────────────────────────────────────────────────────────────────────────────
 
 const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string; bg: string }> = {
   ACTIVE:   { label: 'Active',   color: 'text-green-300', bg: 'bg-green-500/20 border border-green-500/40' },
@@ -134,10 +122,6 @@ function taskStatusMeta(status: string) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared primitive
-// ─────────────────────────────────────────────────────────────────────────────
-
 function ProgressBar({ pct, color = 'var(--gv-brand)', height = 'h-2' }: {
   pct: number; color?: string; height?: string;
 }) {
@@ -149,10 +133,6 @@ function ProgressBar({ pct, color = 'var(--gv-brand)', height = 'h-2' }: {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LIST VIEW components
-// ─────────────────────────────────────────────────────────────────────────────
 
 function QuickStatPill({ label, value, loading }: {
   label: string; value: number | string; loading?: boolean;
@@ -211,12 +191,6 @@ function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DETAIL VIEW — gauges
-// Outer ring = time elapsed (red) · Inner ring = task completion (blue)
-// Larger circles, left/right layout with a divider between them
-// ─────────────────────────────────────────────────────────────────────────────
 
 function ProjectCompletionGauge({ taskPct, timePct }: { taskPct: number; timePct: number }) {
   const CX = 110, CY = 110, R_outer = 88, R_inner = 64, SW = 13;
@@ -288,10 +262,6 @@ function WeeklyAttendanceGauge({ avgPresent, target }: { avgPresent: number; tar
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Task accordion
-// ─────────────────────────────────────────────────────────────────────────────
-
 function TaskAccordionRow({ task }: { task: SiteTask }) {
   const [open, setOpen] = useState(false);
   const subtasks = task.subtasks ?? [];
@@ -355,10 +325,6 @@ function TaskAccordionRow({ task }: { task: SiteTask }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Attendance row
-// ─────────────────────────────────────────────────────────────────────────────
-
 function AttendanceRow({ record }: { record: AttendanceRecord }) {
   const name     = record.workerName ?? '—';
   const initials = name !== '—'
@@ -388,10 +354,6 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SiteDetailView
-// ─────────────────────────────────────────────────────────────────────────────
 
 function SiteDetailView({ site, onBack }: { site: Site; onBack: () => void }) {
 
@@ -831,10 +793,6 @@ function SiteDetailView({ site, onBack }: { site: Site; onBack: () => void }) {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Root page — list + tap-to-navigate
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ConstructionSitesPage() {
   const [sites,         setSites        ] = useState<Site[]>([]);

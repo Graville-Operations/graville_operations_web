@@ -29,8 +29,6 @@ function unwrapObject<T>(response: unknown): T {
   return response as T;
 }
 
-// ── Sites ─────────────────────────────────────────────────────────────────────
-
 export async function fetchSites(): Promise<Site[]> {
   const { data } = await api.get('/sites/list');
   return unwrapArray<Site>(data);
@@ -46,21 +44,15 @@ export async function createSite(payload: CreateSitePayload): Promise<Site> {
   return unwrapObject<Site>(data);
 }
 
-// ── Workers ───────────────────────────────────────────────────────────────────
-
 export async function fetchWorkersBySite(siteId: number): Promise<SiteWorker[]> {
   const { data } = await api.get(`/workers/list-by-id/${siteId}`);
   return unwrapArray<SiteWorker>(data);
 }
 
-// ── Attendance ────────────────────────────────────────────────────────────────
-
 export async function fetchAttendanceBySite(siteId: number): Promise<AttendanceRecord[]> {
   const { data } = await api.get(`/attendance/summary/${siteId}`);
   return unwrapArray<AttendanceRecord>(data);
 }
-
-// ── Tasks ─────────────────────────────────────────────────────────────────────
 
 export async function fetchTasksBySiteId(siteId: number): Promise<SiteTask[]> {
   const { data } = await api.get(`/tasks/list/${siteId}`);
@@ -73,8 +65,6 @@ export async function fetchTasksBySiteId(siteId: number): Promise<SiteTask[]> {
   }
   return [];
 }
-
-// ── Analytics ─────────────────────────────────────────────────────────────────
 
 export async function fetchOverviewKPIs(): Promise<OverviewKPIs> {
   const { data } = await api.get('/analytics/overview');

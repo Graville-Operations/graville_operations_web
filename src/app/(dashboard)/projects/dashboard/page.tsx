@@ -9,7 +9,6 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, Calendar,
 } from 'lucide-react';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function normProjectStatus(s: string): ProjectStatus {
   const map: Record<string, ProjectStatus> = {
     planning: 'PLANNING', 'in progress': 'IN_PROGRESS', in_progress: 'IN_PROGRESS',
@@ -30,8 +29,6 @@ function toISO(d: Date) {
   return `${y}-${m}-${day}`;
 }
 
-// ─── Attendance API ─────────────────────────────────────────────────────────
-// GET /api/v1/attendance/summary/{site_id}?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD
 interface AttendanceDay { date: string; present_count: number; }
 
 // Normalise whatever shape the API returns into AttendanceDay[]
@@ -103,8 +100,6 @@ async function fetchAttendanceAllSites(
   return Object.entries(totals).map(([date, present_count]) => ({ date, present_count }));
 }
 
-
-// ─── KPI Card ────────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, icon: Icon, loading }: {
   label: string; value: React.ReactNode; sub?: string;
   icon: React.ElementType; loading?: boolean;
@@ -124,7 +119,6 @@ function KpiCard({ label, value, sub, icon: Icon, loading }: {
   );
 }
 
-// ─── Calendar Picker ──────────────────────────────────────────────────────────
 function CalendarPicker({
   dateFrom, dateTo, onSelect, onClose,
 }: {
@@ -271,7 +265,6 @@ function CalendarPicker({
   );
 }
 
-// ─── Bar type ─────────────────────────────────────────────────────────────────
 interface Bar {
   label: string;       // short x-axis label  e.g. "Mon", "1"
   fullLabel: string;   // full day name        e.g. "Monday"
@@ -279,8 +272,6 @@ interface Bar {
   dateDisplay: string; // human date           e.g. "02 Jun 2025"
   present: number;
 }
-
-// ─── Attendance Bar Chart ─────────────────────────────────────────────────────
 function AttendanceBarChart({
   bars, loading, tab, activeBarIdx, onBarClick,
 }: {
@@ -290,7 +281,7 @@ function AttendanceBarChart({
   activeBarIdx: number | null;
   onBarClick: (idx: number | null) => void;
 }) {
-  // ── Y-axis ──────────────────────────────────────────────────────────────────
+
   const maxData = Math.max(...bars.map(b => b.present), 1);
 
   function niceMax(v: number) {
@@ -315,8 +306,6 @@ function AttendanceBarChart({
 
   const yTicks = getYTicks(yMax);
 
-  // ── SVG dimensions ──────────────────────────────────────────────────────────
-  // PL: left padding reserved for y-axis number labels
   const W = 400, H = 185;
   const PL = 28, PB = 28, PT = 12, PR = 4;
   const cW = W - PL - PR;   // chart area width (bars live here)
@@ -422,7 +411,6 @@ function AttendanceBarChart({
   );
 }
 
-// ─── Workers Donut ────────────────────────────────────────────────────────────
 function WorkersDonut({ total, present, loading }: { total: number; present: number; loading?: boolean }) {
   const R = 54, SW = 13, CX = 70, CY = 70;
   const circ = 2 * Math.PI * R;
@@ -444,7 +432,6 @@ function WorkersDonut({ total, present, loading }: { total: number; present: num
   );
 }
 
-// ─── Site Status Donut ────────────────────────────────────────────────────────
 function SiteStatusDonut({ active, planning, paused, done, loading }: {
   active: number; planning: number; paused: number; done: number; loading?: boolean;
 }) {
@@ -482,7 +469,6 @@ function SiteStatusDonut({ active, planning, paused, done, loading }: {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ProjectsDashboardPage() {
   const [sites, setSites]               = useState<Site[]>([]);
   const [kpis, setKpis]                 = useState<OverviewKPIs | null>(null);
@@ -490,7 +476,6 @@ export default function ProjectsDashboardPage() {
   const [loadingSites, setLoadingSites] = useState(true);
   const [kpisError, setKpisError]       = useState<string | null>(null);
 
-  // ── Attendance state ────────────────────────────────────────────────────────
   const [attendanceTab, setAttendanceTab]     = useState<'Today' | 'Week' | 'Month' | 'Custom'>('Month');
   const [dateFrom, setDateFrom]               = useState('');
   const [dateTo, setDateTo]                   = useState('');
@@ -507,7 +492,6 @@ export default function ProjectsDashboardPage() {
   const [activeBarIdx, setActiveBarIdx]       = useState<number | null>(null);
   const [overlayPos, setOverlayPos]           = useState<{ top: number; left: number } | null>(null);
 
-  // ── KPI + Sites load ────────────────────────────────────────────────────────
   const load = useCallback(() => {
     setLoadingKpis(true); setKpisError(null);
     fetchOverviewKPIs()
@@ -524,7 +508,6 @@ export default function ProjectsDashboardPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Attendance fetch ─────────────────────────────────────────────────────────
   const DAY_NAMES  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const DAY_FULL   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const MONTH_NAMES = ['January','February','March','April','May','June',
@@ -621,7 +604,6 @@ export default function ProjectsDashboardPage() {
     loadBars();
   }, [loadBars]);
 
-  // ── Close calendar on outside click ─────────────────────────────────────────
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
@@ -632,14 +614,12 @@ export default function ProjectsDashboardPage() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showCalendar]);
 
-  // ── Close week overlay on outside click ─────────────────────────────────────
   useEffect(() => {
     function handleClick() { setActiveBarIdx(null); setOverlayPos(null); }
     if (activeBarIdx !== null) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [activeBarIdx]);
 
-  // ── Week bar click: compute pixel position for overlay ──────────────────────
   function handleBarClick(idx: number | null) {
     if (idx === null) { setActiveBarIdx(null); setOverlayPos(null); return; }
 
@@ -656,8 +636,6 @@ export default function ProjectsDashboardPage() {
       setOverlayPos({ top, left });
     }
   }
-
-  // ── Derived KPI values ───────────────────────────────────────────────────────
   const totalTasks     = kpis?.totalTasks     ?? 0;
   const completedTasks = kpis?.completedTasks ?? 0;
   const taskPct        = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;

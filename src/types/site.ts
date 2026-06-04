@@ -7,7 +7,6 @@ export type ProjectStatus =
 
 export type SiteStatus = 'ACTIVE' | 'INACTIVE' | 'CLOSED';
 
-// From GET /api/v1/sites/list (snake_case)
 export interface Site {
   id: number;
   name: string;
@@ -28,7 +27,6 @@ export interface Site {
   field_operator_id: number | null;
 }
 
-// From GET /api/v1/sites/{site_id} (camelCase)
 export interface SiteDetail {
   id: number;
   name: string;
@@ -47,7 +45,6 @@ export interface SiteDetail {
   updatedAt: string | null;
 }
 
-// From GET /api/v1/workers/list-by-id/{site_id}
 export interface SiteWorker {
   id: number;
   first_name: string;
@@ -60,7 +57,6 @@ export interface SiteWorker {
   status: string;
 }
 
-// From GET /api/v1/attendance/summary/{site_id}
 export interface AttendanceRecord {
   id: number;
   site_id: number;
@@ -70,8 +66,6 @@ export interface AttendanceRecord {
   phone: string | null;
   nationalId: string | null;
 }
-
-// From GET /api/v1/tasks/list/{site_id}
 export interface SubTask {
   id: number;
   name: string;
@@ -110,7 +104,6 @@ export interface CreateSitePayload {
   field_operator_id?: number;
 }
 
-// From GET /api/v1/analytics/overview
 export interface OverviewKPIs {
   totalSites: number;
   activeSites: number;
