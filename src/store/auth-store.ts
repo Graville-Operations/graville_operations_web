@@ -6,6 +6,7 @@ import { API_BASE_URL } from '@/lib/constants';
 import { useUserStore } from '@/store/user-store';
 import { useMenuStore } from '@/store/menu-store';
 import { useInvoiceStore } from '@/store/invoice-store';
+import { useProfileStore } from '@/store/profile-store';
 
 interface AuthState {
   user: User | null;
@@ -53,7 +54,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         first_name:   meData.firstName ?? '',
         last_name:    meData.lastName  ?? '',
         account_type: meData.role      ?? '',
-        phone_no:     meData.phone     ?? '',
+        phone_no: meData.phone ?? '',
+        expires_at:   payload.expires_at ?? '', 
       };
 
       saveToken(payload.token);
@@ -73,5 +75,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     useUserStore.getState().clearUsers();
     useMenuStore.getState().clearMenus();
     useInvoiceStore.getState().clearInvoices();
+    useProfileStore.getState().clearProfile();
   },
 }));
