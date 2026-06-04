@@ -1,19 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { format } from 'date-fns';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchOverviewKPIs, fetchSites } from '@/lib/api/sites';
 import { OverviewKPIs, ProjectStatus, Site, SiteStatus } from '@/types/site';
 import {
   Building2, Users, ClipboardList, FileText,
   Shield, UserCheck, AlertCircle, Loader2, RefreshCw,
-  Calendar, ChevronRight,
+  ChevronLeft, ChevronRight as ChevronRightIcon, Calendar,
 } from 'lucide-react';
 
-// ─────────────────────────────────────────────
-//  Helpers
-// ─────────────────────────────────────────────
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function normProjectStatus(s: string): ProjectStatus {
   const map: Record<string, ProjectStatus> = {
     planning: 'PLANNING', 'in progress': 'IN_PROGRESS', in_progress: 'IN_PROGRESS',
@@ -27,10 +23,88 @@ function normSiteStatus(s: string): SiteStatus {
   return map[s?.toLowerCase()] ?? 'INACTIVE';
 }
 
-// ─────────────────────────────────────────────
-//  Overview KPI card
-// ─────────────────────────────────────────────
+function toISO(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
+// ─── Attendance API ─────────────────────────────────────────────────────────
+// GET /api/v1/attendance/summary/{site_id}?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD
+interface AttendanceDay { date: string; present_count: number; }
+
+// Normalise whatever shape the API returns into AttendanceDay[]
+// Handles: plain array, { summary }, { data }, { results }, { attendance }
+// Handles field name variants: present_count | present | count | workers_present | total_present | total
+function normaliseAttendanceResponse(raw: unknown): AttendanceDay[] {
+  let arr: unknown[] = [];
+  if (Array.isArray(raw)) {
+    arr = raw;
+  } else if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    const candidate = obj.summary ?? obj.data ?? obj.results ?? obj.attendance ?? null;
+    if (Array.isArray(candidate)) arr = candidate;
+  }
+  return arr
+    .map((row: any) => ({
+      date: String(row.date ?? row.attendance_date ?? row.day ?? ''),
+      present_count: Number(
+        row.present_count ??
+        row.present ??
+        row.count ??
+        row.workers_present ??
+        row.total_present ??
+        row.total ??
+        0,
+      ),
+    }))
+    .filter(r => r.date !== '');
+}
+
+async function fetchAttendanceSummaryForSite(
+  siteId: string | number,
+  dateFrom: string,
+  dateTo: string,
+): Promise<AttendanceDay[]> {
+  const url = `/api/v1/attendance/summary/${siteId}?date_from=${dateFrom}&date_to=${dateTo}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`[Attendance] site ${siteId} → HTTP ${res.status}`);
+      return [];
+    }
+    const raw = await res.json();
+    console.log(`[Attendance] site ${siteId} raw:`, JSON.stringify(raw).slice(0, 300));
+    return normaliseAttendanceResponse(raw);
+  } catch (err) {
+    console.warn(`[Attendance] site ${siteId} fetch error:`, err);
+    return [];
+  }
+}
+
+// Fetch from every site and aggregate present_count per date
+async function fetchAttendanceAllSites(
+  siteIds: (string | number)[],
+  dateFrom: string,
+  dateTo: string,
+): Promise<AttendanceDay[]> {
+  if (siteIds.length === 0) return [];
+  const results = await Promise.allSettled(
+    siteIds.map(id => fetchAttendanceSummaryForSite(id, dateFrom, dateTo)),
+  );
+  const totals: Record<string, number> = {};
+  for (const r of results) {
+    if (r.status !== 'fulfilled') continue;
+    for (const row of r.value) {
+      totals[row.date] = (totals[row.date] ?? 0) + row.present_count;
+    }
+  }
+  return Object.entries(totals).map(([date, present_count]) => ({ date, present_count }));
+}
+
+
+// ─── KPI Card ────────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, icon: Icon, loading }: {
   label: string; value: React.ReactNode; sub?: string;
   icon: React.ElementType; loading?: boolean;
@@ -50,129 +124,297 @@ function KpiCard({ label, value, sub, icon: Icon, loading }: {
   );
 }
 
-// ─────────────────────────────────────────────
-//  Attendance bar chart
-// ─────────────────────────────────────────────
-
-function AttendanceBarChart({ tab, dateFrom, dateTo }: {
-  tab: 'Today' | 'Week' | 'Month' | 'Custom';
-  dateFrom?: string; dateTo?: string;
+// ─── Calendar Picker ──────────────────────────────────────────────────────────
+function CalendarPicker({
+  dateFrom, dateTo, onSelect, onClose,
+}: {
+  dateFrom: string; dateTo: string;
+  onSelect: (from: string, to: string) => void;
+  onClose: () => void;
 }) {
-  const bars =
-    tab === 'Today'
-      ? [{ date: 'Today', present: 2, late: 0 }]
-      : tab === 'Week'
-      ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d, i) => ({
-          date: d, present: [3,5,4,6,2,0,1][i], late: [1,0,1,0,1,0,0][i],
-        }))
-      : [
-          { date:'01 May', present:0,  late:0 },
-          { date:'04 May', present:2,  late:0 },
-          { date:'05 May', present:3,  late:1 },
-          { date:'06 May', present:5,  late:0 },
-          { date:'07 May', present:4,  late:1 },
-          { date:'08 May', present:4,  late:0 },
-          { date:'11 May', present:1,  late:0 },
-          { date:'13 May', present:2,  late:0 },
-          { date:'16 May', present:1,  late:0 },
-          { date:'21 May', present:10, late:0 },
-          { date:'22 May', present:5,  late:0 },
-          { date:'23 May', present:6,  late:1 },
-          { date:'24 May', present:4,  late:0 },
-          { date:'26 May', present:0,  late:0 },
-        ];
+  const today = new Date();
+  const [viewYear, setViewYear]   = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [selecting, setSelecting] = useState<'from' | 'to'>('from');
+  const [hoverDate, setHoverDate] = useState<string>('');
 
-  const maxVal = Math.max(...bars.map((b) => b.present + b.late), 15);
-  const yMax   = Math.ceil(maxVal / 5) * 5;
-  const yTicks = [0, 5, 10, 15].filter((t) => t <= yMax + 2);
-  const W = 320, H = 160, PL = 28, PB = 24, PT = 8, PR = 4;
-  const cW = W - PL - PR, cH = H - PB - PT;
-  const barW = Math.max(4, Math.floor(cW / bars.length) - 2);
-  const gap  = cW / bars.length;
-  const step = Math.max(1, Math.floor(bars.length / 6));
-  const lbls = new Set(bars.map((_, i) => i).filter((i) => i === 0 || i === bars.length - 1 || i % step === 0));
+  const fromDate = dateFrom ? new Date(dateFrom) : null;
+  const toDate   = dateTo   ? new Date(dateTo)   : null;
+
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+  const DAY_NAMES = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+  function getDaysInMonth(year: number, month: number) {
+    const firstDay  = new Date(year, month, 1);
+    const startDow  = (firstDay.getDay() + 6) % 7;
+    const daysInMo  = new Date(year, month + 1, 0).getDate();
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startDow; i++) days.push(null);
+    for (let d = 1; d <= daysInMo; d++) days.push(new Date(year, month, d));
+    return days;
+  }
+
+  const days = getDaysInMonth(viewYear, viewMonth);
+
+  function handleDayClick(date: Date) {
+    const iso = toISO(date);
+    if (selecting === 'from') { onSelect(iso, ''); setSelecting('to'); }
+    else {
+      if (fromDate && date < fromDate) onSelect(iso, dateFrom);
+      else onSelect(dateFrom, iso);
+      setSelecting('from');
+    }
+  }
+
+  function inRange(date: Date) {
+    if (!fromDate) return false;
+    const end = toDate ?? (hoverDate ? new Date(hoverDate) : null);
+    if (!end) return false;
+    const [lo, hi] = fromDate <= end ? [fromDate, end] : [end, fromDate];
+    return date > lo && date < hi;
+  }
+
+  function isSelected(date: Date) {
+    const iso = toISO(date);
+    return iso === dateFrom || iso === dateTo;
+  }
+
+  function prevMonth() {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+    else setViewMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
+    else setViewMonth(m => m + 1);
+  }
+
+  const weeks: (Date | null)[][] = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+  while (weeks[weeks.length - 1]?.length < 7) weeks[weeks.length - 1].push(null);
 
   return (
-<<<<<<< HEAD
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 160 }}>
+    <div className="absolute z-50 rounded-2xl shadow-2xl p-4 select-none"
+      style={{
+        background: 'rgba(18,20,30,0.98)', border: '1px solid rgba(255,255,255,0.15)',
+        backdropFilter: 'blur(20px)', top: '100%', left: 0, marginTop: 8, minWidth: 280,
+      }}>
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg"
+          style={{ background: 'rgba(255,255,255,0.07)' }}>
+          <ChevronLeft className="w-4 h-4 text-white" />
+        </button>
+        <span className="text-sm font-semibold text-white">{MONTH_NAMES[viewMonth]} {viewYear}</span>
+        <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg"
+          style={{ background: 'rgba(255,255,255,0.07)' }}>
+          <ChevronRightIcon className="w-4 h-4 text-white" />
+        </button>
+      </div>
+
+      <p className="text-[11px] mb-2 text-center" style={{ color: 'var(--gv-text-muted)' }}>
+        {selecting === 'from' ? 'Select start date' : 'Select end date'}
+      </p>
+
+      <div className="grid grid-cols-7 mb-1">
+        {DAY_NAMES.map(d => (
+          <div key={d} className="text-center text-[10px] font-medium py-1"
+            style={{ color: 'rgba(255,255,255,0.3)' }}>{d}</div>
+        ))}
+      </div>
+
+      {weeks.map((week, wi) => (
+        <div key={wi} className="grid grid-cols-7">
+          {week.map((date, di) => {
+            if (!date) return <div key={di} />;
+            const selected     = isSelected(date);
+            const inR          = inRange(date);
+            const iso          = toISO(date);
+            const isFrom       = iso === dateFrom;
+            const isTo         = iso === dateTo;
+            const isTodayDate  = iso === toISO(today);
+            return (
+              <div key={di} className="flex items-center justify-center"
+                style={{
+                  height: 32,
+                  background: inR ? 'rgba(59,130,246,0.15)' : 'transparent',
+                  borderRadius: isFrom ? '8px 0 0 8px' : isTo ? '0 8px 8px 0' : 0,
+                }}
+                onMouseEnter={() => setHoverDate(iso)}
+                onMouseLeave={() => setHoverDate('')}
+                onClick={() => handleDayClick(date)}>
+                <div className="w-7 h-7 flex items-center justify-center rounded-lg cursor-pointer transition-all"
+                  style={{
+                    background: selected ? '#3b82f6' : 'transparent',
+                    border: isTodayDate && !selected ? '1px solid rgba(59,130,246,0.5)' : 'none',
+                  }}>
+                  <span className="text-xs font-medium"
+                    style={{ color: selected ? '#fff' : isTodayDate ? '#7cb3f8' : 'rgba(255,255,255,0.8)' }}>
+                    {date.getDate()}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      <div className="flex items-center justify-between mt-3 pt-3"
+        style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="text-[11px]" style={{ color: 'var(--gv-text-muted)' }}>
+          {dateFrom && <span>From: <span className="text-white">{dateFrom}</span></span>}
+          {dateTo   && <span className="ml-2">To: <span className="text-white">{dateTo}</span></span>}
+        </div>
+        <button onClick={onClose} className="text-[11px] px-3 py-1 rounded-lg"
+          style={{ background: '#3b82f6', color: '#fff' }}>Done</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Bar type ─────────────────────────────────────────────────────────────────
+interface Bar {
+  label: string;       // short x-axis label  e.g. "Mon", "1"
+  fullLabel: string;   // full day name        e.g. "Monday"
+  date: string;        // ISO date             e.g. "2025-06-02"
+  dateDisplay: string; // human date           e.g. "02 Jun 2025"
+  present: number;
+}
+
+// ─── Attendance Bar Chart ─────────────────────────────────────────────────────
+function AttendanceBarChart({
+  bars, loading, tab, activeBarIdx, onBarClick,
+}: {
+  bars: Bar[];
+  loading: boolean;
+  tab: 'Today' | 'Week' | 'Month' | 'Custom';
+  activeBarIdx: number | null;
+  onBarClick: (idx: number | null) => void;
+}) {
+  // ── Y-axis ──────────────────────────────────────────────────────────────────
+  const maxData = Math.max(...bars.map(b => b.present), 1);
+
+  function niceMax(v: number) {
+    if (v === 0) return 5;
+    if (v <= 5)  return 5;
+    if (v <= 10) return 10;
+    if (v <= 15) return 15;
+    if (v <= 20) return 20;
+    return Math.ceil(v / 5) * 5;
+  }
+
+  const yMax = niceMax(maxData);
+
+  function getYTicks(max: number): number[] {
+    if (max <= 5) return [0, 1, 2, 3, 4, 5].filter(t => t <= max);
+    const step = max <= 10 ? 2 : max <= 20 ? 4 : 5;
+    const ticks: number[] = [];
+    for (let t = 0; t <= max; t += step) ticks.push(t);
+    if (ticks[ticks.length - 1] !== max) ticks.push(max);
+    return ticks;
+  }
+
+  const yTicks = getYTicks(yMax);
+
+  // ── SVG dimensions ──────────────────────────────────────────────────────────
+  // PL: left padding reserved for y-axis number labels
+  const W = 400, H = 185;
+  const PL = 28, PB = 28, PT = 12, PR = 4;
+  const cW = W - PL - PR;   // chart area width (bars live here)
+  const cH = H - PB - PT;
+
+  const count   = Math.max(bars.length, 1);
+  const isWeek  = tab === 'Week';
+  const isMonth = tab === 'Month';
+
+  const gap  = cW / count;
+  // Thinner bars for month (31 bars) than week (7 bars)
+  const barW = Math.max(3, Math.floor(gap) - (count > 20 ? 1 : count > 7 ? 4 : 10));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center" style={{ height: H }}>
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
+      </div>
+    );
+  }
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full"
+      style={{ height: H, display: 'block' }}
+      onClick={() => { if (activeBarIdx !== null) onBarClick(null); }}
+    >
+      {/* ── Y-axis labels (LEFT) + gridlines ── */}
       {yTicks.map((tick) => {
         const y = PT + cH - (tick / yMax) * cH;
         return (
           <g key={tick}>
-            <line x1={PL} x2={W - PR} y1={y} y2={y} stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
-            <text x={PL - 4} y={y + 4} textAnchor="end" fontSize="9" fill="rgba(255,255,255,0.3)">{tick}</text>
+            {/* gridline across full chart area */}
+            <line
+              x1={PL} x2={W - PR} y1={y} y2={y}
+              stroke="rgba(255,255,255,0.08)" strokeWidth="1"
+            />
+            {/* y-axis number left of chart area */}
+            <text
+              x={PL - 4} y={y}
+              textAnchor="end" dominantBaseline="central"
+              fontSize="13" fontWeight="500"
+              fill="rgba(255,255,255,0.55)"
+              fontFamily="inherit"
+            >
+              {tick}
+            </text>
           </g>
         );
       })}
-      {bars.map((b, i) => {
-        const cx = PL + i * gap + gap / 2;
-        const x  = cx - barW / 2;
-        const pH = (b.present / yMax) * cH;
-        const lH = (b.late / yMax) * cH;
-        const pY = PT + cH - pH;
-        const lY = pY - lH;
-        return (
-          <g key={i}>
-            {b.present > 0 && <rect x={x} y={pY} width={barW} height={pH} rx="2" fill="#3b82f6" opacity="0.85" />}
-            {b.late    > 0 && <rect x={x} y={lY} width={barW} height={lH} rx="2" fill="#ef4444" opacity="0.85" />}
-            {lbls.has(i) && (
-              <text x={cx} y={H - 6} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.35)">{b.date}</text>
-=======
-    <div onClick={onClick} className="gv-card gv-card-hover flex flex-col gap-3 group">
-      {/* header */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="gv-icon-box">
-            <Building2 className="w-4 h-4" style={{ color: 'var(--gv-brand)' }} />
-          </div>
-          <div className="min-w-0">
-            <p className="font-medium text-sm text-white leading-tight truncate group-hover:text-(--gv-brand) transition-colors">
-              {site.name}
-            </p>
-            <span className="inline-flex items-center gap-1.5 text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
-              <span className={`w-1.5 h-1.5 rounded-full ${siteMeta.dot}`} />
-              {siteMeta.label}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${projMeta.bg} ${projMeta.color}`}>
-            {projMeta.label}
-          </span>
-          <ChevronRight className="w-3.5 h-3.5 transition-colors" style={{ color: 'var(--gv-text-faint)' }} />
-        </div>
-      </div>
 
-      {/* body */}
-      <div className="space-y-1.5 flex-1">
-        {site.location && (
-          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-muted)' }}>
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{site.location}</span>
-          </div>
-        )}
-        {site.inquiring_entity && (
-          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-muted)' }}>
-            <Layers className="w-3 h-3 shrink-0" />
-            <span className="truncate">{site.inquiring_entity}</span>
-          </div>
-        )}
-        {site.description && (
-          <p className="text-xs line-clamp-2" style={{ color: 'var(--gv-text-subtle)' }}>
-            {site.description}
-          </p>
-        )}
-        {site.tags && site.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {site.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="gv-tag inline-flex items-center gap-1">
-                <Tag className="w-2.5 h-2.5" />{tag}
-              </span>
-            ))}
-            {site.tags.length > 3 && (
-              <span className="text-[11px]" style={{ color: 'var(--gv-text-faint)' }}>+{site.tags.length - 3}</span>
->>>>>>> main
+      {/* ── Bars ── */}
+      {bars.map((b, i) => {
+        // bars are positioned inside the chart area (starts at PL)
+        const cx   = PL + i * gap + gap / 2;
+        const x    = cx - barW / 2;
+        const pH   = b.present > 0 ? (b.present / yMax) * cH : 0;
+        const pY   = PT + cH - pH;
+        const open = isWeek && activeBarIdx === i;
+
+        return (
+          <g key={i}
+            style={{ cursor: isWeek ? 'pointer' : 'default' }}
+            onClick={(e) => {
+              if (!isWeek) return;
+              e.stopPropagation();
+              onBarClick(open ? null : i);
+            }}
+          >
+            {/* Full-column transparent hit area */}
+            <rect x={x - 4} y={PT} width={barW + 8} height={cH} fill="transparent" />
+
+            {/* Active column highlight */}
+            {open && (
+              <rect x={x - 4} y={PT} width={barW + 8} height={cH}
+                fill="rgba(255,255,255,0.06)" rx="3" />
             )}
+
+            {/* Present bar — always render so 0 shows baseline */}
+            {b.present > 0 && (
+              <rect
+                x={x} y={pY} width={barW} height={pH} rx="2"
+                fill="#3b82f6" opacity={open ? 1 : 0.85}
+              />
+            )}
+
+            {/* X-axis label — every date for month, every day for week/today */}
+            <text
+              x={cx} y={H - 6}
+              textAnchor="middle"
+              fontSize={isMonth ? 10 : 13}
+              fontWeight={open ? '700' : '400'}
+              fill={open ? '#fff' : 'rgba(255,255,255,0.55)'}
+              fontFamily="inherit"
+            >
+              {b.label}
+            </text>
           </g>
         );
       })}
@@ -180,30 +422,29 @@ function AttendanceBarChart({ tab, dateFrom, dateTo }: {
   );
 }
 
-// ─────────────────────────────────────────────
-//  Workers donut
-// ─────────────────────────────────────────────
-
+// ─── Workers Donut ────────────────────────────────────────────────────────────
 function WorkersDonut({ total, present, loading }: { total: number; present: number; loading?: boolean }) {
   const R = 54, SW = 13, CX = 70, CY = 70;
   const circ = 2 * Math.PI * R;
   const dash  = total > 0 ? (present / total) * circ : 0;
-  if (loading) return <div className="flex items-center justify-center" style={{ width: 140, height: 140 }}><Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center" style={{ width: 140, height: 140 }}>
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
+    </div>
+  );
   return (
     <svg viewBox="0 0 140 140" style={{ width: 140, height: 140 }}>
       <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={SW} />
       <circle cx={CX} cy={CY} r={R} fill="none" stroke="#3b82f6" strokeWidth={SW}
-        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+        transform={`rotate(-90 ${CX} ${CY})`} />
       <text x={CX} y={CY - 5} textAnchor="middle" fontSize="18" fontWeight="700" fill="white">{total}</text>
       <text x={CX} y={CY + 13} textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.4)">total</text>
     </svg>
   );
 }
 
-// ─────────────────────────────────────────────
-//  Site status donut
-// ─────────────────────────────────────────────
-
+// ─── Site Status Donut ────────────────────────────────────────────────────────
 function SiteStatusDonut({ active, planning, paused, done, loading }: {
   active: number; planning: number; paused: number; done: number; loading?: boolean;
 }) {
@@ -215,19 +456,24 @@ function SiteStatusDonut({ active, planning, paused, done, loading }: {
     { value: done,     color: '#14b8a6', r: 13, sw: 8  },
   ];
   const CX = 70, CY = 70;
-  if (loading) return <div className="flex items-center justify-center" style={{ width: 140, height: 140 }}><Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center" style={{ width: 140, height: 140 }}>
+      <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
+    </div>
+  );
   return (
-<<<<<<< HEAD
     <svg viewBox="0 0 140 140" style={{ width: 140, height: 140 }}>
       {rings.map((ring) => {
         const circ = 2 * Math.PI * ring.r;
         const dash = (ring.value / total) * circ;
         return (
           <g key={ring.r}>
-            <circle cx={CX} cy={CY} r={ring.r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={ring.sw} />
+            <circle cx={CX} cy={CY} r={ring.r} fill="none"
+              stroke="rgba(255,255,255,0.06)" strokeWidth={ring.sw} />
             {ring.value > 0 && (
-              <circle cx={CX} cy={CY} r={ring.r} fill="none" stroke={ring.color} strokeWidth={ring.sw}
-                strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
+              <circle cx={CX} cy={CY} r={ring.r} fill="none" stroke={ring.color}
+                strokeWidth={ring.sw} strokeDasharray={`${dash} ${circ}`}
+                strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
             )}
           </g>
         );
@@ -236,157 +482,32 @@ function SiteStatusDonut({ active, planning, paused, done, loading }: {
   );
 }
 
-// ─────────────────────────────────────────────
-//  Page
-// ─────────────────────────────────────────────
-=======
-    <div className="flex items-start gap-3 py-3" style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
-      <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5"
-        style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-        <Icon className="w-3.5 h-3.5" style={{ color: 'var(--gv-text-muted)' }} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs mb-0.5" style={{ color: 'var(--gv-text-subtle)' }}>{label}</p>
-        <div className="text-sm font-medium text-white wrap-break-word">{value}</div>
-      </div>
-    </div>
-  );
-}
-
-function SiteDetailPanel({ site, onClose }: { site: Site; onClose: () => void }) {
-  const projMeta = PROJECT_STATUS_META[site.project_status] ?? PROJECT_STATUS_META['PLANNING'];
-  const siteMeta = SITE_STATUS_META[site.site_status]       ?? SITE_STATUS_META['INACTIVE'];
-
-  return (
-    <>
-      {/* backdrop */}
-      <div className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={onClose} />
-
-      {/* panel */}
-      <div className="fixed top-0 right-0 h-full w-full max-w-md z-50 flex flex-col overflow-hidden"
-        style={{ background: 'var(--gv-nav-bg)', borderLeft: '1px solid var(--gv-glass-border)', backdropFilter: 'blur(24px)' }}>
-
-        {/* panel header */}
-        <div className="flex items-start justify-between gap-3 px-5 py-4 shrink-0"
-          style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="gv-icon-box">
-              <Building2 className="w-5 h-5" style={{ color: 'var(--gv-brand)' }} />
-            </div>
-            <div className="min-w-0">
-              <h2 className="font-semibold text-sm text-white leading-tight truncate">{site.name}</h2>
-              <span className="inline-flex items-center gap-1.5 text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
-                <span className={`w-1.5 h-1.5 rounded-full ${siteMeta.dot}`} />
-                {siteMeta.label}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${projMeta.bg} ${projMeta.color}`}>
-              {projMeta.label}
-            </span>
-            <button onClick={onClose}
-              className="w-7 h-7 rounded-md flex items-center justify-center transition-colors"
-              style={{ color: 'var(--gv-text-muted)', background: 'transparent' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* scrollable body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-
-          {site.description && (
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--gv-text-muted)' }}>
-              {site.description}
-            </p>
-          )}
-
-          {/* basic info */}
-          <div>
-            <p className="gv-eyebrow mb-2">Basic Information</p>
-            <div className="gv-card" style={{ padding: '0 1rem' }}>
-              {site.location && <DetailRow icon={MapPin} label="Location" value={site.location} />}
-              <DetailRow icon={Calendar} label="Created"
-                value={site.created_at ? format(new Date(site.created_at), 'dd MMM yyyy, HH:mm') : '—'} />
-              {site.updated_at && (
-                <DetailRow icon={Clock} label="Last updated"
-                  value={format(new Date(site.updated_at), 'dd MMM yyyy, HH:mm')} />
-              )}
-              {site.completion_date && (
-                <DetailRow icon={Calendar} label="Completion date"
-                  value={format(new Date(site.completion_date), 'dd MMM yyyy')} />
-              )}
-              <DetailRow icon={Hash} label="Site ID" value={`#${site.id}`} />
-            </div>
-          </div>
-
-          {/* entity details */}
-          {(site.tender_name || site.inquiring_entity) && (
-            <div>
-              <p className="gv-eyebrow mb-2">Entity Details</p>
-              <div className="gv-card" style={{ padding: '0 1rem' }}>
-                {site.tender_name && <DetailRow icon={FileText} label="Tender name" value={site.tender_name} />}
-                {site.inquiring_entity && <DetailRow icon={Layers} label="Inquiring entity" value={site.inquiring_entity} />}
-              </div>
-            </div>
-          )}
-
-          {/* coordinates */}
-          {(site.latitude !== null || site.longitude !== null) && (
-            <div>
-              <p className="gv-eyebrow mb-2">Geo Coordinates</p>
-              <div className="gv-card" style={{ padding: '0 1rem' }}>
-                {site.latitude !== null && <DetailRow icon={Navigation} label="Latitude" value={site.latitude} />}
-                {site.longitude !== null && <DetailRow icon={Navigation} label="Longitude" value={site.longitude} />}
-              </div>
-            </div>
-          )}
-
-          {/* tags */}
-          {site.tags && site.tags.length > 0 && (
-            <div>
-              <p className="gv-eyebrow mb-2">Tags</p>
-              <div className="flex flex-wrap gap-2">
-                {site.tags.map((tag) => (
-                  <span key={tag} className="gv-tag inline-flex items-center gap-1.5">
-                    <Tag className="w-3 h-3" />{tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* system */}
-          <div>
-            <p className="gv-eyebrow mb-2">System</p>
-            <div className="gv-card" style={{ padding: '0 1rem' }}>
-              <DetailRow icon={User} label="Created by" value={`User #${site.created_by}`} />
-              {site.updated_by && <DetailRow icon={User} label="Last updated by" value={`User #${site.updated_by}`} />}
-              {site.field_operator_id && <DetailRow icon={User} label="Field operator" value={`User #${site.field_operator_id}`} />}
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </>
-  );
-}
->>>>>>> main
-
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ProjectsDashboardPage() {
-  const [sites, setSites]         = useState<Site[]>([]);
-  const [kpis, setKpis]           = useState<OverviewKPIs | null>(null);
+  const [sites, setSites]               = useState<Site[]>([]);
+  const [kpis, setKpis]                 = useState<OverviewKPIs | null>(null);
   const [loadingKpis, setLoadingKpis]   = useState(true);
   const [loadingSites, setLoadingSites] = useState(true);
   const [kpisError, setKpisError]       = useState<string | null>(null);
-  const [attendanceTab, setAttendanceTab] = useState<'Today' | 'Week' | 'Month' | 'Custom'>('Month');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo,   setDateTo]   = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // ── Attendance state ────────────────────────────────────────────────────────
+  const [attendanceTab, setAttendanceTab]     = useState<'Today' | 'Week' | 'Month' | 'Custom'>('Month');
+  const [dateFrom, setDateFrom]               = useState('');
+  const [dateTo, setDateTo]                   = useState('');
+  const [showCalendar, setShowCalendar]       = useState(false);
+  const calendarRef                           = useRef<HTMLDivElement>(null);
+  const chartCardRef                          = useRef<HTMLDivElement>(null);
+
+  // Bars: fetched from backend
+  const [bars, setBars]                       = useState<Bar[]>([]);
+  const [loadingBars, setLoadingBars]         = useState(false);
+  const [barsError, setBarsError]             = useState<string | null>(null);
+
+  // Week overlay
+  const [activeBarIdx, setActiveBarIdx]       = useState<number | null>(null);
+  const [overlayPos, setOverlayPos]           = useState<{ top: number; left: number } | null>(null);
+
+  // ── KPI + Sites load ────────────────────────────────────────────────────────
   const load = useCallback(() => {
     setLoadingKpis(true); setKpisError(null);
     fetchOverviewKPIs()
@@ -403,7 +524,140 @@ export default function ProjectsDashboardPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Derived
+  // ── Attendance fetch ─────────────────────────────────────────────────────────
+  const DAY_NAMES  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const DAY_FULL   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+
+  function buildDateRange(tab: typeof attendanceTab): { from: string; to: string } | null {
+    const now = new Date();
+    if (tab === 'Today') {
+      const iso = toISO(now);
+      return { from: iso, to: iso };
+    }
+    if (tab === 'Week') {
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      return { from: toISO(monday), to: toISO(sunday) };
+    }
+    if (tab === 'Month') {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      return { from: toISO(first), to: toISO(last) };
+    }
+    if (tab === 'Custom') {
+      if (!dateFrom || !dateTo) return null;
+      return { from: dateFrom, to: dateTo };
+    }
+    return null;
+  }
+
+  // Convert API response into Bar[] — filling every date in range with 0 if missing
+  function buildBars(
+    summary: AttendanceDay[],
+    fromISO: string,
+    toISO_: string,
+    tab: typeof attendanceTab,
+  ): Bar[] {
+    const lookup: Record<string, number> = {};
+    for (const row of summary) lookup[row.date] = row.present_count;
+
+    const result: Bar[] = [];
+    const cur = new Date(fromISO);
+    const end = new Date(toISO_);
+
+    while (cur <= end) {
+      const iso  = toISO(cur);
+      const dow  = cur.getDay();
+      const label =
+        tab === 'Today'  ? 'Today' :
+        tab === 'Week'   ? DAY_NAMES[dow] :
+        /* Month/Custom */ String(cur.getDate());
+
+      result.push({
+        label,
+        fullLabel:   tab === 'Today' ? 'Today' : DAY_FULL[dow],
+        date:        iso,
+        dateDisplay: cur.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        present:     lookup[iso] ?? 0,
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+    return result;
+  }
+
+  const loadBars = useCallback(async () => {
+    const range = buildDateRange(attendanceTab);
+    if (!range) { setBars([]); return; }
+
+    // Collect all site IDs from the loaded sites list.
+    // Falls back to site ID 1 if sites haven't loaded yet so we still attempt a fetch.
+    const siteIds = sites.length > 0
+      ? sites.map(s => (s as any).id ?? (s as any).site_id).filter(Boolean)
+      : [1];
+
+    console.log('[Attendance] fetching for sites:', siteIds, 'range:', range);
+
+    setLoadingBars(true); setBarsError(null);
+    try {
+      const summary = await fetchAttendanceAllSites(siteIds, range.from, range.to);
+      console.log('[Attendance] aggregated summary:', summary);
+      setBars(buildBars(summary, range.from, range.to, attendanceTab));
+    } catch (err) {
+      console.error('[Attendance] loadBars error:', err);
+      setBarsError('Could not load attendance data.');
+      setBars(buildBars([], range.from, range.to, attendanceTab));
+    } finally {
+      setLoadingBars(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attendanceTab, dateFrom, dateTo, sites]);
+
+  useEffect(() => {
+    setActiveBarIdx(null);
+    loadBars();
+  }, [loadBars]);
+
+  // ── Close calendar on outside click ─────────────────────────────────────────
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+        setShowCalendar(false);
+      }
+    }
+    if (showCalendar) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showCalendar]);
+
+  // ── Close week overlay on outside click ─────────────────────────────────────
+  useEffect(() => {
+    function handleClick() { setActiveBarIdx(null); setOverlayPos(null); }
+    if (activeBarIdx !== null) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [activeBarIdx]);
+
+  // ── Week bar click: compute pixel position for overlay ──────────────────────
+  function handleBarClick(idx: number | null) {
+    if (idx === null) { setActiveBarIdx(null); setOverlayPos(null); return; }
+
+    setActiveBarIdx(idx);
+
+    // Position the overlay above the chart card
+    if (chartCardRef.current) {
+      const rect     = chartCardRef.current.getBoundingClientRect();
+      const count    = bars.length || 1;
+      // fraction of card width where bar centre sits
+      const fraction = (idx + 0.5) / count;
+      const left     = rect.left + fraction * rect.width;
+      const top      = rect.top;      // overlay will sit above this
+      setOverlayPos({ top, left });
+    }
+  }
+
+  // ── Derived KPI values ───────────────────────────────────────────────────────
   const totalTasks     = kpis?.totalTasks     ?? 0;
   const completedTasks = kpis?.completedTasks ?? 0;
   const taskPct        = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -414,11 +668,15 @@ export default function ProjectsDashboardPage() {
   const totalInvoiced  = kpis?.totalInvoiced  ?? 0;
   const invoicedFmt    = `KSH ${totalInvoiced.toLocaleString()}`;
   const pendingFmt     = `KSH ${(kpis?.pendingInvoiceValue ?? 0).toLocaleString()} pending`;
-  const totalSites     = kpis?.totalSites     ?? 0;
-  const activeSites    = kpis?.activeSites    ?? 0;
-  const planningSites  = kpis?.planningSites  ?? 0;
-  const pausedSites    = sites.filter((s) => normProjectStatus(s.project_status) === 'ON_HOLD').length;
-  const doneSites      = sites.filter((s) => normProjectStatus(s.project_status) === 'COMPLETED').length;
+  const totalSites     = kpis?.totalSites    ?? 0;
+  const activeSites    = kpis?.activeSites   ?? 0;
+  const planningSites  = kpis?.planningSites ?? 0;
+  const pausedSites    = sites.filter(s => normProjectStatus(s.project_status) === 'ON_HOLD').length;
+  const doneSites      = sites.filter(s => normProjectStatus(s.project_status) === 'COMPLETED').length;
+
+  const customLabel    = dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : 'Pick dates';
+  const activeBar      = activeBarIdx !== null ? bars[activeBarIdx] : null;
+  const now            = new Date();
 
   return (
     <div className="gv-page-dashboard flex flex-col gap-0 overflow-y-auto pb-10">
@@ -437,34 +695,25 @@ export default function ProjectsDashboardPage() {
       {kpisError && (
         <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
           style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', color: '#fde68a' }}>
-<<<<<<< HEAD
           <AlertCircle className="w-4 h-4 flex-shrink-0" />{kpisError}
           <button onClick={load} className="ml-auto underline text-xs">Retry</button>
-=======
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          Analytics unavailable. Check your backend connection.
->>>>>>> main
         </div>
       )}
 
-      {/* ══════════════════════════════
-           SECTION 1 — Overview
-      ══════════════════════════════ */}
+      {/* ── Overview KPIs ── */}
       <div className="px-4 pb-5">
         <p className="text-lg font-bold text-white mb-3">Overview</p>
         <div className="grid grid-cols-2 gap-3">
-          <KpiCard icon={Building2}   label="Total Sites"       loading={loadingKpis} value={totalSites}            sub={`${activeSites} active`} />
-          <KpiCard icon={Users}       label="Workers"           loading={loadingKpis} value={totalWorkers}          sub={`${activeWorkers} active`} />
-          <KpiCard icon={ClipboardList} label="Tasks"           loading={loadingKpis} value={`${completedTasks}/${totalTasks}`} sub={`${taskPct}% done`} />
-          <KpiCard icon={FileText}    label="Invoiced"          loading={loadingKpis} value={invoicedFmt}           sub={pendingFmt} />
-          <KpiCard icon={Shield}      label="Permits"           loading={loadingKpis} value={kpis?.totalPermits ?? 0} sub={`${kpis?.expiring_permits ?? 0} expiring`} />
-          <KpiCard icon={UserCheck}   label="Attendance Today"  loading={loadingKpis} value={`${attendancePct}%`}  sub={`${presentToday} present`} />
+          <KpiCard icon={Building2}     label="Total Sites"      loading={loadingKpis} value={totalSites}              sub={`${activeSites} active`} />
+          <KpiCard icon={Users}         label="Workers"          loading={loadingKpis} value={totalWorkers}            sub={`${activeWorkers} active`} />
+          <KpiCard icon={ClipboardList} label="Tasks"            loading={loadingKpis} value={`${completedTasks}/${totalTasks}`} sub={`${taskPct}% done`} />
+          <KpiCard icon={FileText}      label="Invoiced"         loading={loadingKpis} value={invoicedFmt}             sub={pendingFmt} />
+          <KpiCard icon={Shield}        label="Permits"          loading={loadingKpis} value={kpis?.totalPermits ?? 0} sub={`${kpis?.expiring_permits ?? 0} expiring`} />
+          <KpiCard icon={UserCheck}     label="Attendance Today" loading={loadingKpis} value={`${attendancePct}%`}    sub={`${presentToday} present`} />
         </div>
       </div>
 
-      {/* ══════════════════════════════
-           SECTION 2 — Attendance + Site Statuses (side by side)
-      ══════════════════════════════ */}
+      {/* ── Attendance ── */}
       <div className="px-4 pb-5">
         <p className="text-lg font-bold text-white mb-3">Attendance</p>
 
@@ -473,130 +722,169 @@ export default function ProjectsDashboardPage() {
           {(['Today', 'Week', 'Month', 'Custom'] as const).map((t) => {
             const active = attendanceTab === t;
             return (
-              <button key={t} onClick={() => { setAttendanceTab(t); if (t === 'Custom') setShowDatePicker(true); }}
+              <button key={t}
+                onClick={() => { setAttendanceTab(t); if (t === 'Custom') setShowCalendar(true); }}
                 className="text-sm font-medium px-3 py-1.5 rounded-full whitespace-nowrap flex-shrink-0 transition-all"
                 style={active
                   ? { background: 'var(--gv-brand)', color: '#fff' }
                   : { background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}>
-                {t}
+                {t === 'Custom' && (dateFrom || dateTo) ? customLabel : t}
               </button>
             );
           })}
         </div>
 
-<<<<<<< HEAD
-        {/* Custom date picker */}
+        {/* Custom — calendar trigger */}
         {attendanceTab === 'Custom' && (
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex-1">
-              <label className="text-[11px] mb-1 block" style={{ color: 'var(--gv-text-subtle)' }}>From</label>
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="gv-input w-full text-sm" style={{ colorScheme: 'dark' }} />
-            </div>
-            <div className="flex-1">
-              <label className="text-[11px] mb-1 block" style={{ color: 'var(--gv-text-subtle)' }}>To</label>
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="gv-input w-full text-sm" style={{ colorScheme: 'dark' }} />
-            </div>
-=======
-        <div className="flex flex-wrap gap-2">
-          {(['ALL', 'ACTIVE', 'INACTIVE', 'CLOSED'] as const).map((s) => {
-            const active = siteFilter === s;
-            const labels: Record<string, string> = { ALL: 'All sites', ACTIVE: 'Active', INACTIVE: 'Inactive', CLOSED: 'Closed' };
-            return (
-              <button key={s} onClick={() => setSiteFilter(s)} className="gv-btn-pill text-xs"
-                style={active ? { background: 'var(--gv-brand)', borderColor: 'var(--gv-brand)', color: '#fff' } : {}}>
-                {labels[s]}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* sites error */}
-      {sitesError && (
-        <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          {sitesError}
-          <button onClick={loadAll} className="ml-auto underline underline-offset-2 text-xs">Retry</button>
-        </div>
-      )}
-
-      {/* grid */}
-      {loadingSites ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-48 rounded-2xl animate-pulse"
-              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }} />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="gv-icon-box w-14 h-14 mb-4" style={{ opacity: 0.4 }}>
-            <Building2 className="w-7 h-7" style={{ color: 'var(--gv-brand)' }} />
->>>>>>> main
+          <div className="relative mb-3" ref={calendarRef}>
+            <button
+              onClick={() => setShowCalendar(v => !v)}
+              className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
+              style={{
+                background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)',
+                color: dateFrom ? '#fff' : 'var(--gv-text-muted)',
+              }}>
+              <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--gv-brand)' }} />
+              {dateFrom && dateTo ? `${dateFrom}  →  ${dateTo}` : dateFrom ? `From ${dateFrom} — pick end date` : 'Select date range'}
+              <ChevronRightIcon className="w-4 h-4 ml-auto opacity-40" />
+            </button>
+            {showCalendar && (
+              <CalendarPicker
+                dateFrom={dateFrom} dateTo={dateTo}
+                onSelect={(from, to) => { setDateFrom(from); setDateTo(to); }}
+                onClose={() => setShowCalendar(false)}
+              />
+            )}
           </div>
         )}
 
-        {/* Attendance chart + Site Statuses side by side */}
+        {barsError && (
+          <p className="text-xs mb-2 px-1" style={{ color: '#fca5a5' }}>{barsError}</p>
+        )}
+
+        {/* Charts grid */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Attendance chart card */}
-          <div className="rounded-2xl p-3 flex flex-col"
-            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-            <p className="text-[11px] font-medium mb-2" style={{ color: 'var(--gv-text-muted)' }}>
-              {attendanceTab === 'Custom' && dateFrom && dateTo
-                ? `${dateFrom} – ${dateTo}`
-                : attendanceTab}
-            </p>
-            {loadingKpis
-              ? <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} /></div>
-              : <AttendanceBarChart tab={attendanceTab} dateFrom={dateFrom} dateTo={dateTo} />}
-            {/* Legend */}
-            <div className="flex flex-col gap-1 mt-2">
-              {[
-                { label: 'Present', color: '#3b82f6' },
-                { label: 'Late',    color: '#ef4444' },
-                { label: 'Absent',  color: 'rgba(255,255,255,0.12)' },
-              ].map((l) => (
-                <span key={l.label} className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--gv-text-subtle)' }}>
-                  <span className="w-2 h-2 rounded-sm flex-shrink-0 inline-block" style={{ background: l.color }} />
-                  {l.label}
-                </span>
-              ))}
+
+          {/* ── Attendance chart card ── */}
+          <div
+            ref={chartCardRef}
+            className="rounded-2xl overflow-visible flex flex-col"
+            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', position: 'relative' }}
+          >
+            {/* Period label + refresh */}
+            <div className="flex items-center justify-between px-3 pt-3 mb-1">
+              <p className="text-xs font-semibold" style={{ color: 'var(--gv-text-muted)' }}>
+                {attendanceTab === 'Month'
+                  ? `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
+                  : attendanceTab === 'Custom' && dateFrom && dateTo
+                  ? `${dateFrom} – ${dateTo}`
+                  : attendanceTab}
+              </p>
+              <button onClick={loadBars} className="opacity-50 hover:opacity-100 transition-opacity">
+                <RefreshCw className="w-3 h-3 text-white" />
+              </button>
+            </div>
+
+            {/* Chart — no horizontal padding, full bleed */}
+            <div className="w-full" style={{ overflow: 'visible' }}>
+              <AttendanceBarChart
+                bars={bars}
+                loading={loadingBars}
+                tab={attendanceTab}
+                activeBarIdx={activeBarIdx}
+                onBarClick={handleBarClick}
+              />
+            </div>
+
+            {/* Legend — only Present, shown on RIGHT */}
+            <div className="flex justify-end px-3 pb-3">
+              <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 inline-block" style={{ background: '#3b82f6' }} />
+                Present
+              </span>
             </div>
           </div>
 
-          {/* Site Statuses card */}
-          <div className="rounded-2xl p-3 flex flex-col items-center justify-between"
-            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-            <p className="text-[11px] font-medium mb-2 self-start" style={{ color: 'var(--gv-text-muted)' }}>Site Statuses</p>
-            <SiteStatusDonut active={activeSites} planning={planningSites}
-              paused={pausedSites} done={doneSites} loading={loadingSites || loadingKpis} />
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 w-full">
-              {[
-                { label: 'Active',   color: '#22c55e' },
-                { label: 'Planning', color: '#3b82f6' },
-                { label: 'Paused',   color: '#eab308' },
-                { label: 'Done',     color: '#14b8a6' },
-              ].map((l) => (
-                <span key={l.label} className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--gv-text-subtle)' }}>
-                  <span className="w-2 h-2 rounded-full flex-shrink-0 inline-block" style={{ background: l.color }} />
-                  {l.label}
-                </span>
-              ))}
+          {/* ── Site Statuses ── */}
+          <div className="flex flex-col gap-2">
+            <p className="text-lg font-bold text-white">Site Statuses</p>
+            <div className="rounded-2xl p-3 flex flex-col items-center justify-between flex-1"
+              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+              <SiteStatusDonut
+                active={activeSites} planning={planningSites}
+                paused={pausedSites} done={doneSites}
+                loading={loadingSites || loadingKpis} />
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 w-full">
+                {[
+                  { label: 'Active',   color: '#22c55e' },
+                  { label: 'Planning', color: '#3b82f6' },
+                  { label: 'Paused',   color: '#eab308' },
+                  { label: 'Done',     color: '#14b8a6' },
+                ].map((l) => (
+                  <span key={l.label} className="flex items-center gap-1.5 text-xs"
+                    style={{ color: 'var(--gv-text-subtle)' }}>
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 inline-block"
+                      style={{ background: l.color }} />
+                    {l.label}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ══════════════════════════════
-           SECTION 3 — Workers (donut + stats table side by side)
-      ══════════════════════════════ */}
+      {/* ── Week bar overlay — fixed-position, never clipped ── */}
+      {attendanceTab === 'Week' && activeBar && overlayPos && (
+        <div
+          className="fixed z-50"
+          style={{
+            top:  overlayPos.top - 8,
+            left: overlayPos.left,
+            transform: 'translate(-50%, -100%)',
+            pointerEvents: 'auto',
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="rounded-2xl p-4 shadow-2xl"
+            style={{
+              minWidth: 200,
+              background: 'rgba(14,16,26,0.98)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              backdropFilter: 'blur(24px)',
+            }}>
+            {/* Close */}
+            <button
+              onClick={() => { setActiveBarIdx(null); setOverlayPos(null); }}
+              className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-full text-xs"
+              style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
+              ✕
+            </button>
+
+            {/* Day + date */}
+            <p className="text-sm font-bold text-white leading-tight pr-6">{activeBar.fullLabel}</p>
+            <p className="text-xs mt-0.5 mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              {activeBar.dateDisplay}
+            </p>
+
+            {/* Present count */}
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-sm inline-block flex-shrink-0"
+                  style={{ background: '#3b82f6' }} />
+                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>Present</span>
+              </div>
+              <span className="text-xl font-bold text-white">{activeBar.present}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Workers ── */}
       <div className="px-4 pb-5">
         <p className="text-lg font-bold text-white mb-3">Workers</p>
         <div className="grid grid-cols-2 gap-3">
-          {/* Donut */}
+
           <div className="rounded-2xl p-4 flex flex-col items-center justify-center"
             style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
             <WorkersDonut total={totalWorkers} present={presentToday} loading={loadingKpis} />
@@ -605,7 +893,6 @@ export default function ProjectsDashboardPage() {
             </div>
           </div>
 
-          {/* Stats rows */}
           <div className="rounded-2xl overflow-hidden"
             style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
             {[
@@ -628,27 +915,6 @@ export default function ProjectsDashboardPage() {
             ))}
           </div>
         </div>
-      </div>
-
-      {/* ══════════════════════════════
-           CTA — Go to Construction Sites
-      ══════════════════════════════ */}
-      <div className="px-4">
-        <a href="/dashboard/projects/sites"
-          className="flex items-center justify-between w-full rounded-2xl p-4 transition-all"
-          style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(51,144,124,0.15)', border: '1px solid rgba(51,144,124,0.3)' }}>
-              <Building2 className="w-4 h-4" style={{ color: 'var(--gv-brand)' }} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">Construction Sites</p>
-              <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>{totalSites} sites · {activeSites} active</p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4" style={{ color: 'var(--gv-text-muted)' }} />
-        </a>
       </div>
 
     </div>
