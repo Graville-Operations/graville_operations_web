@@ -11,6 +11,7 @@ export interface PermitApproval {
   id: number;
   permit_id: number;
   approver_id: number;
+  approver: string; // full name returned by backend mapper
   step_order: number;
   status: ApprovalStatus;
   comment: string | null;
@@ -57,6 +58,7 @@ export interface PendingApprovalItem {
   id: number;
   permit_id: number;
   approver_id: number;
+  approver: string; // full name returned by backend mapper
   step_order: number;
   status: ApprovalStatus;
   comment: string | null;
@@ -65,15 +67,15 @@ export interface PendingApprovalItem {
 }
 
 export const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  "Draft":    { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" },
-  "Pending":  { bg: "rgba(96,165,250,0.15)",  color: "#60a5fa" },
-  "In Review":{ bg: "rgba(251,191,36,0.15)",  color: "#fbbf24" },
-  "Approved": { bg: "rgba(51,144,124,0.15)",  color: "#33907c" },
-  "Rejected": { bg: "rgba(248,113,113,0.15)", color: "#f87171" },
+  Draft:       { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" },
+  Pending:     { bg: "rgba(96,165,250,0.15)",  color: "#60a5fa" },
+  "In Review": { bg: "rgba(251,191,36,0.15)",  color: "#fbbf24" },
+  Approved:    { bg: "rgba(51,144,124,0.15)",  color: "#33907c" },
+  Rejected:    { bg: "rgba(248,113,113,0.15)", color: "#f87171" },
 };
 
 export const APPROVAL_STYLES: Record<string, { bg: string; color: string }> = {
-  "Pending":  { bg: "rgba(251,191,36,0.15)",  color: "#fbbf24" },
-  "Approved": { bg: "rgba(51,144,124,0.15)",  color: "#33907c" },
-  "Rejected": { bg: "rgba(248,113,113,0.15)", color: "#f87171" },
+  Pending:  { bg: "rgba(251,191,36,0.15)",  color: "#fbbf24" },
+  Approved: { bg: "rgba(51,144,124,0.15)",  color: "#33907c" },
+  Rejected: { bg: "rgba(248,113,113,0.15)", color: "#f87171" },
 };
