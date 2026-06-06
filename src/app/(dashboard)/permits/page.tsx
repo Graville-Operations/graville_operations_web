@@ -1,33 +1,22 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import {
-  X, FileText, Loader2, Plus, Search, ChevronDown,
-  Check, Send, Pencil, Tag, Trash2, AlertTriangle,
-} from "lucide-react";
+import { X, FileText, Loader2, Plus, Search, ChevronDown, Check, Send, Pencil, Tag, Trash2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { getRole } from "@/lib/auth";
 import {
-  PermitListItem, PermitDetail, PermitApproval, PermitCategory,
+  PermitListItem, PermitDetail, PermitCategory,
   STATUS_STYLES, APPROVAL_STYLES,
 } from "@/types/permits";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-/** A user entry returned by /users/list — used only for the approver picker */
 interface ApiUser { id: number; firstName: string; lastName: string; }
-
 interface SelectedApprover { userId: number; name: string; stepOrder: number; }
 
-/** What the API actually sends for each approval (includes resolved approver name) */
 interface RawApproval {
   id:          number;
   permit_id:   number;
   approver_id: number;
-  approver:    string;       // full name from Mapper.toPermitApprovalResponse
   step_order:  number;
   status:      string;
   comment:     string | null;
@@ -39,16 +28,8 @@ interface PermitDetailWithRaw extends Omit<PermitDetail, "approvals"> {
   approvals: RawApproval[];
 }
 
-// ---------------------------------------------------------------------------
-// Role constants  (must match normaliseRole() output in lib/auth.ts)
-// ---------------------------------------------------------------------------
-// Must match what format_title() returns e.g. "FIELD_OPERATOR" → "Field Operator"
-const MANAGER_ROLES  = ["Director", "Department Manager"];
-const FIELD_OPERATOR = "Field Operator";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const MANAGER_ROLES  = ["DIRECTOR", "DEPARTMENT_MANAGER"];
+const FIELD_OPERATOR = "FIELD_OPERATOR";
 
 function unwrapArray<T>(response: unknown): T[] {
   if (Array.isArray(response)) return response as T[];
@@ -75,20 +56,15 @@ function normaliseCategory(raw: any): PermitCategory {
   };
 }
 
-// ---------------------------------------------------------------------------
-// UI primitives
-// ---------------------------------------------------------------------------
+// Resolve approver name from user list using approver_id
+function resolveApproverName(approverId: number, users: ApiUser[]): string {
+  const user = users.find((u) => u.id === approverId);
+  return user ? `${user.firstName} ${user.lastName}` : `User #${approverId}`;
+}
 
 function StatusBadge({ status }: { status: string }) {
   const st = STATUS_STYLES[status] ?? { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" };
-  return (
-    <span
-      className="text-xs font-bold px-2.5 py-1 rounded-full"
-      style={{ background: st.bg, color: st.color }}
-    >
-      {status}
-    </span>
-  );
+  return <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: st.bg, color: st.color }}>{status}</span>;
 }
 
 function Spinner() {
@@ -99,30 +75,17 @@ function Spinner() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// DeleteConfirmModal
-// ---------------------------------------------------------------------------
-
 function DeleteConfirmModal({ categoryName, onConfirm, onCancel, deleting }: {
-  categoryName: string;
-  onConfirm: () => void;
-  onCancel:  () => void;
-  deleting:  boolean;
+  categoryName: string; onConfirm: () => void; onCancel: () => void; deleting: boolean;
 }) {
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center z-[60] p-4"
-      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}
-    >
-      <div
-        className="w-full max-w-sm rounded-2xl p-6 space-y-4"
-        style={{ background: "#0d1528", border: "1px solid rgba(248,113,113,0.3)" }}
-      >
+    <div className="fixed inset-0 flex items-center justify-center z-[60] p-4"
+      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}>
+      <div className="w-full max-w-sm rounded-2xl p-6 space-y-4"
+        style={{ background: "#0d1528", border: "1px solid rgba(248,113,113,0.3)" }}>
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ background: "rgba(248,113,113,0.15)" }}
-          >
+          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(248,113,113,0.15)" }}>
             <AlertTriangle size={18} style={{ color: "#f87171" }} />
           </div>
           <div>
@@ -133,44 +96,22 @@ function DeleteConfirmModal({ categoryName, onConfirm, onCancel, deleting }: {
           </div>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            disabled={deleting}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{
-              background: "var(--gv-glass-bg)",
-              color: "var(--gv-text-muted)",
-              border: "1px solid var(--gv-glass-border)",
-            }}
-          >
+          <button onClick={onCancel} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: "var(--gv-glass-bg)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}>
             Cancel
           </button>
-          <button
-            onClick={onConfirm}
-            disabled={deleting}
+          <button onClick={onConfirm} disabled={deleting}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
-            style={{
-              background: "rgba(248,113,113,0.2)",
-              color: "#f87171",
-              border: "1px solid rgba(248,113,113,0.3)",
-            }}
-          >
-            {deleting ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                Deactivating...
-              </>
-            ) : "Deactivate"}
+            style={{ background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.3)" }}>
+            {deleting
+              ? <><div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" /> Deactivating...</>
+              : "Deactivate"}
           </button>
         </div>
       </div>
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// CategoriesTab
-// ---------------------------------------------------------------------------
 
 function CategoriesTab() {
   const [categories, setCategories] = useState<PermitCategory[]>([]);
@@ -190,6 +131,7 @@ function CategoriesTab() {
     try {
       setLoading(true);
       const { data } = await api.get("/permits/categories");
+      // Backend only returns active categories — we also keep our local inactive ones
       const raw: any[] = data?.data?.items ?? data?.data ?? [];
       setCategories(raw.map(normaliseCategory));
     } catch (err) { console.error(err); }
@@ -233,6 +175,8 @@ function CategoriesTab() {
     try {
       setDeleting(true);
       await api.patch(`/permits/category/${deleteTarget.id}`, { is_active: false });
+      // Optimistically remove from list immediately — no re-fetch needed
+      // since backend list_permit_categories only returns active ones anyway
       setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err: any) {
@@ -259,54 +203,34 @@ function CategoriesTab() {
       </div>
 
       {showForm && (
-        <div
-          className="rounded-2xl p-4 space-y-3"
-          style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}
-        >
+        <div className="rounded-2xl p-4 space-y-3"
+          style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}>
           <p className="text-sm font-bold" style={{ color: "var(--gv-text-primary)" }}>
             {editTarget ? "Edit Category" : "New Category"}
           </p>
           {formError && (
-            <div
-              className="rounded-xl px-3 py-2 text-xs font-medium"
-              style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}
-            >
+            <div className="rounded-xl px-3 py-2 text-xs font-medium"
+              style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
               {formError}
             </div>
           )}
           <div>
             <label className="gv-eyebrow mb-1 block">Name *</label>
-            <input
-              type="text"
-              className="gv-input w-full text-sm"
-              placeholder="e.g. Transport, Construction"
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
-            />
+            <input type="text" className="gv-input w-full text-sm" placeholder="e.g. Transport, Construction"
+              value={formName} onChange={(e) => setFormName(e.target.value)} />
           </div>
           <div>
             <label className="gv-eyebrow mb-1 block">Description</label>
-            <input
-              type="text"
-              className="gv-input w-full text-sm"
-              placeholder="Optional description..."
-              value={formDesc}
-              onChange={(e) => setFormDesc(e.target.value)}
-            />
+            <input type="text" className="gv-input w-full text-sm" placeholder="Optional description..."
+              value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
           </div>
           <div className="flex gap-2 pt-1">
-            <button
-              onClick={() => setShowForm(false)}
-              className="flex-1 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(255,255,255,0.05)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}
-            >
+            <button onClick={() => setShowForm(false)} className="flex-1 py-2 rounded-xl text-sm font-semibold"
+              style={{ background: "rgba(255,255,255,0.05)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}>
               Cancel
             </button>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="flex-1 py-2 rounded-xl text-sm font-semibold gv-btn-brand disabled:opacity-50 flex items-center justify-center gap-2"
-            >
+            <button onClick={handleSubmit} disabled={submitting}
+              className="flex-1 py-2 rounded-xl text-sm font-semibold gv-btn-brand disabled:opacity-50 flex items-center justify-center gap-2">
               {submitting
                 ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</>
                 : "Save"}
@@ -326,38 +250,29 @@ function CategoriesTab() {
             <thead>
               <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                 {["Name", "Description", "Actions"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#33907c" }}>
-                    {h}
-                  </th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: "#33907c" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {categories.map((cat, idx) => (
-                <tr
-                  key={cat.id}
-                  style={{ borderBottom: idx < categories.length - 1 ? "1px solid var(--gv-glass-border)" : "none" }}
-                >
+                <tr key={cat.id}
+                  style={{ borderBottom: idx < categories.length - 1 ? "1px solid var(--gv-glass-border)" : "none" }}>
                   <td className="px-4 py-3 text-sm font-semibold" style={{ color: "var(--gv-text-primary)" }}>{cat.name}</td>
                   <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>{cat.description ?? "—"}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEdit(cat)}
-                        className="p-1.5 rounded-lg transition-colors"
+                      <button onClick={() => openEdit(cat)} className="p-1.5 rounded-lg transition-colors"
                         style={{ color: "var(--gv-text-muted)" }}
                         onMouseEnter={(e) => (e.currentTarget.style.color = "#33907c")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gv-text-muted)")}
-                      >
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gv-text-muted)")}>
                         <Pencil size={14} />
                       </button>
-                      <button
-                        onClick={() => setDeleteTarget(cat)}
-                        className="p-1.5 rounded-lg transition-colors"
+                      <button onClick={() => setDeleteTarget(cat)} className="p-1.5 rounded-lg transition-colors"
                         style={{ color: "var(--gv-text-muted)" }}
                         onMouseEnter={(e) => (e.currentTarget.style.color = "#f87171")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gv-text-muted)")}
-                      >
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gv-text-muted)")}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -372,15 +287,11 @@ function CategoriesTab() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// DraftEditModal
-// ---------------------------------------------------------------------------
-
 function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
-  permit:     PermitDetailWithRaw;
+  permit: PermitDetailWithRaw;
   categories: PermitCategory[];
-  users:      ApiUser[];
-  onClose:    () => void;
+  users: ApiUser[];
+  onClose: () => void;
   onSubmitted: () => void;
 }) {
   const [submitting, setSubmitting]     = useState(false);
@@ -395,14 +306,13 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
     categoryId:  String(permit.categoryId ?? ""),
   });
 
-  // Initialise selected approvers from the API response — use the name the
-  // backend already resolved, so we never depend on the users list for display.
+  // Build approvers using approver_id matched against users list
   const [selectedApprovers, setSelectedApprovers] = useState<SelectedApprover[]>(() =>
     (permit.approvals ?? [])
       .sort((a, b) => a.step_order - b.step_order)
       .map((a) => ({
         userId:    a.approver_id,
-        name:      a.approver,        // ← resolved by backend mapper
+        name:      resolveApproverName(a.approver_id, users),
         stepOrder: a.step_order,
       }))
   );
@@ -419,18 +329,8 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
   const toggleApprover = (user: ApiUser) => {
     setSelectedApprovers((prev) => {
       const exists = prev.find((a) => a.userId === user.id);
-      if (exists)
-        return prev
-          .filter((a) => a.userId !== user.id)
-          .map((a, i) => ({ ...a, stepOrder: i + 1 }));
-      return [
-        ...prev,
-        {
-          userId:    user.id,
-          name:      `${user.firstName} ${user.lastName}`,
-          stepOrder: prev.length + 1,
-        },
-      ];
+      if (exists) return prev.filter((a) => a.userId !== user.id).map((a, i) => ({ ...a, stepOrder: i + 1 }));
+      return [...prev, { userId: user.id, name: `${user.firstName} ${user.lastName}`, stepOrder: prev.length + 1 }];
     });
   };
 
@@ -452,63 +352,41 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
 
   if (success) {
     return (
-      <div
-        className="fixed inset-0 flex items-center justify-center z-50 p-4"
-        style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}
-      >
-        <div
-          className="w-full max-w-sm rounded-2xl p-8 flex flex-col items-center text-center space-y-4"
-          style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)" }}
-        >
-          <div
-            className="w-14 h-14 rounded-full flex items-center justify-center"
-            style={{ background: "rgba(51,144,124,0.2)", border: "2px solid #33907c" }}
-          >
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4"
+        style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}>
+        <div className="w-full max-w-sm rounded-2xl p-8 flex flex-col items-center text-center space-y-4"
+          style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)" }}>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center"
+            style={{ background: "rgba(51,144,124,0.2)", border: "2px solid #33907c" }}>
             <Check size={28} className="text-[#33907c]" />
           </div>
           <div>
             <p className="font-bold text-base text-white mb-1">Permit Submitted!</p>
-            <p className="text-sm" style={{ color: "var(--gv-text-muted)" }}>
-              Now pending review by assigned approvers.
-            </p>
+            <p className="text-sm" style={{ color: "var(--gv-text-muted)" }}>Now pending review by assigned approvers.</p>
           </div>
-          <button
-            onClick={() => { onSubmitted(); onClose(); }}
-            className="gv-btn-brand px-8 py-2.5 rounded-xl text-sm font-semibold"
-          >
-            Done
-          </button>
+          <button onClick={() => { onSubmitted(); onClose(); }}
+            className="gv-btn-brand px-8 py-2.5 rounded-xl text-sm font-semibold">Done</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="fixed inset-0 flex items-end md:items-center justify-center z-50 p-0 md:p-4"
+    <div className="fixed inset-0 flex items-end md:items-center justify-center z-50 p-0 md:p-4"
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div
-        className="w-full md:max-w-lg max-h-[95vh] overflow-y-auto rounded-t-2xl md:rounded-2xl"
-        style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)" }}
-      >
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full md:max-w-lg max-h-[95vh] overflow-y-auto rounded-t-2xl md:rounded-2xl"
+        style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)" }}>
         <div className="flex justify-center pt-3 pb-1 md:hidden">
           <div className="w-10 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }} />
         </div>
-
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-6 py-4"
-          style={{ borderBottom: "1px solid var(--gv-glass-border)" }}
-        >
+        <div className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
           <div className="flex items-center gap-3">
             <div className="gv-icon-box"><Pencil size={16} className="text-[#33907c]" /></div>
             <div>
               <h3 className="font-bold text-base" style={{ color: "var(--gv-text-primary)" }}>Edit & Submit</h3>
-              <p className="text-xs mt-0.5" style={{ color: "var(--gv-text-muted)" }}>
-                Review your draft and submit for approval
-              </p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--gv-text-muted)" }}>Review your draft and submit for approval</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -519,127 +397,80 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
           </div>
         </div>
 
-        {/* Body */}
         <div className="p-6 space-y-4">
           {error && (
-            <div
-              className="rounded-xl px-4 py-3 text-sm font-medium"
-              style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}
-            >
+            <div className="rounded-xl px-4 py-3 text-sm font-medium"
+              style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
               {error}
             </div>
           )}
 
           <div>
             <label className="gv-eyebrow mb-1 block">Title *</label>
-            <input
-              type="text"
-              className="gv-input w-full text-sm"
-              value={form.title}
-              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-            />
+            <input type="text" className="gv-input w-full text-sm" value={form.title}
+              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} />
           </div>
 
           <div>
             <label className="gv-eyebrow mb-1 block">Description *</label>
-            <textarea
-              className="gv-input w-full text-sm resize-none"
-              rows={3}
-              value={form.description}
-              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            />
+            <textarea className="gv-input w-full text-sm resize-none" rows={3} value={form.description}
+              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
           </div>
 
           <div>
             <label className="gv-eyebrow mb-1 block">Category *</label>
-            <select
-              value={form.categoryId}
+            <select value={form.categoryId}
               onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
-              className="gv-input w-full text-sm"
-              style={{ background: "var(--gv-glass-bg)", color: "white" }}
-            >
+              className="gv-input w-full text-sm" style={{ background: "var(--gv-glass-bg)", color: "white" }}>
               {categories.map((c) => (
-                <option key={c.id} value={String(c.id)} style={{ background: "#0d1528", color: "#fff" }}>
-                  {c.name}
-                </option>
+                <option key={c.id} value={String(c.id)} style={{ background: "#0d1528", color: "#fff" }}>{c.name}</option>
               ))}
             </select>
           </div>
 
-          {/* Approver picker */}
           <div ref={approverRef} className="relative">
             <label className="gv-eyebrow mb-1 block">
-              Approvers *{" "}
-              <span style={{ color: "var(--gv-text-muted)", fontWeight: 400 }}>(in approval order)</span>
+              Approvers * <span style={{ color: "var(--gv-text-muted)", fontWeight: 400 }}>(in approval order)</span>
             </label>
-            <button
-              type="button"
-              onClick={() => setApproverOpen((p) => !p)}
-              className="gv-input w-full text-sm flex items-center justify-between"
-              style={{ color: "white" }}
-            >
+            <button type="button" onClick={() => setApproverOpen((p) => !p)}
+              className="gv-input w-full text-sm flex items-center justify-between" style={{ color: "white" }}>
               <span className="truncate">
                 {selectedApprovers.length === 0
                   ? "Select approvers in order"
                   : selectedApprovers.map((a) => `${a.stepOrder}. ${a.name}`).join(" → ")}
               </span>
-              <ChevronDown
-                size={15}
-                className={`ml-2 flex-shrink-0 transition-transform ${approverOpen ? "rotate-180" : ""}`}
-              />
+              <ChevronDown size={15} className={`ml-2 flex-shrink-0 transition-transform ${approverOpen ? "rotate-180" : ""}`} />
             </button>
             {approverOpen && (
-              <div
-                className="absolute z-20 w-full rounded-xl shadow-xl flex flex-col"
-                style={{
-                  background: "#0d1528",
-                  border: "1px solid var(--gv-glass-border)",
-                  bottom: "calc(100% + 4px)",
-                }}
-              >
+              <div className="absolute z-20 w-full rounded-xl shadow-xl flex flex-col"
+                style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)", bottom: "calc(100% + 4px)" }}>
                 <div style={{ maxHeight: "200px", overflowY: "auto" }}>
                   {users.length === 0 ? (
                     <p className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>No users available</p>
-                  ) : (
-                    users.map((u) => {
-                      const sel = selectedApprovers.find((a) => a.userId === u.id);
-                      return (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onClick={() => toggleApprover(u)}
-                          className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-white/5 transition-colors"
-                          style={{ color: sel ? "#33907c" : "white" }}
-                        >
-                          <div className="flex items-center gap-2">
-                            {sel ? (
-                              <span
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                                style={{ background: "#33907c", color: "white" }}
-                              >
-                                {sel.stepOrder}
-                              </span>
-                            ) : (
-                              <span
-                                className="w-5 h-5 rounded-full flex-shrink-0"
-                                style={{ border: "1px solid rgba(255,255,255,0.15)" }}
-                              />
-                            )}
-                            <span>{u.firstName} {u.lastName}</span>
-                          </div>
-                          {sel && <Check size={14} />}
-                        </button>
-                      );
-                    })
-                  )}
+                  ) : users.map((u) => {
+                    const sel = selectedApprovers.find((a) => a.userId === u.id);
+                    return (
+                      <button key={u.id} type="button" onClick={() => toggleApprover(u)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-white/5 transition-colors"
+                        style={{ color: sel ? "#33907c" : "white" }}>
+                        <div className="flex items-center gap-2">
+                          {sel ? (
+                            <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                              style={{ background: "#33907c", color: "white" }}>{sel.stepOrder}</span>
+                          ) : (
+                            <span className="w-5 h-5 rounded-full flex-shrink-0"
+                              style={{ border: "1px solid rgba(255,255,255,0.15)" }} />
+                          )}
+                          <span>{u.firstName} {u.lastName}</span>
+                        </div>
+                        {sel && <Check size={14} />}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="p-3" style={{ borderTop: "1px solid var(--gv-glass-border)" }}>
-                  <button
-                    type="button"
-                    onClick={() => setApproverOpen(false)}
-                    className="w-full py-2 rounded-xl text-sm font-semibold"
-                    style={{ background: "#33907c", color: "white" }}
-                  >
+                  <button type="button" onClick={() => setApproverOpen(false)}
+                    className="w-full py-2 rounded-xl text-sm font-semibold" style={{ background: "#33907c", color: "white" }}>
                     Done {selectedApprovers.length > 0 && `(${selectedApprovers.length} selected)`}
                   </button>
                 </div>
@@ -647,30 +478,18 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
             )}
           </div>
 
-          <div
-            className="rounded-xl px-4 py-3 text-xs"
-            style={{
-              background: "rgba(251,191,36,0.08)",
-              border: "1px solid rgba(251,191,36,0.2)",
-              color: "#fbbf24",
-            }}
-          >
+          <div className="rounded-xl px-4 py-3 text-xs"
+            style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24" }}>
             Once submitted, the permit will be sent to approvers and cannot be edited.
           </div>
 
           <div className="flex gap-3 pt-1">
-            <button
-              onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "var(--gv-glass-bg)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}
-            >
+            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: "var(--gv-glass-bg)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}>
               Cancel
             </button>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="flex-1 py-2.5 rounded-xl text-sm font-semibold gv-btn-brand flex items-center justify-center gap-2 disabled:opacity-50"
-            >
+            <button onClick={handleSubmit} disabled={submitting}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold gv-btn-brand flex items-center justify-center gap-2 disabled:opacity-50">
               {submitting
                 ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting...</>
                 : <><Send size={14} /> Submit for Approval</>}
@@ -682,41 +501,24 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
   );
 }
 
-// ---------------------------------------------------------------------------
-// PermitDetailModal
-// ---------------------------------------------------------------------------
-
-function PermitDetailModal({ selected, onClose }: {
-  selected: PermitDetailWithRaw;
-  onClose:  () => void;
+function PermitDetailModal({ selected, users, onClose }: {
+  selected: PermitDetailWithRaw; users: ApiUser[]; onClose: () => void;
 }) {
   return (
-    <div
-      className="fixed inset-0 flex items-end md:items-center justify-center z-50 p-0 md:p-4"
+    <div className="fixed inset-0 flex items-end md:items-center justify-center z-50 p-0 md:p-4"
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div
-        className="w-full md:max-w-xl max-h-[92vh] md:max-h-[88vh] overflow-y-auto rounded-t-2xl md:rounded-2xl"
-        style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)" }}
-      >
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full md:max-w-xl max-h-[92vh] md:max-h-[88vh] overflow-y-auto rounded-t-2xl md:rounded-2xl"
+        style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)" }}>
         <div className="flex justify-center pt-3 pb-1 md:hidden">
           <div className="w-10 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }} />
         </div>
-
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-3.5"
-          style={{ borderBottom: "1px solid var(--gv-glass-border)" }}
-        >
+        <div className="flex items-center justify-between px-5 py-3.5"
+          style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
           <div className="flex items-center gap-2.5">
-            <div className="gv-icon-box !p-1.5">
-              <FileText size={15} className="text-[#33907c]" />
-            </div>
+            <div className="gv-icon-box !p-1.5"><FileText size={15} className="text-[#33907c]" /></div>
             <div>
-              <p className="font-bold text-sm leading-tight" style={{ color: "var(--gv-text-primary)" }}>
-                {selected.title}
-              </p>
+              <p className="font-bold text-sm leading-tight" style={{ color: "var(--gv-text-primary)" }}>{selected.title}</p>
               <p className="text-xs" style={{ color: "var(--gv-text-muted)" }}>
                 {selected.permitCategory ?? "—"} · {selected.siteName ?? "—"}
               </p>
@@ -729,8 +531,6 @@ function PermitDetailModal({ selected, onClose }: {
             </button>
           </div>
         </div>
-
-        {/* Body */}
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
             {[
@@ -738,18 +538,8 @@ function PermitDetailModal({ selected, onClose }: {
               { label: "Current Step", value: `Step ${selected.currentStep}` },
               { label: "Category",     value: selected.permitCategory ?? "—" },
               { label: "Site",         value: selected.siteName ?? "—" },
-              {
-                label: "Created",
-                value: selected.created_at
-                  ? new Date(selected.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
-                  : "—",
-              },
-              {
-                label: "Updated",
-                value: selected.updated_at
-                  ? new Date(selected.updated_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
-                  : "—",
-              },
+              { label: "Created",      value: selected.created_at ? new Date(selected.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "—" },
+              { label: "Updated",      value: selected.updated_at ? new Date(selected.updated_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "—" },
             ].map(({ label, value }) => (
               <div key={label}>
                 <p className="gv-eyebrow mb-0.5 text-[10px]">{label}</p>
@@ -759,14 +549,10 @@ function PermitDetailModal({ selected, onClose }: {
           </div>
 
           {selected.description && (
-            <div
-              className="rounded-xl px-4 py-3"
-              style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}
-            >
+            <div className="rounded-xl px-4 py-3"
+              style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}>
               <p className="gv-eyebrow text-[10px] mb-1">Description</p>
-              <p className="text-xs leading-relaxed" style={{ color: "var(--gv-text-muted)" }}>
-                {selected.description}
-              </p>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--gv-text-muted)" }}>{selected.description}</p>
             </div>
           )}
 
@@ -778,52 +564,31 @@ function PermitDetailModal({ selected, onClose }: {
                   <thead>
                     <tr style={{ background: "rgba(51,144,124,0.08)" }}>
                       {["Step", "Approver", "Status", "Comment", "Date"].map((h) => (
-                        <th
-                          key={h}
-                          className="px-3 py-2 text-left font-semibold uppercase tracking-wider"
-                          style={{ color: "#33907c", fontSize: "10px" }}
-                        >
-                          {h}
-                        </th>
+                        <th key={h} className="px-3 py-2 text-left font-semibold uppercase tracking-wider"
+                          style={{ color: "#33907c", fontSize: "10px" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {[...selected.approvals]
-                      .sort((a, b) => a.step_order - b.step_order)
-                      .map((approval) => {
-                        const ast = APPROVAL_STYLES[approval.status] ?? {
-                          bg: "rgba(255,255,255,0.08)",
-                          color: "rgba(255,255,255,0.5)",
-                        };
-                        return (
-                          <tr key={approval.id} style={{ borderTop: "1px solid var(--gv-glass-border)" }}>
-                            <td className="px-3 py-2" style={{ color: "var(--gv-text-primary)" }}>
-                              Step {approval.step_order}
-                            </td>
-                            {/* ✅ Use the name the backend already resolved */}
-                            <td className="px-3 py-2" style={{ color: "var(--gv-text-muted)" }}>
-                              {approval.approver}
-                            </td>
-                            <td className="px-3 py-2">
-                              <span
-                                className="text-xs font-bold px-2 py-0.5 rounded-full"
-                                style={{ background: ast.bg, color: ast.color }}
-                              >
-                                {approval.status}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2" style={{ color: "var(--gv-text-muted)" }}>
-                              {approval.comment ?? "—"}
-                            </td>
-                            <td className="px-3 py-2" style={{ color: "var(--gv-text-muted)" }}>
-                              {approval.actioned_at
-                                ? new Date(approval.actioned_at).toLocaleDateString()
-                                : "—"}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                    {selected.approvals.sort((a, b) => a.step_order - b.step_order).map((approval) => {
+                      const ast = APPROVAL_STYLES[approval.status] ?? { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" };
+                      return (
+                        <tr key={approval.id} style={{ borderTop: "1px solid var(--gv-glass-border)" }}>
+                          <td className="px-3 py-2" style={{ color: "var(--gv-text-primary)" }}>Step {approval.step_order}</td>
+                          <td className="px-3 py-2" style={{ color: "var(--gv-text-muted)" }}>
+                            {resolveApproverName(approval.approver_id, users)}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                              style={{ background: ast.bg, color: ast.color }}>{approval.status}</span>
+                          </td>
+                          <td className="px-3 py-2" style={{ color: "var(--gv-text-muted)" }}>{approval.comment ?? "—"}</td>
+                          <td className="px-3 py-2" style={{ color: "var(--gv-text-muted)" }}>
+                            {approval.actioned_at ? new Date(approval.actioned_at).toLocaleDateString() : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -835,21 +600,17 @@ function PermitDetailModal({ selected, onClose }: {
   );
 }
 
-// ---------------------------------------------------------------------------
-// PermitsDashboard (main export)
-// ---------------------------------------------------------------------------
-
 const STATUS_TABS = ["All", "Draft", "Pending", "In Review", "Approved", "Rejected"] as const;
 
 export default function PermitsDashboard() {
-  const router    = useRouter();
-  const role      = getRole();                           // already normalised by saveRole()
-  const isManager = MANAGER_ROLES.includes(role ?? "");
-  const isFieldOp = role === FIELD_OPERATOR;
+  const router      = useRouter();
+  const role        = getRole();
+  const isManager   = MANAGER_ROLES.includes(role ?? "");
+  const isFieldOp   = role === FIELD_OPERATOR;
 
   const [activeTab, setActiveTab]       = useState<"permits" | "categories">("permits");
   const [categories, setCategories]     = useState<PermitCategory[]>([]);
-  const [users, setUsers]               = useState<ApiUser[]>([]);   // only for the approver picker
+  const [users, setUsers]               = useState<ApiUser[]>([]);
   const [permits, setPermits]           = useState<PermitListItem[]>([]);
   const [detailCache, setDetailCache]   = useState<Record<number, PermitDetailWithRaw>>({});
   const [search, setSearch]             = useState("");
@@ -859,6 +620,7 @@ export default function PermitsDashboard() {
   const [draftEdit, setDraftEdit]       = useState<PermitDetailWithRaw | null>(null);
   const [detailFetching, setDetailFetching] = useState(false);
 
+  // Single parallel fetch on mount
   useEffect(() => {
     (async () => {
       try {
@@ -868,27 +630,22 @@ export default function PermitsDashboard() {
           api.get("/permits/categories"),
           api.get("/users/list"),
         ]);
-
-        const list: PermitListItem[] = unwrapArray<PermitListItem>(permitsRes.data);
+        const list: PermitListItem[] = permitsRes.data?.data?.items ?? permitsRes.data?.data ?? [];
         setPermits(list);
-
         const rawCats: any[] = catsRes.data?.data?.items ?? catsRes.data?.data ?? [];
         setCategories(rawCats.map(normaliseCategory));
-
-        // users list — only needed for the approver picker dropdown
-        setUsers(unwrapArray<ApiUser>(usersRes.data));
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
+        const up = usersRes.data?.data ?? usersRes.data;
+        setUsers(Array.isArray(up) ? up : up?.items ?? []);
+      } catch (err) { console.error(err); }
+      finally { setIsLoading(false); }
     })();
   }, []);
 
   const refresh = async () => {
     try {
       const { data } = await api.get("/permits/my-pemits");
-      setPermits(unwrapArray<PermitListItem>(data));
+      const list: PermitListItem[] = data?.data?.items ?? data?.data ?? [];
+      setPermits(list);
       setDetailCache({});
     } catch (err) { console.error(err); }
   };
@@ -899,11 +656,9 @@ export default function PermitsDashboard() {
     return matchStatus && (!q || p.title.toLowerCase().includes(q) || p.categoryName?.toLowerCase().includes(q));
   });
 
-  const counts = permits.reduce(
-    (acc, p) => ({ ...acc, [p.status]: (acc[p.status] || 0) + 1 }),
-    {} as Record<string, number>,
-  );
+  const counts = permits.reduce((acc, p) => ({ ...acc, [p.status]: (acc[p.status] || 0) + 1 }), {} as Record<string, number>);
 
+  // Fetch detail only on first click — cached after that
   const openPermit = async (permit: PermitListItem) => {
     const cached = detailCache[permit.id];
     if (cached) {
@@ -937,37 +692,25 @@ export default function PermitsDashboard() {
               : "Manage permit categories"}
           </p>
         </div>
-        {/* ✅ Only field operators see this button */}
         {activeTab === "permits" && isFieldOp && (
-          <button
-            onClick={() => router.push("/permits/create")}
-            className="gv-btn-brand flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
-          >
+          <button onClick={() => router.push("/permits/create")}
+            className="gv-btn-brand flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm">
             <Plus size={16} /> New Permit
           </button>
         )}
       </div>
 
-      {/* Manager tab switcher */}
+      {/* Tabs — categories only for managers */}
       {isManager && (
-        <div
-          className="flex gap-1 p-1 rounded-xl w-fit"
-          style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}
-        >
+        <div className="flex gap-1 p-1 rounded-xl w-fit"
+          style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}>
           {([
             { key: "permits",    label: "Permits",    icon: <FileText size={14} /> },
             { key: "categories", label: "Categories", icon: <Tag size={14} /> },
           ] as const).map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-              style={
-                activeTab === tab.key
-                  ? { background: "#33907c", color: "white" }
-                  : { color: "var(--gv-text-muted)" }
-              }
-            >
+              style={activeTab === tab.key ? { background: "#33907c", color: "white" } : { color: "var(--gv-text-muted)" }}>
               {tab.icon}{tab.label}
             </button>
           ))}
@@ -978,7 +721,6 @@ export default function PermitsDashboard() {
 
       {activeTab === "permits" && (
         <>
-          {/* Stat cards */}
           {!isLoading && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
@@ -996,41 +738,27 @@ export default function PermitsDashboard() {
             </div>
           )}
 
-          {/* Search */}
           <div className="gv-card !p-3">
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--gv-text-subtle)" }} />
-              <input
-                type="text"
-                placeholder="Search by title or category..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="gv-input !pl-9 !py-2 text-sm"
-              />
+              <input type="text" placeholder="Search by title or category..." value={search}
+                onChange={(e) => setSearch(e.target.value)} className="gv-input !pl-9 !py-2 text-sm" />
             </div>
           </div>
 
-          {/* Status filter tabs */}
           <div className="flex gap-1.5 flex-wrap">
             {STATUS_TABS.map((tab) => {
-              const count    = tab === "All" ? permits.length : (counts[tab] || 0);
+              const count = tab === "All" ? permits.length : (counts[tab] || 0);
               const isActive = activeStatus === tab;
               return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveStatus(tab)}
+                <button key={tab} onClick={() => setActiveStatus(tab)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                  style={
-                    isActive
-                      ? { background: "#33907c", color: "white" }
-                      : { background: "var(--gv-glass-bg)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }
-                  }
-                >
+                  style={isActive
+                    ? { background: "#33907c", color: "white" }
+                    : { background: "var(--gv-glass-bg)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}>
                   {tab}
-                  <span
-                    className="px-1.5 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ background: isActive ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)" }}
-                  >
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold"
+                    style={{ background: isActive ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)" }}>
                     {count}
                   </span>
                 </button>
@@ -1044,15 +772,11 @@ export default function PermitsDashboard() {
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <FileText size={40} style={{ color: "var(--gv-text-faint)" }} />
                 <p className="text-sm" style={{ color: "var(--gv-text-subtle)" }}>
-                  {search
-                    ? `No results for "${search}"`
-                    : activeStatus === "All" ? "No permits yet" : `No ${activeStatus} permits`}
+                  {search ? `No results for "${search}"` : activeStatus === "All" ? "No permits yet" : `No ${activeStatus} permits`}
                 </p>
                 {activeStatus === "All" && !search && isFieldOp && (
-                  <button
-                    onClick={() => router.push("/permits/create")}
-                    className="gv-btn-brand px-4 py-2 rounded-xl text-sm flex items-center gap-2"
-                  >
+                  <button onClick={() => router.push("/permits/create")}
+                    className="gv-btn-brand px-4 py-2 rounded-xl text-sm flex items-center gap-2">
                     <Plus size={14} /> Create your first permit
                   </button>
                 )}
@@ -1062,48 +786,28 @@ export default function PermitsDashboard() {
                 <thead>
                   <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                     {["Title", "Category", "Step", "Status", "Date", ""].map((h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                        style={{ color: "#33907c" }}
-                      >
-                        {h}
-                      </th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                        style={{ color: "#33907c" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((permit, idx) => (
-                    <tr
-                      key={permit.id}
-                      onClick={() => openPermit(permit)}
-                      className="cursor-pointer"
-                      style={{
-                        borderBottom: idx < filtered.length - 1 ? "1px solid var(--gv-glass-border)" : "none",
-                        transition: "background 0.15s",
-                      }}
+                    <tr key={permit.id} onClick={() => openPermit(permit)} className="cursor-pointer"
+                      style={{ borderBottom: idx < filtered.length - 1 ? "1px solid var(--gv-glass-border)" : "none", transition: "background 0.15s" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "var(--gv-glass-bg)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <td className="px-4 py-3 text-sm font-semibold max-w-xs truncate" style={{ color: "var(--gv-text-primary)" }}>
-                        {permit.title}
-                      </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>
-                        {permit.categoryName ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>
-                        Step {permit.current_step}
-                      </td>
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                      <td className="px-4 py-3 text-sm font-semibold max-w-xs truncate" style={{ color: "var(--gv-text-primary)" }}>{permit.title}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>{permit.categoryName ?? "—"}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>Step {permit.current_step}</td>
                       <td className="px-4 py-3"><StatusBadge status={permit.status} /></td>
                       <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>
                         {new Date(permit.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
                       <td className="px-4 py-3">
                         {permit.status === "Draft" && (
-                          <span
-                            className="text-xs px-2 py-1 rounded-lg flex items-center gap-1 w-fit"
-                            style={{ background: "rgba(51,144,124,0.15)", color: "#33907c" }}
-                          >
+                          <span className="text-xs px-2 py-1 rounded-lg flex items-center gap-1 w-fit"
+                            style={{ background: "rgba(51,144,124,0.15)", color: "#33907c" }}>
                             <Pencil size={11} /> Edit & Submit
                           </span>
                         )}
@@ -1123,58 +827,43 @@ export default function PermitsDashboard() {
                   {activeStatus === "All" ? "No permits yet" : `No ${activeStatus} permits`}
                 </p>
                 {activeStatus === "All" && isFieldOp && (
-                  <button
-                    onClick={() => router.push("/permits/create")}
-                    className="gv-btn-brand px-4 py-2 rounded-xl text-sm"
-                  >
+                  <button onClick={() => router.push("/permits/create")} className="gv-btn-brand px-4 py-2 rounded-xl text-sm">
                     Create Permit
                   </button>
                 )}
               </div>
-            ) : (
-              filtered.map((permit) => {
-                const st = STATUS_STYLES[permit.status] ?? { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" };
-                return (
-                  <div
-                    key={permit.id}
-                    onClick={() => openPermit(permit)}
-                    className="gv-card cursor-pointer active:scale-[0.99] transition-transform"
-                    style={{ padding: "14px 16px" }}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-bold" style={{ color: "var(--gv-text-primary)" }}>{permit.title}</span>
-                      <span
-                        className="text-xs font-bold px-2.5 py-0.5 rounded-full"
-                        style={{ background: st.bg, color: st.color }}
-                      >
-                        {permit.status}
-                      </span>
-                    </div>
-                    <p className="text-sm mb-1" style={{ color: "var(--gv-text-muted)" }}>{permit.categoryName ?? "—"}</p>
-                    <div
-                      className="flex items-center justify-between pt-2.5"
-                      style={{ borderTop: "1px solid var(--gv-glass-border)" }}
-                    >
-                      <span className="text-xs" style={{ color: "var(--gv-text-subtle)" }}>
-                        {new Date(permit.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
-                      </span>
-                      {permit.status === "Draft" ? (
-                        <span className="text-xs flex items-center gap-1" style={{ color: "#33907c" }}>
-                          <Pencil size={10} /> Edit & Submit
-                        </span>
-                      ) : (
-                        <span className="text-xs" style={{ color: "var(--gv-text-subtle)" }}>Step {permit.current_step}</span>
-                      )}
-                    </div>
+            ) : filtered.map((permit) => {
+              const st = STATUS_STYLES[permit.status] ?? { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" };
+              return (
+                <div key={permit.id} onClick={() => openPermit(permit)}
+                  className="gv-card cursor-pointer active:scale-[0.99] transition-transform" style={{ padding: "14px 16px" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold" style={{ color: "var(--gv-text-primary)" }}>{permit.title}</span>
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full"
+                      style={{ background: st.bg, color: st.color }}>{permit.status}</span>
                   </div>
-                );
-              })
-            )}
+                  <p className="text-sm mb-1" style={{ color: "var(--gv-text-muted)" }}>{permit.categoryName ?? "—"}</p>
+                  <div className="flex items-center justify-between pt-2.5"
+                    style={{ borderTop: "1px solid var(--gv-glass-border)" }}>
+                    <span className="text-xs" style={{ color: "var(--gv-text-subtle)" }}>
+                      {new Date(permit.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                    {permit.status === "Draft" ? (
+                      <span className="text-xs flex items-center gap-1" style={{ color: "#33907c" }}>
+                        <Pencil size={10} /> Edit & Submit
+                      </span>
+                    ) : (
+                      <span className="text-xs" style={{ color: "var(--gv-text-subtle)" }}>Step {permit.current_step}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
 
-      {/* Detail-fetch loading bar */}
+      {/* Slim top loading bar for detail fetch only */}
       {detailFetching && (
         <div className="fixed top-0 left-0 right-0 z-[100] h-0.5">
           <div className="h-full" style={{ background: "#33907c", width: "70%", transition: "width 0.3s" }} />
@@ -1194,6 +883,7 @@ export default function PermitsDashboard() {
       {selected && (
         <PermitDetailModal
           selected={selected}
+          users={users}
           onClose={() => setSelected(null)}
         />
       )}
