@@ -83,7 +83,6 @@ const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string; bg: s
   CLOSED:   { label: 'Closed',   color: 'text-red-300',   bg: 'bg-red-500/20 border border-red-500/40'    },
 };
 
-// Accepts any casing: "Active", "ACTIVE", "active", "INACTIVE", "Closed", etc.
 function normSiteStatus(s: unknown): SiteStatus {
   switch (String(s ?? '').toLowerCase()) {
     case 'active':   return 'ACTIVE';

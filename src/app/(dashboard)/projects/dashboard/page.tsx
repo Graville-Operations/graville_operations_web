@@ -79,8 +79,6 @@ async function fetchAttendanceSummaryForSite(
     return [];
   }
 }
-
-// Fetch from every site and aggregate present_count per date
 async function fetchAttendanceAllSites(
   siteIds: (string | number)[],
   dateFrom: string,
@@ -537,8 +535,6 @@ export default function ProjectsDashboardPage() {
     }
     return null;
   }
-
-  // Convert API response into Bar[] — filling every date in range with 0 if missing
   function buildBars(
     summary: AttendanceDay[],
     fromISO: string,
@@ -576,8 +572,6 @@ export default function ProjectsDashboardPage() {
     const range = buildDateRange(attendanceTab);
     if (!range) { setBars([]); return; }
 
-    // Collect all site IDs from the loaded sites list.
-    // Falls back to site ID 1 if sites haven't loaded yet so we still attempt a fetch.
     const siteIds = sites.length > 0
       ? sites.map(s => (s as any).id ?? (s as any).site_id).filter(Boolean)
       : [1];
@@ -596,7 +590,7 @@ export default function ProjectsDashboardPage() {
     } finally {
       setLoadingBars(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [attendanceTab, dateFrom, dateTo, sites]);
 
   useEffect(() => {
