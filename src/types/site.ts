@@ -32,7 +32,7 @@ export interface CreateSitePayload {
   location?: string;
   project_status: ProjectStatus;
   site_status?: SiteStatus;
-  completion_date?: string;
+  completion_date?: string | null;
   latitude?: number;
   longitude?: number;
   tags?: string[];
