@@ -16,19 +16,17 @@ function StatusBadge({ status }: { status: string }) {
 function Spinner() {
   return <div className="flex items-center justify-center h-48"><div className="w-6 h-6 border-2 border-[#33907c] border-t-transparent rounded-full animate-spin" /></div>;
 }
-
-// ── Reject Confirmation Modal ──────────────────────────────────────────────────
 function RejectConfirmModal({ onConfirm, onCancel, loading, comment, setComment }: {
   onConfirm: () => void; onCancel: () => void; loading: boolean;
   comment: string; setComment: (v: string) => void;
 }) {
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[60] p-4"
+    <div className="fixed inset-0 flex items-center justify-center z-60 p-4"
       style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}>
       <div className="w-full max-w-sm rounded-2xl p-6 space-y-4"
         style={{ background: "#0d1528", border: "1px solid rgba(248,113,113,0.3)" }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{ background: "rgba(248,113,113,0.15)" }}>
             <AlertTriangle size={18} style={{ color: "#f87171" }} />
           </div>
@@ -60,8 +58,6 @@ function RejectConfirmModal({ onConfirm, onCancel, loading, comment, setComment 
     </div>
   );
 }
-
-// ── Main Page ──────────────────────────────────────────────────────────────────
 export default function PendingApprovalsPage() {
   const [approvals, setApprovals]     = useState<PendingApprovalItem[]>([]);
   const [permitCache, setPermitCache] = useState<Record<number, PermitDetail>>({});
@@ -75,6 +71,7 @@ export default function PendingApprovalsPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectComment, setRejectComment]     = useState("");
 
+  // eslint-disable-next-line react-hooks/immutability
   useEffect(() => { fetchPending(); }, []);
 
   const fetchPending = async () => {
@@ -131,6 +128,7 @@ export default function PendingApprovalsPage() {
       setShowRejectModal(false);
       setRejectComment("");
       fetchPending();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       alert(err?.response?.data?.message || err?.message || "Action failed");
     } finally { setActionLoading(false); }
@@ -148,16 +146,16 @@ export default function PendingApprovalsPage() {
       </div>
 
       {/* Search */}
-      <div className="gv-card !p-3">
+      <div className="gv-card p-3!">
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--gv-text-subtle)" }} />
           <input type="text" placeholder="Search by title or category..." value={search}
-            onChange={(e) => setSearch(e.target.value)} className="gv-input !pl-9 !py-2 text-sm" />
+            onChange={(e) => setSearch(e.target.value)} className="gv-input pl-9! py-2! text-sm" />
         </div>
       </div>
 
       {/* Table — desktop */}
-      <div className="gv-card !p-0 overflow-hidden hidden md:block">
+      <div className="gv-card p-0! overflow-hidden hidden md:block">
         {isLoading ? <Spinner /> : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48">
             <FileText size={40} style={{ color: "var(--gv-text-faint)" }} className="mb-3" />
@@ -199,8 +197,6 @@ export default function PendingApprovalsPage() {
           </table>
         )}
       </div>
-
-      {/* Cards — mobile */}
       <div className="space-y-2 md:hidden">
         {isLoading ? <Spinner /> : filtered.length === 0 ? (
           <div className="flex items-center justify-center h-32">
@@ -227,8 +223,6 @@ export default function PendingApprovalsPage() {
           );
         })}
       </div>
-
-      {/* Reject Confirmation Modal */}
       {showRejectModal && (
         <RejectConfirmModal
           comment={rejectComment} setComment={setRejectComment} loading={actionLoading}
@@ -236,8 +230,6 @@ export default function PendingApprovalsPage() {
           onConfirm={() => takeAction("REJECTED", rejectComment)}
         />
       )}
-
-      {/* Detail + Action Modal */}
       {selected && (
         <div className="fixed inset-0 flex items-end md:items-center justify-center z-50 p-0 md:p-4"
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
@@ -249,7 +241,7 @@ export default function PendingApprovalsPage() {
             </div>
             <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
               <div className="flex items-center gap-2.5">
-                <div className="gv-icon-box !p-1.5"><FileText size={15} className="text-[#33907c]" /></div>
+                <div className="gv-icon-box p-1.5!"><FileText size={15} className="text-[#33907c]" /></div>
                 <div>
                   <p className="font-bold text-sm leading-tight" style={{ color: "var(--gv-text-primary)" }}>
                     {detailLoading ? "Loading..." : selected.title}

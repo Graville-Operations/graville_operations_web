@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { FileText, ChevronDown, Check, ArrowRight, Send, ArrowLeft } from "lucide-react";
 import api from "@/lib/api";
 import { PermitCategory, CreatePermitPayload } from "@/types/permits";
@@ -96,6 +97,7 @@ export default function CreatePermitPage() {
       if (data?.code !== 200) throw new Error(data?.message || "Failed to create permit.");
       setCreatedPermit(data.data);
       setStep("confirm");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || "Failed to create permit.");
     } finally { setCreating(false); }
@@ -108,14 +110,13 @@ export default function CreatePermitPage() {
       const { data } = await api.post(`/permits/submit/${createdPermit.id}`, {});
       if (data?.code !== 200) throw new Error(data?.message || "Failed to submit.");
       setSubmitted(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || "Failed to submit.");
     } finally { setSubmitting(false); }
   };
 
   const selectedCategory = categories.find((c) => c.id === Number(form.categoryId));
-
-  // ── Success screen ────────────────────────────────────────────────────────
   if (submitted) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 px-4">
@@ -172,8 +173,6 @@ export default function CreatePermitPage() {
           </div>
         </div>
       </div>
-
-      {/* ── STEP 1: Form ── */}
       {step === "form" && (
         <div className="gv-card space-y-4">
           {error && (
@@ -210,8 +209,6 @@ export default function CreatePermitPage() {
               </select>
             )}
           </div>
-
-          {/* Approvers */}
           <div ref={approverRef} className="relative">
             <label className="gv-eyebrow mb-1 block">Approvers * <span style={{ color: "var(--gv-text-muted)", fontWeight: 400 }}>(in approval order)</span></label>
             {loadingOptions ? (
@@ -225,7 +222,7 @@ export default function CreatePermitPage() {
                     {selectedApprovers.length === 0 ? "Select approvers in order"
                       : selectedApprovers.map((a) => `${a.stepOrder}. ${a.name}`).join(" → ")}
                   </span>
-                  <ChevronDown size={15} className={`ml-2 flex-shrink-0 transition-transform ${approverOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown size={15} className={`ml-2 shrink-0 transition-transform ${approverOpen ? "rotate-180" : ""}`} />
                 </button>
                 {approverOpen && (
                   <div className="absolute z-20 w-full rounded-xl shadow-xl flex flex-col"
@@ -241,10 +238,10 @@ export default function CreatePermitPage() {
                             style={{ color: sel ? "#33907c" : "white" }}>
                             <div className="flex items-center gap-2">
                               {sel ? (
-                                <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                                   style={{ background: "#33907c", color: "white" }}>{sel.stepOrder}</span>
                               ) : (
-                                <span className="w-5 h-5 rounded-full flex-shrink-0" style={{ border: "1px solid rgba(255,255,255,0.15)" }} />
+                                <span className="w-5 h-5 rounded-full shrink-0" style={{ border: "1px solid rgba(255,255,255,0.15)" }} />
                               )}
                               <span>{u.firstName} {u.lastName}</span>
                             </div>
@@ -275,8 +272,6 @@ export default function CreatePermitPage() {
           </button>
         </div>
       )}
-
-      {/* ── STEP 2: Confirm ── */}
       {step === "confirm" && createdPermit && (
         <div className="space-y-4">
           {error && (
@@ -304,7 +299,7 @@ export default function CreatePermitPage() {
             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#33907c" }}>Approval Chain</p>
             {selectedApprovers.map((a, i) => (
               <div key={a.userId} className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                   style={{ background: "#33907c", color: "white" }}>{a.stepOrder}</div>
                 <p className="text-sm text-white flex-1">{a.name}</p>
                 {i < selectedApprovers.length - 1 && (

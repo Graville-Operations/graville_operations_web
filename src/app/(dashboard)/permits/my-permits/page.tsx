@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { X, FileText, Loader2, Plus, Search, ChevronDown, Check, Send, Pencil, Tag, Trash2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
@@ -31,6 +33,7 @@ interface PermitDetailWithRaw extends Omit<PermitDetail, "approvals"> {
 const MANAGER_ROLES  = ["DIRECTOR", "DEPARTMENT_MANAGER"];
 const FIELD_OPERATOR = "FIELD_OPERATOR";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function unwrapArray<T>(response: unknown): T[] {
   if (Array.isArray(response)) return response as T[];
   if (response && typeof response === "object") {
@@ -46,7 +49,6 @@ function unwrapArray<T>(response: unknown): T[] {
   }
   return [];
 }
-
 function normaliseCategory(raw: any): PermitCategory {
   return {
     id:          raw.id,
@@ -56,7 +58,6 @@ function normaliseCategory(raw: any): PermitCategory {
   };
 }
 
-// Resolve approver name from user list using approver_id
 function resolveApproverName(approverId: number, users: ApiUser[]): string {
   const user = users.find((u) => u.id === approverId);
   return user ? `${user.firstName} ${user.lastName}` : `User #${approverId}`;
@@ -79,19 +80,19 @@ function DeleteConfirmModal({ categoryName, onConfirm, onCancel, deleting }: {
   categoryName: string; onConfirm: () => void; onCancel: () => void; deleting: boolean;
 }) {
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[60] p-4"
+    <div className="fixed inset-0 flex items-center justify-center z-60 p-4"
       style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}>
       <div className="w-full max-w-sm rounded-2xl p-6 space-y-4"
         style={{ background: "#0d1528", border: "1px solid rgba(248,113,113,0.3)" }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{ background: "rgba(248,113,113,0.15)" }}>
             <AlertTriangle size={18} style={{ color: "#f87171" }} />
           </div>
           <div>
             <p className="font-bold text-sm text-white">Deactivate category?</p>
             <p className="text-xs mt-0.5" style={{ color: "var(--gv-text-muted)" }}>
-              "{categoryName}" will no longer appear for new permits.
+              &quot;{categoryName}&quot; will no longer appear for new permits.
             </p>
           </div>
         </div>
@@ -125,6 +126,7 @@ function CategoriesTab() {
   const [deleteTarget, setDeleteTarget] = useState<PermitCategory | null>(null);
   const [deleting, setDeleting]         = useState(false);
 
+  // eslint-disable-next-line react-hooks/immutability
   useEffect(() => { fetchCategories(); }, []);
 
   const fetchCategories = async () => {
@@ -165,6 +167,7 @@ function CategoriesTab() {
       }
       setShowForm(false);
       await fetchCategories();
+     
     } catch (err: any) {
       setFormError(err?.response?.data?.message || "Failed to save category.");
     } finally { setSubmitting(false); }
@@ -175,8 +178,6 @@ function CategoriesTab() {
     try {
       setDeleting(true);
       await api.patch(`/permits/category/${deleteTarget.id}`, { is_active: false });
-      // Optimistically remove from list immediately — no re-fetch needed
-      // since backend list_permit_categories only returns active ones anyway
       setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (err: any) {
@@ -239,7 +240,7 @@ function CategoriesTab() {
         </div>
       )}
 
-      <div className="gv-card !p-0 overflow-hidden">
+      <div className="gv-card p-0! overflow-hidden">
         {loading ? <Spinner /> : categories.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48">
             <FileText size={40} style={{ color: "var(--gv-text-faint)" }} className="mb-3" />
@@ -305,8 +306,6 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
     description: permit.description ?? "",
     categoryId:  String(permit.categoryId ?? ""),
   });
-
-  // Build approvers using approver_id matched against users list
   const [selectedApprovers, setSelectedApprovers] = useState<SelectedApprover[]>(() =>
     (permit.approvals ?? [])
       .sort((a, b) => a.step_order - b.step_order)
@@ -439,7 +438,7 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
                   ? "Select approvers in order"
                   : selectedApprovers.map((a) => `${a.stepOrder}. ${a.name}`).join(" → ")}
               </span>
-              <ChevronDown size={15} className={`ml-2 flex-shrink-0 transition-transform ${approverOpen ? "rotate-180" : ""}`} />
+              <ChevronDown size={15} className={`ml-2 shrink-0 transition-transform ${approverOpen ? "rotate-180" : ""}`} />
             </button>
             {approverOpen && (
               <div className="absolute z-20 w-full rounded-xl shadow-xl flex flex-col"
@@ -455,10 +454,10 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
                         style={{ color: sel ? "#33907c" : "white" }}>
                         <div className="flex items-center gap-2">
                           {sel ? (
-                            <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                            <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                               style={{ background: "#33907c", color: "white" }}>{sel.stepOrder}</span>
                           ) : (
-                            <span className="w-5 h-5 rounded-full flex-shrink-0"
+                            <span className="w-5 h-5 rounded-full shrink-0"
                               style={{ border: "1px solid rgba(255,255,255,0.15)" }} />
                           )}
                           <span>{u.firstName} {u.lastName}</span>
@@ -516,7 +515,7 @@ function PermitDetailModal({ selected, users, onClose }: {
         <div className="flex items-center justify-between px-5 py-3.5"
           style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
           <div className="flex items-center gap-2.5">
-            <div className="gv-icon-box !p-1.5"><FileText size={15} className="text-[#33907c]" /></div>
+            <div className="gv-icon-box p-1.5!"><FileText size={15} className="text-[#33907c]" /></div>
             <div>
               <p className="font-bold text-sm leading-tight" style={{ color: "var(--gv-text-primary)" }}>{selected.title}</p>
               <p className="text-xs" style={{ color: "var(--gv-text-muted)" }}>
@@ -619,8 +618,6 @@ export default function PermitsDashboard() {
   const [selected, setSelected]         = useState<PermitDetailWithRaw | null>(null);
   const [draftEdit, setDraftEdit]       = useState<PermitDetailWithRaw | null>(null);
   const [detailFetching, setDetailFetching] = useState(false);
-
-  // Single parallel fetch on mount
   useEffect(() => {
     (async () => {
       try {
@@ -657,11 +654,10 @@ export default function PermitsDashboard() {
   });
 
   const counts = permits.reduce((acc, p) => ({ ...acc, [p.status]: (acc[p.status] || 0) + 1 }), {} as Record<string, number>);
-
-  // Fetch detail only on first click — cached after that
   const openPermit = async (permit: PermitListItem) => {
     const cached = detailCache[permit.id];
     if (cached) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       cached.status === "Draft" ? setDraftEdit(cached) : setSelected(cached);
       return;
     }
@@ -671,6 +667,7 @@ export default function PermitsDashboard() {
       if (data?.data) {
         const detail = data.data as PermitDetailWithRaw;
         setDetailCache((prev) => ({ ...prev, [permit.id]: detail }));
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         detail.status === "Draft" ? setDraftEdit(detail) : setSelected(detail);
       }
     } catch (err) { console.error(err); }
@@ -699,8 +696,6 @@ export default function PermitsDashboard() {
           </button>
         )}
       </div>
-
-      {/* Tabs — categories only for managers */}
       {isManager && (
         <div className="flex gap-1 p-1 rounded-xl w-fit"
           style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}>
@@ -738,11 +733,11 @@ export default function PermitsDashboard() {
             </div>
           )}
 
-          <div className="gv-card !p-3">
+          <div className="gv-card p-3!">
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--gv-text-subtle)" }} />
               <input type="text" placeholder="Search by title or category..." value={search}
-                onChange={(e) => setSearch(e.target.value)} className="gv-input !pl-9 !py-2 text-sm" />
+                onChange={(e) => setSearch(e.target.value)} className="gv-input pl-9! py-2! text-sm" />
             </div>
           </div>
 
@@ -767,7 +762,7 @@ export default function PermitsDashboard() {
           </div>
 
           {/* Table — desktop */}
-          <div className="gv-card !p-0 overflow-hidden hidden md:block">
+          <div className="gv-card p-0! overflow-hidden hidden md:block">
             {isLoading ? <Spinner /> : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <FileText size={40} style={{ color: "var(--gv-text-faint)" }} />
@@ -865,7 +860,7 @@ export default function PermitsDashboard() {
 
       {/* Slim top loading bar for detail fetch only */}
       {detailFetching && (
-        <div className="fixed top-0 left-0 right-0 z-[100] h-0.5">
+        <div className="fixed top-0 left-0 right-0 z-100 h-0.5">
           <div className="h-full" style={{ background: "#33907c", width: "70%", transition: "width 0.3s" }} />
         </div>
       )}
