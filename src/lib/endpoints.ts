@@ -1,0 +1,54 @@
+export const API = {
+  auth: {
+    login:          '/auth/login',
+    me:             '/auth/me',
+    logout:         '/auth/logout',
+    changePassword: '/auth/change-password',
+    verifyOtp:      '/auth/verify-otp',
+  },
+  users: {
+    list:   '/users/list',
+    create: '/users/create',
+    delete: (id: number) => `/users/${id}`,
+    update: (id: number) => `/users/${id}`,
+  },
+  roles: {
+    list:   '/roles/list',
+    create: '/roles/create',
+    update: (id: number) => `/roles/${id}`,
+    delete: (id: number) => `/roles/${id}`,
+    assign: (roleId: number, userId: number) => `/roles/${roleId}/assign/${userId}`,
+  },
+  menus: {
+    list:             '/menus/list',
+    create:           '/menus/create',
+    update:           (id: number) => `/menus/${id}`,
+    delete:           (id: number) => `/menus/${id}`,
+    submenus:         '/menus/submenus',
+    updateSubmenu:    (id: number) => `/menus/submenus/${id}`,
+    deleteSubmenu:    (id: number) => `/menus/submenus/${id}`,
+    subsubmenus:      '/menus/subsubmenus',
+    updateSubsubmenu: (id: number) => `/menus/subsubmenus/${id}`,
+    deleteSubsubmenu: (id: number) => `/menus/subsubmenus/${id}`,
+  },
+  invoices: {
+    all:    '/invoices/all',
+    detail: (id: number) => `/invoices/details/${id}`,
+    create: '/invoices/create',
+  },
+  workers: {
+    listBySite:    (siteId: number) => `/workers/list-by-id/${siteId}`,
+    detail:        (id: number) => `/workers/details/${id}`,
+    update:        (id: number) => `/workers/update/${id}`,
+    skills:        '/workers/skills',
+    createSkill:   '/workers/skills/create',
+  },
+  sites: {
+    list:   '/sites/list',
+    create: '/sites/create',
+  },
+  departments: {
+    list:   '/departments/list',
+    create: '/departments/create',
+  },
+} as const;

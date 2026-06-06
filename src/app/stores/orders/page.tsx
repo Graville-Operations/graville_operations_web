@@ -1,300 +1,400 @@
 'use client';
-import { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import { useState, useMemo, useCallback } from 'react';
 import {
-  ChevronDown, Activity, PackageCheck, Calendar,
-  ClipboardList, ChevronRight, CheckCircle2, Clock,
-  XCircle, Package,
+  Search, Package, Wrench, ChevronDown,
+  AlertTriangle, CheckCircle2, XCircle, RefreshCw,
 } from 'lucide-react';
+import { useApi } from '@/hooks/useApi';
+import type { Site, StoreMaterial, StoreTool, StockTab } from '@/types/store';
 
-interface Site { id: number; name: string; }
 
-interface DailyUsageItem {
-  material: { name: string; unit: { symbol: string } };
-  quantity_used: number; notes?: string;
-}
-interface DailyUsageRecord {
-  id: number; usage_date: string; status: string;
-  notes?: string; items: DailyUsageItem[];
-}
-interface ReceiptRecord {
-  id: number;
-  material: { name: string; unit: { symbol: string } };
-  quantity: number; unit_price: number; notes?: string; received_at: string;
+function extractList<T>(raw: T[] | { items?: T[] } | null | undefined): T[] {
+  if (!raw) return [];
+  return Array.isArray(raw) ? raw : (raw.items ?? []);
 }
 
-const USAGE_STATUS_META: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-  DRAFT:     { label: 'Draft',     cls: 'border-white/20 text-muted-foreground',  icon: <Clock size={11} />         },
-  SUBMITTED: { label: 'Submitted', cls: 'border-blue-500/30 text-blue-400',       icon: <ClipboardList size={11} /> },
-  APPROVED:  { label: 'Approved',  cls: 'border-green-500/30 text-green-400',     icon: <CheckCircle2 size={11} />  },
-  REJECTED:  { label: 'Rejected',  cls: 'border-destructive/30 text-destructive', icon: <XCircle size={11} />       },
-};
 
-type ActiveTab = 'usage' | 'receipts';
+function RowSkeleton({ cols }: { cols: number }) {
+  return (
+    <tr className="border-b border-[color:var(--border)] last:border-0">
+      {Array.from({ length: cols }).map((_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[75%]">
+            <div
+              className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                         bg-gradient-to-r from-transparent via-white/5 to-transparent"
+              style={{ animationDelay: `${i * 70}ms` }}
+            />
+          </div>
+          {i === 0 && (
+            <div className="relative overflow-hidden h-3 bg-[color:var(--muted)] rounded w-40 mt-1.5">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                             bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                   style={{ animationDelay: '120ms' }} />
+            </div>
+          )}
+        </td>
+      ))}
+    </tr>
+  );
+}
 
-export default function StoreActivityPage() {
-  const [tab, setTab]                             = useState<ActiveTab>('usage');
-  const [sites, setSites]                         = useState<Site[]>([]);
-  const [selectedSiteId, setSelectedSiteId]       = useState<number | null>(null);
-  const [usageLogs, setUsageLogs]                 = useState<DailyUsageRecord[]>([]);
-  const [receipts, setReceipts]                   = useState<ReceiptRecord[]>([]);
-  const [expandedUsage, setExpandedUsage]         = useState<Set<number>>(new Set());
-  const [isSitesLoading, setIsSitesLoading]       = useState(true);
-  const [isUsageLoading, setIsUsageLoading]       = useState(false);
-  const [isReceiptsLoading, setIsReceiptsLoading] = useState(false);
+function TableSkeleton({ cols, rows = 6 }: { cols: number; rows?: number }) {
+  return (
+    <div className="gv-card p-0 overflow-hidden">
+      <table className="w-full text-sm">
+        <tbody>
+          {Array.from({ length: rows }).map((_, i) => (
+            <RowSkeleton key={i} cols={cols} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
-  // Step 1 — load sites
-  useEffect(() => {
-    api.get('/sites/list')
-      .then((res) => {
-        const raw = res.data?.data;
-        const list: Site[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
-        setSites(list);
-        if (list.length > 0) setSelectedSiteId(list[0].id);  // triggers step 2
-      })
-      .catch(console.error)
-      .finally(() => setIsSitesLoading(false));
-  }, []);
 
-  // Step 2 — runs whenever selectedSiteId changes
-  useEffect(() => {
-    if (selectedSiteId === null) return;
+function SiteSelector({
+  sites, selectedSiteId, onChange, isLoading,
+}: {
+  sites: Site[];
+  selectedSiteId: number | null;
+  onChange: (id: number) => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 w-full sm:w-64">
+      <p className="gv-label">Viewing site</p>
+      {isLoading ? (
+        <div className="h-10 rounded-lg bg-[color:var(--gv-glass-bg)] relative overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                          bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </div>
+      ) : (
+        <div className="relative">
+          <select
+            className="w-full appearance-none pr-9 pl-3 h-10 rounded-lg border border-[color:var(--border)]
+                       bg-[color:var(--gv-glass-bg)] text-[color:var(--foreground)] text-sm cursor-pointer
+                       outline-none transition-colors focus:border-[color:var(--gv-glass-border-hover)]
+                       hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white"
+            value={selectedSiteId ?? ''}
+            onChange={(e) => onChange(Number(e.target.value))}
+          >
+            {sites.length === 0 && <option value="">No sites available</option>}
+            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2
+                                            text-[color:var(--gv-text-subtle)] pointer-events-none" />
+        </div>
+      )}
+    </div>
+  );
+}
 
-    // GET /api/v1/daily-usage/all?site_id=X
-    setIsUsageLoading(true);
-    api.get('/daily-usage/all', { params: { site_id: selectedSiteId } })
-      .then((res) => {
-        const raw = res.data?.data;
-        setUsageLogs(Array.isArray(raw) ? raw : (raw?.items ?? []));
-      })
-      .catch(() => setUsageLogs([]))
-      .finally(() => setIsUsageLoading(false));
 
-    // GET /api/v1/store/site/{site_id}
-    // store overview — receipts nested inside if service returns them
-    setIsReceiptsLoading(true);
-    api.get(`/store/site/${selectedSiteId}`)
-      .then((res) => {
-        const data = res.data?.data ?? res.data;
-        // adapt to whatever key your store overview returns for receipt list
-        setReceipts(data?.receipts ?? data?.receipt_history ?? data?.material_receipts ?? []);
-      })
-      .catch(() => setReceipts([]))
-      .finally(() => setIsReceiptsLoading(false));
-  }, [selectedSiteId]);
+export default function StockRegistersPage() {
+  const [tab,            setTab]            = useState<StockTab>('materials');
+  const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
+  const [search,         setSearch]         = useState('');
 
-  const toggleExpand = (id: number) => {
-    setExpandedUsage((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+  const { data: sitesRaw, loading: isSitesLoading } =
+    useApi<Site[] | { items: Site[] }>('/sites/list');
 
-  const totalUsageItems   = usageLogs.reduce((sum, r) => sum + (r.items?.length ?? 0), 0);
-  const totalReceiptValue = receipts.reduce((sum, r)  => sum + r.quantity * r.unit_price, 0);
-  const selectedSite      = sites.find((s) => s.id === selectedSiteId);
+  const sites: Site[]  = useMemo(() => extractList(sitesRaw), [sitesRaw]);
+  const resolvedSiteId = selectedSiteId ?? sites[0]?.id ?? null;
+
+  const {
+    data: matsRaw, loading: isMatsLoading, error: matsError, refetch: refetchMats,
+  } = useApi<StoreMaterial[] | { items?: StoreMaterial[] }>(
+    `/store/materials/${resolvedSiteId}/all`,
+    { enabled: resolvedSiteId !== null },
+  );
+
+  const {
+    data: toolsRaw, loading: isToolsLoading, error: toolsError, refetch: refetchTools,
+  } = useApi<StoreTool[] | { items?: StoreTool[] }>(
+    `/store/tools/${resolvedSiteId}/all`,
+    { enabled: resolvedSiteId !== null },
+  );
+
+  const materials: StoreMaterial[] = useMemo(() => extractList(matsRaw),  [matsRaw]);
+  const tools:     StoreTool[]     = useMemo(() => extractList(toolsRaw), [toolsRaw]);
+
+  const q = search.toLowerCase();
+  const filteredMaterials = useMemo(
+    () => materials.filter((m) => m.name.toLowerCase().includes(q)),
+    [materials, q],
+  );
+  const filteredTools = useMemo(
+    () => tools.filter((t) => t.name.toLowerCase().includes(q)),
+    [tools, q],
+  );
+
+  const lowCount  = useMemo(
+    () => materials.filter((m) => m.minimumStockLevel !== null && m.quantity <= m.minimumStockLevel).length,
+    [materials],
+  );
+  const outCount  = useMemo(() => materials.filter((m) => m.quantity === 0).length, [materials]);
+  const availTool = useMemo(
+    () => tools.filter((t) => t.status?.toUpperCase() === 'AVAILABLE').length,
+    [tools],
+  );
+
+  const isCurrentLoading = tab === 'materials'
+    ? (isMatsLoading  && !materials.length)
+    : (isToolsLoading && !tools.length);
+
+  const isCurrentError = tab === 'materials'
+    ? (matsError  && !materials.length)
+    : (toolsError && !tools.length);
+
+  const handleTabChange  = useCallback((t: StockTab) => { setTab(t); setSearch(''); }, []);
+  const handleSiteChange = useCallback((id: number)   => { setSelectedSiteId(id); setSearch(''); }, []);
 
   return (
     <div className="space-y-6">
-      {/* Header + site selector */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>
-          <h1 className="text-2xl font-bold mt-1">Store Activity</h1>
+          <h1 className="text-2xl font-bold mt-1">Stock Registers</h1>
         </div>
-        <div className="flex flex-col gap-1 w-full sm:w-64">
-          <p className="gv-label">Viewing site</p>
-          {isSitesLoading ? (
-            <div className="gv-input h-10 animate-pulse bg-muted" />
-          ) : (
-            <div className="relative">
-              <select
-                className="gv-input appearance-none pr-9 h-10 text-sm cursor-pointer"
-                value={selectedSiteId ?? ''}
-                onChange={(e) => setSelectedSiteId(Number(e.target.value))}
-              >
-                {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
+        <SiteSelector
+          sites={sites}
+          selectedSiteId={resolvedSiteId}
+          onChange={handleSiteChange}
+          isLoading={isSitesLoading}
+        />
+      </div>
+
+      {!isMatsLoading && !isToolsLoading && resolvedSiteId && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="gv-tag">
+            {materials.length} material{materials.length !== 1 ? 's' : ''}
+          </span>
+
+          {lowCount > 0 && (
+            <span className="gv-tag border-[color:var(--gv-border-warn)] text-[color:var(--gv-text-warn)]
+                             flex items-center gap-1">
+              <AlertTriangle size={10} /> {lowCount} low stock
+            </span>
+          )}
+
+          {outCount > 0 && (
+            <span className="gv-tag border-[color:var(--gv-border-danger)] text-[color:var(--destructive)]
+                             flex items-center gap-1">
+              <XCircle size={10} /> {outCount} out of stock
+            </span>
+          )}
+
+          <span className="gv-tag">
+            {tools.length} tool{tools.length !== 1 ? 's' : ''}
+          </span>
+
+          {availTool > 0 && (
+            <span className="gv-tag flex items-center gap-1">
+              <CheckCircle2 size={10} /> {availTool} available
+            </span>
           )}
         </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="flex gap-1 p-1 rounded-lg bg-[color:var(--muted)]">
+          {(['materials', 'tools'] as StockTab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => handleTabChange(t)}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                tab === t
+                  ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)]'
+                  : 'text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]'
+              }`}
+            >
+              {t === 'materials' ? <Package size={14} /> : <Wrench size={14} />}
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div className="relative flex-1 max-w-sm">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2
+                                       text-[color:var(--muted-foreground)]" />
+          <input
+            className="gv-input pl-9 h-9 text-sm"
+            placeholder={`Search ${tab}...`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
       </div>
 
-      {/* Summary strip */}
-      {selectedSite && !isUsageLoading && !isReceiptsLoading && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: 'Usage Logs',    value: usageLogs.length, icon: <ClipboardList size={15} className="text-primary" />  },
-            { label: 'Usage Items',   value: totalUsageItems,  icon: <Package size={15} className="text-blue-400" />       },
-            { label: 'Receipts',      value: receipts.length,  icon: <PackageCheck size={15} className="text-green-400" /> },
-            {
-              label: 'Total Received',
-              value: `$${totalReceiptValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              icon: <Activity size={15} className="text-yellow-400" />,
-            },
-          ].map((s) => (
-            <div key={s.label} className="gv-card flex items-center gap-3 py-3">
-              <div className="gv-icon-box w-9 h-9 shrink-0">{s.icon}</div>
-              <div>
-                <p className="gv-label">{s.label}</p>
-                <p className="text-lg font-bold">{s.value}</p>
-              </div>
-            </div>
-          ))}
+      {isCurrentLoading && (
+        <TableSkeleton cols={tab === 'materials' ? 3 : 4} />
+      )}
+
+      {!isCurrentLoading && isCurrentError && (
+        <div className="gv-card flex flex-col items-center justify-center py-16 text-center
+                        border-[color:var(--gv-border-danger)]">
+          <AlertTriangle size={36} className="text-[color:var(--destructive)] opacity-40 mb-3" />
+          <p className="text-sm text-[color:var(--muted-foreground)] mb-3">
+            Failed to load {tab}. Please try again.
+          </p>
+          <button
+            onClick={tab === 'materials' ? refetchMats : refetchTools}
+            className="gv-tag border-[color:var(--gv-glass-border)] hover:border-[color:var(--gv-glass-border-hover)]
+                       cursor-pointer flex items-center gap-1.5 transition-colors"
+          >
+            <RefreshCw size={11} /> Retry
+          </button>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-lg bg-muted w-fit">
-        {([
-          { key: 'usage',    label: 'Daily Usage', icon: <ClipboardList size={14} /> },
-          { key: 'receipts', label: 'Receipts',    icon: <PackageCheck size={14} />  },
-        ] as { key: ActiveTab; label: string; icon: React.ReactNode }[]).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-              tab === t.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t.icon}{t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Daily Usage tab */}
-      {tab === 'usage' && (
-        isUsageLoading
-          ? <div className="space-y-2">{[1,2,3].map((i) => <div key={i} className="gv-card h-16 animate-pulse" />)}</div>
-          : usageLogs.length === 0
-          ? (
-            <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
-              <ClipboardList size={36} className="text-muted-foreground opacity-20 mb-3" />
-              <p className="text-sm text-muted-foreground">No daily usage logs for this site</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {usageLogs.map((log) => {
-                const meta   = USAGE_STATUS_META[log.status?.toUpperCase()] ?? USAGE_STATUS_META.DRAFT;
-                const isOpen = expandedUsage.has(log.id);
+      {!isCurrentLoading && !isCurrentError && tab === 'materials' && (
+        <div className="gv-card p-0 overflow-hidden">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[40%]" />
+              <col className="w-[30%]" />
+              <col className="w-[30%]" />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-[color:var(--border)]">
+                {['Material', 'Quantity', 'Min. Level'].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold
+                                         text-[color:var(--muted-foreground)] uppercase tracking-wider">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredMaterials.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="text-center py-12 text-[color:var(--muted-foreground)]">
+                    <Package size={32} className="mx-auto mb-2 opacity-20" />
+                    <p>{search ? 'No materials match your search' : 'No materials found'}</p>
+                  </td>
+                </tr>
+              ) : filteredMaterials.map((mat) => {
+                const unitLabel = mat.unit?.symbol ?? mat.unit?.name ?? '';
                 return (
-                  <div key={log.id} className="gv-card p-0 overflow-hidden">
-                    <button
-                      onClick={() => toggleExpand(log.id)}
-                      className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-accent/30 transition-colors text-left"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <Calendar size={14} className="text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">
-                          {new Date(log.usage_date).toLocaleDateString(undefined, {
-                            weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
-                          })}
+                  <tr
+                    key={mat.id}
+                    className="border-b border-[color:var(--border)] last:border-0
+                               hover:bg-[color:var(--accent)] transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium">
+                      <p>{mat.name}</p>
+                      {mat.description && (
+                        <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">
+                          {mat.description}
                         </p>
-                        {log.notes && <p className="text-xs text-muted-foreground truncate">{log.notes}</p>}
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs text-muted-foreground">
-                          {log.items?.length ?? 0} item{(log.items?.length ?? 0) !== 1 ? 's' : ''}
+                      )}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">
+                      <span className="font-semibold">{mat.quantity}</span>
+                      {unitLabel && (
+                        <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">
+                          {unitLabel}
                         </span>
-                        <span className={`gv-tag flex items-center gap-1 ${meta.cls}`}>{meta.icon} {meta.label}</span>
-                        <ChevronRight size={14} className={`text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} />
-                      </div>
-                    </button>
-                    {isOpen && (
-                      <div className="border-t border-border">
-                        {!log.items?.length ? (
-                          <p className="px-4 py-3 text-xs text-muted-foreground">No items recorded</p>
-                        ) : (
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b border-border bg-muted/30">
-                                {['Material', 'Qty Used', 'Notes'].map((h) => (
-                                  <th key={h} className="text-left px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {log.items.map((item, idx) => (
-                                <tr key={idx} className="border-b border-border last:border-0 hover:bg-accent/20 transition-colors">
-                                  <td className="px-4 py-2.5 font-medium">{item.material?.name}</td>
-                                  <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
-                                    {item.quantity_used} {item.material?.unit?.symbol}
-                                  </td>
-                                  <td className="px-4 py-2.5 text-xs text-muted-foreground">{item.notes ?? '—'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {mat.minimumStockLevel != null ? (
+                        <>
+                          <span className="font-medium text-[color:var(--foreground)]">
+                            {mat.minimumStockLevel}
+                          </span>
+                          {unitLabel && (
+                            <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">
+                              {unitLabel}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[color:var(--muted-foreground)]">—</span>
+                      )}
+                    </td>
+                  </tr>
                 );
               })}
-            </div>
-          )
+            </tbody>
+          </table>
+        </div>
       )}
 
-      {/* Receipts tab */}
-      {tab === 'receipts' && (
-        isReceiptsLoading
-          ? <div className="space-y-2">{[1,2,3].map((i) => <div key={i} className="gv-card h-16 animate-pulse" />)}</div>
-          : receipts.length === 0
-          ? (
-            <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
-              <PackageCheck size={36} className="text-muted-foreground opacity-20 mb-3" />
-              <p className="text-sm text-muted-foreground">No receipts recorded for this site</p>
-            </div>
-          ) : (
-            <div className="gv-card p-0 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    {['Material', 'Qty', 'Unit Price', 'Total', 'Notes', 'Received'].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {receipts.map((r) => (
-                    <tr key={r.id} className="border-b border-border last:border-0 hover:bg-accent/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
-                            <Package size={12} className="text-primary" />
-                          </div>
-                          {r.material?.name}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground tabular-nums">{r.quantity} {r.material?.unit?.symbol}</td>
-                      <td className="px-4 py-3 text-muted-foreground tabular-nums">${r.unit_price?.toFixed(2)}</td>
-                      <td className="px-4 py-3 font-semibold tabular-nums">${(r.quantity * r.unit_price).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-[160px] truncate">{r.notes ?? '—'}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {new Date(r.received_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-border bg-muted/20">
-                    <td colSpan={3} className="px-4 py-3 text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-                      Total received value
-                    </td>
-                    <td className="px-4 py-3 font-bold tabular-nums">
-                      ${totalReceiptValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td colSpan={2} />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )
+      {!isCurrentLoading && !isCurrentError && tab === 'tools' && (
+        <div className="gv-card p-0 overflow-hidden">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[20%]" />
+              <col className="w-[28%]" />
+              <col className="w-[26%]" />
+              <col className="w-[26%]" />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-[color:var(--border)]">
+                {['Tool', 'Vendor', 'Hire Cost', 'Hire Period'].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold
+                                         text-[color:var(--muted-foreground)] uppercase tracking-wider">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTools.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="text-center py-12 text-[color:var(--muted-foreground)]">
+                    <Wrench size={32} className="mx-auto mb-2 opacity-20" />
+                    <p>{search ? 'No tools match your search' : 'No tools found'}</p>
+                  </td>
+                </tr>
+              ) : filteredTools.map((tool) => (
+                <tr
+                  key={tool.id}
+                  className="border-b border-[color:var(--border)] last:border-0
+                             hover:bg-[color:var(--accent)] transition-colors"
+                >
+                  <td className="px-4 py-3 font-medium">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-md bg-[color:var(--muted)]
+                                      flex items-center justify-center shrink-0">
+                        <Wrench size={13} className="text-[color:var(--muted-foreground)]" />
+                      </div>
+                      <div>
+                        <p>{tool.name}</p>
+                        {tool.description && (
+                          <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">
+                            {tool.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-[color:var(--muted-foreground)]">
+                    {tool.vendor ?? '—'}
+                  </td>
+                  <td className="px-4 py-3 text-[color:var(--muted-foreground)] tabular-nums">
+                    {tool.hireCost != null
+                      ? `KES ${tool.hireCost.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
+                      : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-[color:var(--muted-foreground)]">
+                    {tool.hire_start_date
+                      ? `${new Date(tool.hire_start_date).toLocaleDateString()} – ${
+                          tool.hire_end_date
+                            ? new Date(tool.hire_end_date).toLocaleDateString()
+                            : 'ongoing'
+                        }`
+                      : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
+
     </div>
   );
 }

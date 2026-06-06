@@ -3,20 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { ApiUser } from '@/types';
 import { UserPlus, Search, Trash2, Shield } from 'lucide-react';
-
-// API response shape
-interface ApiUser {
-  ref_id: string;
-  email: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  phone?: string;
-  nationalId?: string;
-  accountStatus?: string;
-  role?: string;
-}
+import { API } from '@/lib/endpoints';
 
 const roleColors: Record<string, string> = {
   Admin:          'bg-red-500/20 text-red-300 border border-red-500/20',
@@ -33,26 +22,10 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    const q = search.toLowerCase();
-    setFiltered(
-      users.filter(
-        (u) =>
-          `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q) ||
-          (u.role ?? '').toLowerCase().includes(q)
-      )
-    );
-  }, [search, users]);
-
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const { data } = await api.get('/users/list');
+      const { data } = await api.get(API.users.list);
       const payload = data?.data ?? data;
       const list = Array.isArray(payload) ? payload : payload?.items ?? [];
       setUsers(list);
@@ -64,15 +37,35 @@ export default function UsersPage() {
     }
   };
 
-  const deleteUser = async (ref_id: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-    try {
-      await api.delete(`/users/${ref_id}`);
-      fetchUsers();
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const q = search.toLowerCase();
+      setFiltered(
+        users.filter(
+          (u) =>
+            `${u.firstName} ${u.lastName}`.toLowerCase().includes(q) ||
+            u.email.toLowerCase().includes(q) ||
+            (u.role ?? '').toLowerCase().includes(q)
+        )
+      );
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [search, users]);
+
+  const deleteUser = async (id: number) => {
+  if (!confirm('Are you sure you want to delete this user?')) return;
+  try {
+    await api.delete(API.users.delete(id));
+    fetchUsers();
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   return (
     <div className="space-y-6">
@@ -151,7 +144,7 @@ export default function UsersPage() {
                   <td className="px-6 py-4 text-sm text-white/60">{user.phone ?? '—'}</td>
                   <td className="px-6 py-4">
                     <button
-                      onClick={() => deleteUser(user.ref_id)}
+                      onClick={() => deleteUser(user.id)}
                       className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
                     >
                       <Trash2 size={16} />

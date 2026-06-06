@@ -4,6 +4,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Mail, KeyRound } from 'lucide-react';
 import api from '@/lib/api';
+import { saveToken, saveRole, saveUser } from '@/lib/auth';
+import { useAuthStore } from '@/store/auth-store';
+import { API } from '@/lib/endpoints';
+import { ROUTES } from '@/lib/routes';
 
 type Step = 'email' | 'otp';
 
@@ -17,36 +21,54 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
 
   const handleSendOtp = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  setIsLoading(true);
-  try {
-    await api.post('/auth/login', { email, password: '' });
-  } catch {
-    // Intentionally swallow all errors
-  } finally {
-    setIsLoading(false);
-    // Always proceed to OTP step regardless of outcome
-    setStep('otp');
-    setSuccess('An OTP has been sent to your email.');
-  }
-};
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      await api.post(API.auth.login, { email, password: '' });
+    } catch {
+    } finally {
+      setIsLoading(false);
+      setStep('otp');
+      setSuccess('If this email exists, an OTP has been sent to it.');
+    }
+  };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  setIsLoading(true);
-  try {
-    const { data } = await api.post('/auth/verify-otp', { email, otp });
-    const payload = data?.data ?? data;
-    if (payload?.token) {
-      // OTP verified and token returned — go straight to dashboard
-      setSuccess('Verified! Redirecting...');
-      setTimeout(() => router.push('/home'), 1500);
-    } else {
-      // No token — just go to signin
-      setSuccess('Verified! Please sign in.');
-      setTimeout(() => router.push('/signin'), 1500);
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const { data } = await api.post(API.auth.verifyOtp, { email, otp });
+      const payload = data?.data ?? data;
+
+      if (payload?.token) {
+        saveToken(payload.token);
+        saveRole(payload.role);
+
+        const meRes = await api.get(API.auth.me, {
+          headers: { Authorization: `Bearer ${payload.token}` },
+        });
+        const user = meRes.data?.data ?? meRes.data;
+        saveUser(user);
+
+        loadFromStorage();
+
+        setSuccess('Verified! Redirecting to dashboard...');
+        setTimeout(() => router.replace(ROUTES.home), 1500);
+      } else {
+        setSuccess('Verified! Please sign in.');
+        setTimeout(() => router.replace(ROUTES.signin), 1500);
+      }
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string; detail?: string } } };
+      setError(
+        e.response?.data?.message ||
+        e.response?.data?.detail ||
+        'Invalid or expired OTP. Please try again.'
+      );
+    } finally {
+      setIsLoading(false);
     }
   } catch (err: unknown) {
     const axiosErr = err as { response?: { data?: { message?: string } } };
@@ -57,7 +79,7 @@ export default function ForgotPasswordPage() {
 };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,_#1a3a6e_0%,_#0a0f1e_60%,_#000000_100%)]">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,#1a3a6e_0%,#0a0f1e_60%,#000000_100%)]">
       {/* Decorative blobs */}
       <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl" />
       <div className="absolute bottom-20 right-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
@@ -162,7 +184,7 @@ export default function ForgotPasswordPage() {
               onClick={() => { setStep('email'); setError(''); setSuccess(''); setOtp(''); }}
               className="w-full text-sm text-blue-200/60 hover:text-blue-200 transition-colors py-1"
             >
-              Didn't receive it? Go back and resend
+              Didn&apos;t receive it? Go back and resend
             </button>
           </form>
         )}

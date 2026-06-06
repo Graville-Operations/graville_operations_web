@@ -1,6 +1,10 @@
-import { Navbar } from "@/components/custom/navbar";
+import { Navbar } from '@/components/custom/navbar';
 
-export default function LandingLayout({ children }: { children: React.ReactNode }) {
+export default function LandingLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <>
       <Navbar />

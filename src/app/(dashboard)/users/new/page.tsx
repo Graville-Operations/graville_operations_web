@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { useUserStore } from '@/store/user-store';
+import { API } from '@/lib/endpoints';
+import { ROUTES } from '@/lib/routes';
 
 interface Role {
   id: number;
@@ -12,6 +15,7 @@ interface Role {
 
 export default function NewUserPage() {
   const router = useRouter();
+  const { clearUsers } = useUserStore();
   const [roles, setRoles] = useState<Role[]>([]);
   const [form, setForm] = useState({
     first_name: '',
@@ -26,10 +30,14 @@ export default function NewUserPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch roles from backend
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
+    fetchRoles();
+  }, []);
+
   const fetchRoles = async () => {
     try {
-      const { data } = await api.get('/roles/list');
+      const { data } = await api.get(API.roles.list);
       const payload = data?.data ?? data;
       const list = Array.isArray(payload) ? payload : payload?.items ?? [];
       setRoles(list);
@@ -38,16 +46,12 @@ export default function NewUserPage() {
     }
   };
 
-  useEffect(() => {
-    fetchRoles();
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      await api.post('/users/create', {
+      await api.post(API.users.create, {
         first_name:    form.first_name,
         last_name:     form.last_name,
         email:         form.email,
@@ -57,7 +61,8 @@ export default function NewUserPage() {
         department_id: form.department_id,
         site_ids:      form.site_ids,
       });
-      router.push('/users');
+      clearUsers();
+      router.push(ROUTES.users.dashboard);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; detail?: string } } };
       setError(e.response?.data?.message || e.response?.data?.detail || 'Failed to create user');
@@ -100,7 +105,7 @@ export default function NewUserPage() {
         <div className="grid grid-cols-2 gap-4">
           {[
             { label: 'First Name', key: 'first_name', required: true },
-            { label: 'Last Name', key: 'last_name', required: true },
+            { label: 'Last Name',  key: 'last_name',  required: true },
           ].map(({ label, key, required }) => (
             <div key={key}>
               <label className="block text-sm font-medium text-blue-100/80 mb-1">
@@ -144,9 +149,7 @@ export default function NewUserPage() {
 
         {/* Password */}
         <div>
-          <label className="block text-sm font-medium text-blue-100/80 mb-1">
-            Default Password *
-          </label>
+          <label className="block text-sm font-medium text-blue-100/80 mb-1">Default Password *</label>
           <input
             type="text"
             value={form.password}

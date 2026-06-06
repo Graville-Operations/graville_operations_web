@@ -1,289 +1,374 @@
 'use client';
-import { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import { useState, useMemo } from 'react';
 import {
-  Search, Package, Wrench, ChevronDown,
-  AlertTriangle, CheckCircle2, XCircle, Minus,
+  ChevronDown, ClipboardList, AlertTriangle,
+  RefreshCw, ShoppingCart, Calendar, Package,
 } from 'lucide-react';
+import { useApi } from '@/hooks/useApi';
+import type { Site, DailyUsageRecord, StoreMaterial, ActivityTab } from '@/types/store';
 
-type Tab = 'materials' | 'tools';
-interface Site { id: number; name: string; }
 
-interface StoreMaterial {
-  id: number; name: string; description?: string;
-  quantity: number; minimumStockLevel: number | null;
-  unit: { id: number; name: string; symbol: string };
-}
-interface StoreTool {
-  id: number; name: string; description?: string; status: string;
-  vendor?: string; billing_type?: string; hireCost?: number;
-  hire_start_date?: string; hire_end_date?: string;
+function extractList<T>(raw: T[] | { items?: T[] } | null | undefined): T[] {
+  if (!raw) return [];
+  return Array.isArray(raw) ? raw : (raw.items ?? []);
 }
 
-const TOOL_STATUS_META: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-  AVAILABLE:         { label: 'Available',   cls: 'border-green-500/30 text-green-400',     icon: <CheckCircle2 size={11} /> },
-  IN_USE:            { label: 'In Use',      cls: 'border-blue-500/30 text-blue-400',       icon: <Wrench size={11} />       },
-  UNDER_MAINTENANCE: { label: 'Maintenance', cls: 'border-yellow-500/30 text-yellow-400',   icon: <AlertTriangle size={11} />},
-  DAMAGED:           { label: 'Damaged',     cls: 'border-destructive/30 text-destructive', icon: <XCircle size={11} />      },
-  RETIRED:           { label: 'Retired',     cls: 'border-white/20 text-muted-foreground',  icon: <Minus size={11} />        },
-};
-
-function stockStatus(m: StoreMaterial) {
-  if (m.quantity === 0)
-    return { label: 'Out of stock', cls: 'border-destructive/30 text-destructive' };
-  if (m.minimumStockLevel !== null && m.quantity <= m.minimumStockLevel)
-    return { label: 'Low stock',    cls: 'border-yellow-500/30 text-yellow-400'  };
-  return   { label: 'In stock',     cls: 'border-green-500/30 text-green-400'    };
+function safeDateSlice(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
 }
 
-export default function StockRegistersPage() {
-  const [tab, setTab]                       = useState<Tab>('materials');
-  const [sites, setSites]                   = useState<Site[]>([]);
+function fmtDate(iso: string, opts?: Intl.DateTimeFormatOptions) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, opts);
+}
+
+
+function TableRowSkeleton({ cols }: { cols: number }) {
+  return (
+    <tr className="border-b border-[color:var(--border)] last:border-0">
+      {Array.from({ length: cols }).map((_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[80%]">
+            <div
+              className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                         bg-gradient-to-r from-transparent via-white/5 to-transparent"
+              style={{ animationDelay: `${i * 60}ms` }}
+            />
+          </div>
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+function TableSkeleton({ cols, rows = 5 }: { cols: number; rows?: number }) {
+  return (
+    <div className="gv-card p-0 overflow-hidden">
+      <table className="w-full text-sm">
+        <tbody>
+          {Array.from({ length: rows }).map((_, i) => (
+            <TableRowSkeleton key={i} cols={cols} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+function SiteSelector({
+  sites, selectedSiteId, onChange, isLoading,
+}: {
+  sites: Site[];
+  selectedSiteId: number | null;
+  onChange: (id: number) => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 w-full sm:w-64">
+      <p className="gv-label">Viewing site</p>
+      {isLoading ? (
+        <div className="h-10 rounded-lg bg-[color:var(--gv-glass-bg)] relative overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                          bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </div>
+      ) : (
+        <div className="relative">
+          <select
+            className="w-full appearance-none pr-9 pl-3 h-10 rounded-lg border border-[color:var(--border)]
+                       bg-[color:var(--gv-glass-bg)] text-[color:var(--foreground)] text-sm cursor-pointer
+                       outline-none transition-colors focus:border-[color:var(--gv-glass-border-hover)]
+                       hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white"
+            value={selectedSiteId ?? ''}
+            onChange={(e) => onChange(Number(e.target.value))}
+          >
+            {sites.length === 0 && <option value="">No sites available</option>}
+            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2
+                                            text-[color:var(--gv-text-subtle)] pointer-events-none" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DateFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="gv-label">Filter by date</p>
+      <div className="relative">
+        <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2
+                                       text-[color:var(--muted-foreground)] pointer-events-none" />
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="pl-9 pr-3 h-10 rounded-lg border border-[color:var(--border)]
+                     bg-[color:var(--gv-glass-bg)] text-[color:var(--foreground)] text-sm
+                     outline-none transition-colors focus:border-[color:var(--gv-glass-border-hover)]
+                     hover:border-[color:var(--gv-glass-border)] cursor-pointer"
+        />
+      </div>
+    </div>
+  );
+}
+
+
+export default function StoreActivityPage() {
+  const [tab,            setTab]            = useState<ActivityTab>('usage');
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
-  const [materials, setMaterials]           = useState<StoreMaterial[]>([]);
-  const [tools, setTools]                   = useState<StoreTool[]>([]);
-  const [search, setSearch]                 = useState('');
-  const [isSitesLoading, setIsSitesLoading] = useState(true);
-  const [isMatsLoading, setIsMatsLoading]   = useState(false);
-  const [isToolsLoading, setIsToolsLoading] = useState(false);
+  const [dateFilter,     setDateFilter]     = useState('');
 
-  // Step 1 — load sites, then trigger data load via state
-  useEffect(() => {
-    api.get('/sites/list')
-      .then((res) => {
-        const raw  = res.data?.data;
-        const list: Site[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
-        setSites(list);
-        if (list.length > 0) setSelectedSiteId(list[0].id);  // triggers step 2
-      })
-      .catch(console.error)
-      .finally(() => setIsSitesLoading(false));
-  }, []);
+  const { data: sitesRaw, loading: isSitesLoading } =
+    useApi<Site[] | { items: Site[] }>('/sites/list');
 
-  // Step 2 — runs whenever selectedSiteId is set/changed
-  useEffect(() => {
-    if (selectedSiteId === null) return;
-    setSearch('');
+  const sites: Site[]  = useMemo(() => extractList(sitesRaw), [sitesRaw]);
+  const resolvedSiteId = selectedSiteId ?? sites[0]?.id ?? null;
 
-    // GET /api/v1/store/materials/{site_id}/all
-    setIsMatsLoading(true);
-    api.get(`/store/materials/${selectedSiteId}/all`)
-      .then((res) => {
-        const raw = res.data?.data;
-        setMaterials(Array.isArray(raw) ? raw : (raw?.items ?? []));
-      })
-      .catch(console.error)
-      .finally(() => setIsMatsLoading(false));
+  const {
+    data: usageRaw, loading: isUsageLoading, error: usageError, refetch: refetchUsage,
+  } = useApi<DailyUsageRecord[] | { items: DailyUsageRecord[] }>(
+    '/daily-usage/all',
+    { enabled: resolvedSiteId !== null, params: { site_id: resolvedSiteId } },
+  );
 
-    // GET /api/v1/store/tools/{site_id}/all
-    setIsToolsLoading(true);
-    api.get(`/store/tools/${selectedSiteId}/all`)
-      .then((res) => {
-        const raw = res.data?.data;
-        setTools(Array.isArray(raw) ? raw : (raw?.items ?? []));
-      })
-      .catch(console.error)
-      .finally(() => setIsToolsLoading(false));
-  }, [selectedSiteId]);
+  const {
+    data: matsRaw, loading: isMatsLoading,
+  } = useApi<StoreMaterial[] | { items?: StoreMaterial[] }>(
+    `/store/materials/${resolvedSiteId}/all`,
+    { enabled: resolvedSiteId !== null },
+  );
 
-  const filteredMaterials = materials.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
-  const filteredTools     = tools.filter((t)     => t.name.toLowerCase().includes(search.toLowerCase()));
-  const lowCount  = materials.filter((m) => m.minimumStockLevel !== null && m.quantity <= m.minimumStockLevel).length;
-  const outCount  = materials.filter((m) => m.quantity === 0).length;
-  const availTool = tools.filter((t) => t.status?.toUpperCase() === 'AVAILABLE').length;
-  const isLoading = tab === 'materials' ? isMatsLoading : isToolsLoading;
+  const usageLogs: DailyUsageRecord[] = useMemo(() => extractList(usageRaw),  [usageRaw]);
+  const materials: StoreMaterial[]    = useMemo(() => extractList(matsRaw),   [matsRaw]);
+
+  const materialById = useMemo(
+    () => new Map(materials.map((m) => [m.id, m])),
+    [materials],
+  );
+
+  const filteredLogs = useMemo(() => {
+    if (!dateFilter) return usageLogs;
+    return usageLogs.filter((log) => safeDateSlice(log.usage_date) === dateFilter);
+  }, [usageLogs, dateFilter]);
+
+  const allOrders = useMemo(() =>
+    usageLogs.flatMap((log) =>
+      (log.orders ?? []).map((order: { material_id: number; order_quantity: number }) => {
+        const mat = materialById.get(order.material_id);
+        return {
+          material_id:    order.material_id,
+          order_quantity: order.order_quantity,
+          usage_date:     log.usage_date,
+          log_id:         log.id,
+          material_name:  mat?.name ?? `Material #${order.material_id}`,
+          material_unit:  mat?.unit?.symbol ?? mat?.unit?.name ?? '',
+        };
+      }),
+    ),
+    [usageLogs, materialById],
+  );
+
+  const filteredOrders = useMemo(() => {
+    if (!dateFilter) return allOrders;
+    return allOrders.filter((o) => safeDateSlice(o.usage_date) === dateFilter);
+  }, [allOrders, dateFilter]);
+
+  const isDataLoading = isUsageLoading || isMatsLoading;
 
   return (
     <div className="space-y-6">
-      {/* Header + site selector */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>
-          <h1 className="text-2xl font-bold mt-1">Stock Registers</h1>
+          <h1 className="text-2xl font-bold mt-1">Store Activity</h1>
         </div>
-        <div className="flex flex-col gap-1 w-full sm:w-64">
-          <p className="gv-label">Viewing site</p>
-          {isSitesLoading ? (
-            <div className="gv-input h-10 animate-pulse bg-muted" />
-          ) : (
-            <div className="relative">
-              <select
-                className="gv-input appearance-none pr-9 h-10 text-sm cursor-pointer"
-                value={selectedSiteId ?? ''}
-                onChange={(e) => setSelectedSiteId(Number(e.target.value))}
-              >
-                {sites.length === 0 && <option value="">No sites available</option>}
-                {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            </div>
-          )}
-        </div>
+        <SiteSelector
+          sites={sites}
+          selectedSiteId={resolvedSiteId}
+          onChange={(id) => { setSelectedSiteId(id); setDateFilter(''); }}
+          isLoading={isSitesLoading}
+        />
       </div>
 
-      {/* Summary pills */}
-      {!isMatsLoading && !isToolsLoading && selectedSiteId && (
-        <div className="flex flex-wrap gap-2">
-          <span className="gv-tag">{materials.length} material{materials.length !== 1 ? 's' : ''}</span>
-          {lowCount > 0 && (
-            <span className="gv-tag border-yellow-500/30 text-yellow-400 flex items-center gap-1">
-              <AlertTriangle size={10} /> {lowCount} low stock
-            </span>
-          )}
-          {outCount > 0 && (
-            <span className="gv-tag border-destructive/30 text-destructive flex items-center gap-1">
-              <XCircle size={10} /> {outCount} out of stock
-            </span>
-          )}
-          <span className="gv-tag">{tools.length} tool{tools.length !== 1 ? 's' : ''}</span>
-          {availTool > 0 && (
-            <span className="gv-tag border-green-500/30 text-green-400 flex items-center gap-1">
-              <CheckCircle2 size={10} /> {availTool} available
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Tabs + Search */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <div className="flex gap-1 p-1 rounded-lg bg-muted">
-          {(['materials', 'tools'] as Tab[]).map((t) => (
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3 justify-between">
+        <div className="flex gap-1 p-1 rounded-lg bg-[color:var(--muted)] w-fit">
+          {([
+            { key: 'usage',  label: 'Daily Usage', icon: <ClipboardList size={14} /> },
+            { key: 'orders', label: 'Orders',       icon: <ShoppingCart size={14} />  },
+          ] as { key: ActivityTab; label: string; icon: React.ReactNode }[]).map((t) => (
             <button
-              key={t}
-              onClick={() => { setTab(t); setSearch(''); }}
+              key={t.key}
+              onClick={() => { setTab(t.key); setDateFilter(''); }}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                tab === t.key
+                  ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)]'
+                  : 'text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]'
               }`}
             >
-              {t === 'materials' ? <Package size={14} /> : <Wrench size={14} />}
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t.icon}{t.label}
             </button>
           ))}
         </div>
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            className="gv-input pl-9 h-9 text-sm"
-            placeholder={`Search ${tab}...`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        <DateFilter value={dateFilter} onChange={setDateFilter} />
       </div>
 
-      {/* Loading */}
-      {isLoading && (
-        <div className="space-y-2">
-          {[1,2,3,4,5].map((i) => <div key={i} className="gv-card h-14 animate-pulse" />)}
-        </div>
+      {isDataLoading && (
+        <TableSkeleton cols={tab === 'usage' ? 3 : 3} rows={5} />
       )}
 
-      {/* Materials table */}
-      {!isLoading && tab === 'materials' && (
-        <div className="gv-card p-0 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                {['Material', 'Unit', 'Quantity', 'Min. Level', 'Stock Bar', 'Status'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredMaterials.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">
-                  <Package size={32} className="mx-auto mb-2 opacity-20" /><p>No materials found</p>
-                </td></tr>
-              ) : filteredMaterials.map((mat) => {
-                const st  = stockStatus(mat);
-                const pct = mat.minimumStockLevel && mat.minimumStockLevel > 0
-                  ? Math.min(100, Math.round((mat.quantity / (mat.minimumStockLevel * 2)) * 100))
-                  : mat.quantity > 0 ? 100 : 0;
-                return (
-                  <tr key={mat.id} className="border-b border-border last:border-0 hover:bg-accent/30 transition-colors">
-                    <td className="px-4 py-3 font-medium">
-                      <p>{mat.name}</p>
-                      {mat.description && <p className="text-xs text-muted-foreground">{mat.description}</p>}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{mat.unit?.symbol ?? mat.unit?.name}</td>
-                    <td className="px-4 py-3 font-semibold tabular-nums">{mat.quantity}</td>
-                    <td className="px-4 py-3 text-muted-foreground tabular-nums">{mat.minimumStockLevel ?? '—'}</td>
-                    <td className="px-4 py-3 w-28">
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            mat.quantity === 0 ? 'bg-destructive'
-                            : mat.minimumStockLevel !== null && mat.quantity <= mat.minimumStockLevel ? 'bg-yellow-400'
-                            : 'bg-green-400'
-                          }`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`gv-tag w-fit ${st.cls}`}>{st.label}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {!isDataLoading && tab === 'usage' && (
+        usageError && !usageLogs.length ? (
+          <div className="gv-card flex flex-col items-center justify-center py-16 text-center
+                          border-[color:var(--gv-border-danger)]">
+            <AlertTriangle size={36} className="text-[color:var(--destructive)] opacity-40 mb-3" />
+            <p className="text-sm text-[color:var(--muted-foreground)] mb-3">Failed to load usage logs.</p>
+            <button
+              onClick={refetchUsage}
+              className="gv-tag border-[color:var(--gv-glass-border)] hover:border-[color:var(--gv-glass-border-hover)]
+                         cursor-pointer flex items-center gap-1.5 transition-colors"
+            >
+              <RefreshCw size={11} /> Retry
+            </button>
+          </div>
+        ) : filteredLogs.length === 0 ? (
+          <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
+            <ClipboardList size={36} className="text-[color:var(--muted-foreground)] opacity-20 mb-3" />
+            <p className="text-sm text-[color:var(--muted-foreground)]">
+              {dateFilter ? 'No usage logs for the selected date' : 'No daily usage logs for this site'}
+            </p>
+          </div>
+        ) : (
+          <div className="gv-card p-0 overflow-hidden">
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-[35%]" />
+                <col className="w-[20%]" />
+                <col className="w-[45%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-[color:var(--border)] bg-[color:var(--muted)]">
+                  {['Material', 'Qty Used', 'Notes'].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold
+                                           text-[color:var(--muted-foreground)] uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLogs.flatMap((log) => {
+                  if (!log.items?.length) return [];
+                  return log.items.map((item, idx) => {
+                    const unitSymbol = item.material?.unit?.symbol ?? item.material?.unit?.name ?? '';
+                    return (
+                      <tr
+                        key={`${log.id}-${idx}`}
+                        className="border-b border-[color:var(--border)] last:border-0
+                                   hover:bg-[color:var(--accent)] transition-colors"
+                      >
+                        <td className="px-4 py-3 font-medium">{item.material?.name ?? '—'}</td>
+                        <td className="px-4 py-3 tabular-nums">
+                          <span className="font-semibold">
+                            {item.quantityUsed != null ? item.quantityUsed : '—'}
+                          </span>
+                          {unitSymbol && (
+                            <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">
+                              {unitSymbol}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[color:var(--muted-foreground)]">
+                          {item.notes ?? '—'}
+                        </td>
+                      </tr>
+                    );
+                  });
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
-      {/* Tools table */}
-      {!isLoading && tab === 'tools' && (
-        <div className="gv-card p-0 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                {['Tool', 'Status', 'Billing', 'Vendor', 'Hire Cost', 'Hire Period'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTools.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">
-                  <Wrench size={32} className="mx-auto mb-2 opacity-20" /><p>No tools found</p>
-                </td></tr>
-              ) : filteredTools.map((tool) => {
-                const meta = TOOL_STATUS_META[tool.status?.toUpperCase()] ?? {
-                  label: tool.status, cls: 'text-muted-foreground border-white/20', icon: null,
-                };
-                return (
-                  <tr key={tool.id} className="border-b border-border last:border-0 hover:bg-accent/30 transition-colors">
+      {!isDataLoading && tab === 'orders' && (
+        usageError && !usageLogs.length ? (
+          <div className="gv-card flex flex-col items-center justify-center py-16 text-center
+                          border-[color:var(--gv-border-danger)]">
+            <AlertTriangle size={36} className="text-[color:var(--destructive)] opacity-40 mb-3" />
+            <p className="text-sm text-[color:var(--muted-foreground)] mb-3">Failed to load orders.</p>
+            <button
+              onClick={refetchUsage}
+              className="gv-tag border-[color:var(--gv-glass-border)] hover:border-[color:var(--gv-glass-border-hover)]
+                         cursor-pointer flex items-center gap-1.5 transition-colors"
+            >
+              <RefreshCw size={11} /> Retry
+            </button>
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
+            <ShoppingCart size={36} className="text-[color:var(--muted-foreground)] opacity-20 mb-3" />
+            <p className="text-sm text-[color:var(--muted-foreground)]">
+              {dateFilter ? 'No orders for the selected date' : 'No orders recorded for this site'}
+            </p>
+          </div>
+        ) : (
+          <div className="gv-card p-0 overflow-hidden">
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-[45%]" />
+                <col className="w-[25%]" />
+                <col className="w-[30%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-[color:var(--border)] bg-[color:var(--muted)]">
+                  {['Material', 'Order Qty', 'Date Logged'].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold
+                                           text-[color:var(--muted-foreground)] uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.map((order, idx) => (
+                  <tr
+                    key={idx}
+                    className="border-b border-[color:var(--border)] last:border-0
+                               hover:bg-[color:var(--accent)] transition-colors"
+                  >
                     <td className="px-4 py-3 font-medium">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
-                          <Wrench size={13} className="text-muted-foreground" />
+                        <div className="w-7 h-7 rounded-md bg-[color:var(--muted)]
+                                        flex items-center justify-center shrink-0">
+                          <Package size={12} className="text-[color:var(--primary)]" />
                         </div>
-                        <div>
-                          <p>{tool.name}</p>
-                          {tool.description && <p className="text-xs text-muted-foreground">{tool.description}</p>}
-                        </div>
+                        {order.material_name}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`gv-tag flex items-center gap-1 w-fit ${meta.cls}`}>{meta.icon} {meta.label}</span>
+                    <td className="px-4 py-3 tabular-nums">
+                      <span className="font-semibold">{order.order_quantity}</span>
+                      {order.material_unit && (
+                        <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">
+                          {order.material_unit}
+                        </span>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground capitalize">{tool.billing_type?.replace('_', ' ') ?? '—'}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{tool.vendor ?? '—'}</td>
-                    <td className="px-4 py-3 text-muted-foreground tabular-nums">
-                      {tool.hireCost != null ? `$${tool.hireCost.toFixed(2)}` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {tool.hire_start_date
-                        ? `${new Date(tool.hire_start_date).toLocaleDateString()} – ${tool.hire_end_date ? new Date(tool.hire_end_date).toLocaleDateString() : 'ongoing'}`
-                        : '—'}
+                    <td className="px-4 py-3 text-xs text-[color:var(--muted-foreground)]">
+                      {fmtDate(order.usage_date, { year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
+
     </div>
   );
 }
