@@ -22,12 +22,6 @@ export interface LoginResponse {
   user_id: number;
 }
 
-<<<<<<< HEAD
-export interface Material {
-  id: number;
-  name: string;
-  unit?: string;
-=======
 export interface Invoice {
   id: number;
   invoice_number: string;
@@ -52,7 +46,6 @@ export interface InvoiceItem {
   quantity: number;
   unit_price: number;
   total_price: number;
->>>>>>> 3055d4fdcddbdcf578fb7e943d6af7c7cb972875
 }
 
 export interface MenuItem {
@@ -84,8 +77,6 @@ export interface SubSubMenu {
   order: number;
 }
 
-<<<<<<< HEAD
-=======
 export interface ApiUser {
   id: number;
   ref_id: string;
@@ -98,4 +89,49 @@ export interface ApiUser {
   accountStatus?: string;
   role?: string;
 }
->>>>>>> 3055d4fdcddbdcf578fb7e943d6af7c7cb972875
+
+export interface ClientInvoiceItem {
+  id: number;
+  item_index: number;
+  particulars: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
+export interface ClientInvoice {
+  id: number;
+  invoice_number: string;
+  invoice_date: string;
+  client_name: string;
+  total_invoice_value: number;
+  notes?: string;
+  site_id: number;
+  created_by?: number;
+  created_at: string;
+  updated_at?: string;
+  items: ClientInvoiceItem[];
+}
+
+export interface ClientInvoiceListItem {
+  id: number;
+  invoice_number: string;
+  client_name: string;
+  invoice_date: string;
+  total_invoice_value: number;
+  site_id: number;
+  created_at: string;
+}
+
+export interface Site {
+  id: number;
+  name: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
