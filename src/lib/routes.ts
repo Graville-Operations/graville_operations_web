@@ -12,7 +12,7 @@ export const ROUTES = {
   },
   finance: {
     home:     '/finance',
-    invoices: '/finance/invoices',
+    invoices: '/finance/invoices/supplier',
     new:      '/finance/invoices/new',
   },
   projects: {
