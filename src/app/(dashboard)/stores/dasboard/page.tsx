@@ -8,6 +8,8 @@ import {
 import { useApi } from '@/hooks/useApi';
 import type { Site, StoreSummary } from '@/types/store';
 
+
+
 const BORDER_CLS: Record<string, string> = {
   default: 'border-[color:var(--border)]',
   warn:    'border-[color:var(--gv-border-warn)]',
@@ -43,9 +45,13 @@ const TAG_LABEL: Record<string, string> = {
   warn: 'Warning', danger: 'Critical', success: 'Good', info: 'Info',
 };
 
+
+
 function fmtKES(n: number) {
   return `KSH ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+
 
 function CardSkeleton() {
   return (
@@ -55,6 +61,8 @@ function CardSkeleton() {
     </div>
   );
 }
+
+
 
 interface StatCardProps {
   label:    string;
@@ -94,6 +102,7 @@ function StatCard({ label, value, sub, icon, variant = 'default', onClick }: Sta
 }
 
 
+
 function SiteSelector({
   sites, selectedSiteId, onChange, isLoading,
 }: {
@@ -130,6 +139,8 @@ function SiteSelector({
     </div>
   );
 }
+
+
 
 
 export default function StoreDashboardPage() {
