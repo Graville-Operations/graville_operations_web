@@ -221,6 +221,7 @@ export default function StoreDashboardPage() {
         />
       </div>
 
+      {/* Context pill */}
       {selectedSite && (
         <div className="flex items-center gap-2">
           <BarChart3 size={13} className="text-[color:var(--primary)]" />
