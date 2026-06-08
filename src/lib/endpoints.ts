@@ -11,6 +11,8 @@ export const API = {
     create: '/users/create',
     delete: (id: number) => `/users/${id}`,
     update: (id: number) => `/users/${id}`,
+    get:         (id: number) => `/users/${id}`,
+    departments: (id: number) => `/users/${id}/departments`,
   },
   roles: {
     list:   '/roles/list',

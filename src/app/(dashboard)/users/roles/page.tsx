@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Shield, Plus, Pencil, Trash2, X, Check, UserCog } from 'lucide-react';
 import { API } from '@/lib/endpoints';
+import { formatDate } from '@/lib/utils/date';
 
 interface Role {
   id: number;
@@ -149,7 +150,7 @@ export default function RolesPage() {
                   <div>
                     <p className="font-semibold text-white text-sm">{role.name}</p>
                     <p className="text-xs text-white/40 mt-0.5">
-                      {new Date(role.createdAt).toLocaleDateString()}
+                      {formatDate(role.createdAt)}
                     </p>
                   </div>
                 </div>

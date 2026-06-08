@@ -10,6 +10,7 @@ import { fetchOverviewKPIs } from '@/lib/api/sites';
 import { OverviewKPIs } from '@/types/site';
 import { API } from '@/lib/endpoints';
 import { ROUTES } from '@/lib/routes';
+import { formatDate } from '@/lib/utils/date';
 import {
   Users, BarChart2, Briefcase, TrendingUp,
   ArrowRight, Clock, Receipt, CheckCircle2,
@@ -274,7 +275,7 @@ export default function HomePage() {
                       KES {inv.total_invoice_value?.toLocaleString()}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
-                      {new Date(inv.invoice_date).toLocaleDateString()}
+                      {formatDate(inv.invoice_date)}
                     </p>
                   </div>
                 </div>
