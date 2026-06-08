@@ -182,7 +182,6 @@ export default function StoreActivityPage() {
 
   return (
     <div className="space-y-6">
-
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>

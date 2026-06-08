@@ -19,7 +19,6 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const router = useRouter();
-  const { loadFromStorage } = useAuthStore();
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +70,13 @@ export default function ForgotPasswordPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  } catch (err: unknown) {
+    const axiosErr = err as { response?: { data?: { message?: string } } };
+    setError(axiosErr.response?.data?.message || 'Invalid or expired OTP. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,#1a3a6e_0%,#0a0f1e_60%,#000000_100%)]">
@@ -83,7 +88,7 @@ export default function ForgotPasswordPage() {
       <div className="relative w-full max-w-md rounded-2xl p-8 shadow-2xl bg-white/10 backdrop-blur-md border border-white/20">
         {/* Back link */}
         <Link
-          href="/signin"
+          href="/login"
           className="flex items-center gap-1.5 text-sm text-blue-200/60 hover:text-blue-200 transition-colors mb-6"
         >
           <ArrowLeft size={15} />
@@ -135,7 +140,7 @@ export default function ForgotPasswordPage() {
               disabled={isLoading}
               className="w-full bg-blue-500/80 hover:bg-blue-500 text-white py-3 rounded-lg font-semibold transition-all duration-200 backdrop-blur-sm border border-blue-400/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
             >
-              {isLoading ? 'Sending...' : 'Send OTP'}
+              {isLoading ? 'Sending OTP...' : 'Send OTP'}
             </button>
           </form>
         )}
@@ -161,7 +166,7 @@ export default function ForgotPasswordPage() {
                 type="text"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
+                placeholder="Enter 6-digit OTP"
                 required
                 maxLength={6}
                 className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-white/40 backdrop-blur-sm text-center text-xl tracking-[0.5em] font-bold"
@@ -172,7 +177,7 @@ export default function ForgotPasswordPage() {
               disabled={isLoading || otp.length < 6}
               className="w-full bg-blue-500/80 hover:bg-blue-500 text-white py-3 rounded-lg font-semibold transition-all duration-200 backdrop-blur-sm border border-blue-400/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
             >
-              {isLoading ? 'Verifying...' : 'Verify & Sign In'}
+              {isLoading ? 'Verifying...' : 'Verify OTP'}
             </button>
             <button
               type="button"
