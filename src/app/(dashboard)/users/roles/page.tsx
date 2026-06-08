@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { Shield, Plus, Pencil, Trash2, X, Check, UserCog } from 'lucide-react';
+import { Shield, Plus, Pencil, Trash2, X, Check} from 'lucide-react';
 import { API } from '@/lib/endpoints';
 import { formatDate } from '@/lib/utils/date';
 
