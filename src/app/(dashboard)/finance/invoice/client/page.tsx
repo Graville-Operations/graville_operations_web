@@ -1,57 +1,53 @@
-<<<<<<< HEAD
-export default function UserReportsPage() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-800">User Reports</h2>
-        <p className="text-sm text-gray-500">View and export user reports</p>
-      </div>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex items-center justify-center text-gray-400">
-        Coming soon
-=======
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
-import { Plus, Receipt, Search, Eye } from 'lucide-react';
+import { Plus, Receipt, Search } from 'lucide-react';
 
 interface ClientInvoice {
   id: number;
-  invoice_number: string;
-  client_name: string;
-  invoice_date: string;
-  total_invoice_value: number;
-  site_id: number;
-  notes?: string;
+  invoiceNo: string;
+  clientName: string;
+  invoiceDate: string;
+  total: number;
+  createdAt: string;
 }
 
 export default function ClientInvoicesPage() {
+  const router = useRouter();
   const [invoices, setInvoices] = useState<ClientInvoice[]>([]);
   const [filtered, setFiltered] = useState<ClientInvoice[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
 
-  const fetchInvoices = async () => {
-    try {
-      setIsLoading(true);
-      const { data } = await api.get('/client-invoices/all?limit=20');
-      const payload = data?.data ?? data;
-      const list = Array.isArray(payload) ? payload : payload?.items ?? [];
-      setInvoices(list);
-      setFiltered(list);
-      setTotal(payload?.total ?? list.length);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchInvoices();
+    const loadInvoices = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.get('/client-invoices/all?limit=20');
+        const raw = response.data;
+
+        // paginated_response → success_response wraps as { data: { items, total } }
+        const payload = raw?.data ?? raw;
+        const list: ClientInvoice[] = payload?.items ?? (Array.isArray(payload) ? payload : []);
+        const totalCount: number = payload?.total ?? list.length;
+
+        console.log('[ClientInvoices] list:', list);
+        setInvoices(list);
+        setFiltered(list);
+        setTotal(totalCount);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) {
+        console.error('[ClientInvoices] Error:', err?.response?.data ?? err?.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInvoices();
   }, []);
 
   useEffect(() => {
@@ -60,11 +56,11 @@ export default function ClientInvoicesPage() {
       setFiltered(
         invoices.filter(
           (inv) =>
-            inv.invoice_number.toLowerCase().includes(q) ||
-            inv.client_name.toLowerCase().includes(q)
+            inv.invoiceNo?.toLowerCase().includes(q) ||
+            inv.clientName?.toLowerCase().includes(q)
         )
       );
-    }, 0);
+    }, 300);
     return () => clearTimeout(timer);
   }, [search, invoices]);
 
@@ -110,7 +106,7 @@ export default function ClientInvoicesPage() {
             <Receipt size={48} className="mb-3 opacity-30" />
             <p className="text-sm">No client invoices yet</p>
             <Link
-              href="/finance/invoices/client/new"
+              href="/finance/invoice/client/new"
               className="mt-3 text-xs text-[#33907C] hover:underline"
             >
               Create your first invoice
@@ -120,8 +116,11 @@ export default function ClientInvoicesPage() {
           <table className="w-full">
             <thead className="bg-white/5 border-b border-white/10">
               <tr>
-                {['Invoice #', 'Client', 'Date', 'Amount', 'Actions'].map((h) => (
-                  <th key={h} className="px-6 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">
+                {['Invoice No.', 'Client', 'Date', 'Amount (KES)'].map((h) => (
+                  <th
+                    key={h}
+                    className="px-6 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider"
+                  >
                     {h}
                   </th>
                 ))}
@@ -129,38 +128,37 @@ export default function ClientInvoicesPage() {
             </thead>
             <tbody className="divide-y divide-white/10">
               {filtered.map((inv) => (
-                <tr key={inv.id} className="hover:bg-white/5 transition-colors">
+                <tr
+                  key={inv.id}
+                  onClick={() => router.push(`/finance/invoice/client/${inv.id}`)}
+                  className="hover:bg-white/5 transition-colors cursor-pointer"
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-[#33907C]/20 rounded-lg flex items-center justify-center shrink-0">
                         <Receipt size={14} className="text-[#33907C]" />
                       </div>
-                      <span className="text-sm font-medium text-white">{inv.invoice_number}</span>
+                      <span className="text-sm font-medium text-white">
+                        {inv.invoiceNo ?? '—'}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-white/60">{inv.client_name}</td>
                   <td className="px-6 py-4 text-sm text-white/60">
-                    {new Date(inv.invoice_date).toLocaleDateString()}
+                    {inv.clientName ?? '—'}
                   </td>
+                  <td className="px-6 py-4 text-sm text-white/60">
+  {inv.invoiceDate ?? '—'}
+</td>
                   <td className="px-6 py-4">
                     <span className="text-sm font-semibold text-[#33907C]">
-                      KES {inv.total_invoice_value?.toLocaleString()}
+                      {inv.total?.toLocaleString() ?? '—'}
                     </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Link
-                      href={`/finance/invoices/client/${inv.id}`}
-                      className="p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-lg transition-colors inline-flex"
-                    >
-                      <Eye size={16} />
-                    </Link>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
->>>>>>> ff333752c2f6b4a16f9c4ff7ccd632a076af112e
       </div>
     </div>
   );
