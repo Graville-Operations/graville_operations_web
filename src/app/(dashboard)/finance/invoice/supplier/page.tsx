@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { Invoice, RawInvoice, RawPaginatedResponse, normaliseInvoice } from '@/types';
+import { Invoice, RawInvoice, RawPaginatedResponse, normaliseInvoice } from '@/types/invoice';
 import { Search, Eye, Plus, X, Receipt, Loader2 } from 'lucide-react';
 import CreateInvoiceModal from './components/page';
 
@@ -22,21 +22,27 @@ export default function SupplierInvoicesPage() {
   const [selected, setSelected]        = useState<Invoice | null>(null);
   const [detailLoading, setDetailLoad] = useState(false);
   const [showCreate, setShowCreate]    = useState(false);
+  // Cache of fully-enriched invoices keyed by id
+  const [enriched, setEnriched]        = useState<Record<number, Invoice>>({});
 
   useEffect(() => { fetchInvoices(); }, []);
 
   useEffect(() => {
     const q = search.toLowerCase();
     setFiltered(
-      invoices.filter((i) =>
-        i.invoice_number.toLowerCase().includes(q) ||
-        i.supplier_name.toLowerCase().includes(q)  ||
-        (i.submitted_by ?? '').toLowerCase().includes(q) ||
-        (i.site ?? '').toLowerCase().includes(q)   ||
-        i.status.toLowerCase().includes(q)
-      )
+      invoices.filter((i) => {
+        // Prefer enriched data for searching so enriched rows are searchable by site/submitter
+        const inv = enriched[i.id] ?? i;
+        return (
+          inv.invoice_number.toLowerCase().includes(q) ||
+          inv.supplier_name.toLowerCase().includes(q)  ||
+          (inv.submitted_by ?? '').toLowerCase().includes(q) ||
+          (inv.site ?? '').toLowerCase().includes(q)   ||
+          inv.status.toLowerCase().includes(q)
+        );
+      })
     );
-  }, [search, invoices]);
+  }, [search, invoices, enriched]);
 
   const fetchInvoices = async () => {
     try {
@@ -55,11 +61,14 @@ export default function SupplierInvoicesPage() {
   };
 
   const openDetail = async (inv: Invoice) => {
-    setSelected(inv);
+    // Use cached enriched version immediately if available — no flicker
+    setSelected(enriched[inv.id] ?? inv);
     setDetailLoad(true);
     try {
       const { data } = await api.get(`/invoices/details/${inv.id}`);
       const full = normaliseInvoice(data?.data ?? data);
+      // Store in cache so the list row also benefits
+      setEnriched((prev) => ({ ...prev, [full.id]: full }));
       setSelected(full);
     } catch (err) {
       console.error('Failed to fetch invoice detail:', err);
@@ -118,7 +127,7 @@ export default function SupplierInvoicesPage() {
         </div>
       </div>
 
-    
+      {/* ── Desktop Table ── */}
       <div className="gv-card !p-0 overflow-hidden hidden md:block">
         {isLoading ? <Spinner /> : filtered.length === 0 ? <EmptyState /> : (
           <div className="overflow-x-auto">
@@ -132,10 +141,12 @@ export default function SupplierInvoicesPage() {
               </thead>
               <tbody>
                 {filtered.map((inv, idx) => {
-                  const st = statusStyles[inv.status] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--gv-text-muted)' };
+                  // Use enriched data for display if available
+                  const display = enriched[inv.id] ?? inv;
+                  const st = statusStyles[display.status] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--gv-text-muted)' };
                   return (
                     <tr
-                      key={inv.id}
+                      key={display.id}
                       onClick={() => openDetail(inv)}
                       className="cursor-pointer"
                       style={{
@@ -145,14 +156,14 @@ export default function SupplierInvoicesPage() {
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
-                      <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>{inv.invoice_number}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.supplier_name}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.site ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.submitted_by ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>KES {inv.total_amount.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>{display.invoice_number}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{display.supplier_name}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{display.site ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{display.submitted_by ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>KES {display.total_amount.toLocaleString()}</td>
                       <td className="px-4 py-3">
                         <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: st.bg, color: st.color }}>
-                          {inv.status.replace(/_/g, ' ')}
+                          {display.status.replace(/_/g, ' ')}
                         </span>
                       </td>
                     </tr>
@@ -164,40 +175,42 @@ export default function SupplierInvoicesPage() {
         )}
       </div>
 
-  
+      {/* ── Mobile Cards ── */}
       <div className="space-y-2 md:hidden">
         {isLoading ? <Spinner /> : filtered.length === 0 ? <EmptyState /> : (
           filtered.map((inv) => {
-            const st = statusStyles[inv.status] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--gv-text-muted)' };
+            // Use enriched data for display if available
+            const display = enriched[inv.id] ?? inv;
+            const st = statusStyles[display.status] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--gv-text-muted)' };
             return (
               <div
-                key={inv.id}
+                key={display.id}
                 onClick={() => openDetail(inv)}
                 className="gv-card cursor-pointer active:scale-[0.99] transition-transform"
                 style={{ padding: '14px 16px' }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-bold" style={{ color: 'var(--gv-text-primary)' }}>
-                    #{inv.invoice_number}
+                    #{display.invoice_number}
                   </span>
                   <span className="text-xs font-bold px-2.5 py-0.5 rounded-full" style={{ background: st.bg, color: st.color }}>
-                    {inv.status.replace(/_/g, ' ')}
+                    {display.status.replace(/_/g, ' ')}
                   </span>
                 </div>
-                <p className="text-sm mb-2" style={{ color: 'var(--gv-text-muted)' }}>{inv.supplier_name}</p>
+                <p className="text-sm mb-2" style={{ color: 'var(--gv-text-muted)' }}>{display.supplier_name}</p>
                 <div className="flex items-center gap-3 mb-2.5">
-                  {inv.site && (
+                  {display.site && (
                     <span className="text-xs px-2 py-0.5 rounded-md" style={{ background: 'rgba(51,144,124,0.1)', color: '#33907c' }}>
-                      {inv.site}
+                      {display.site}
                     </span>
                   )}
-                  {inv.submitted_by && (
-                    <span className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>by {inv.submitted_by}</span>
+                  {display.submitted_by && (
+                    <span className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>by {display.submitted_by}</span>
                   )}
                 </div>
                 <div className="flex items-center justify-between pt-2.5" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
                   <span className="text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
-                    KES {inv.total_amount.toLocaleString()}
+                    KES {display.total_amount.toLocaleString()}
                   </span>
                   <Eye size={14} style={{ color: 'var(--gv-text-subtle)' }} />
                 </div>
@@ -215,7 +228,7 @@ export default function SupplierInvoicesPage() {
         />
       )}
 
-     
+      {/* ── Detail Modal ── */}
       {selected && (
         <div
           className="fixed inset-0 flex items-end md:items-center justify-center z-50 p-0 md:p-4"
@@ -348,3 +361,22 @@ export default function SupplierInvoicesPage() {
     </div>
   );
 }
+const prefetchAllDetails = async (list: Invoice[]) => {
+  const unfetched = list.filter((inv) => !fetchedIds.current.has(inv.id));
+  if (unfetched.length === 0) return;
+
+  unfetched.forEach((inv) => fetchedIds.current.add(inv.id));
+
+  await Promise.allSettled(
+    unfetched.map(async (inv) => {
+      try {
+        const { data } = await api.get(`/invoices/details/${inv.id}`);
+        console.log('RAW DETAIL RESPONSE:', JSON.stringify(data?.data ?? data, null, 2)); // 👈 add this
+        const full = normaliseInvoice(data?.data ?? data);
+        setEnriched((prev) => ({ ...prev, [full.id]: full }));
+      } catch {
+        // silent
+      }
+    })
+  );
+};
