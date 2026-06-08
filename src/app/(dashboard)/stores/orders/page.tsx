@@ -7,7 +7,6 @@ import {
 import { useApi } from '@/hooks/useApi';
 import type { Site, DailyUsageRecord, StoreMaterial, ActivityTab } from '@/types/store';
 
-
 function extractList<T>(raw: T[] | { items?: T[] } | null | undefined): T[] {
   if (!raw) return [];
   return Array.isArray(raw) ? raw : (raw.items ?? []);
@@ -24,7 +23,6 @@ function fmtDate(iso: string, opts?: Intl.DateTimeFormatOptions) {
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString(undefined, opts);
 }
-
 
 function TableRowSkeleton({ cols }: { cols: number }) {
   return (
@@ -57,7 +55,6 @@ function TableSkeleton({ cols, rows = 5 }: { cols: number; rows?: number }) {
     </div>
   );
 }
-
 
 function SiteSelector({
   sites, selectedSiteId, onChange, isLoading,
@@ -117,18 +114,19 @@ function DateFilter({ value, onChange }: { value: string; onChange: (v: string) 
   );
 }
 
-
 export default function StoreActivityPage() {
   const [tab,            setTab]            = useState<ActivityTab>('usage');
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const [dateFilter,     setDateFilter]     = useState('');
 
+  // ── Sites ──
   const { data: sitesRaw, loading: isSitesLoading } =
     useApi<Site[] | { items: Site[] }>('/sites/list');
 
   const sites: Site[]  = useMemo(() => extractList(sitesRaw), [sitesRaw]);
   const resolvedSiteId = selectedSiteId ?? sites[0]?.id ?? null;
 
+  // ── Usage logs + materials fetched in parallel ──
   const {
     data: usageRaw, loading: isUsageLoading, error: usageError, refetch: refetchUsage,
   } = useApi<DailyUsageRecord[] | { items: DailyUsageRecord[] }>(
@@ -178,10 +176,12 @@ export default function StoreActivityPage() {
     return allOrders.filter((o) => safeDateSlice(o.usage_date) === dateFilter);
   }, [allOrders, dateFilter]);
 
+  // Loading states
   const isDataLoading = isUsageLoading || isMatsLoading;
 
   return (
     <div className="space-y-6">
+
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>
