@@ -1,65 +1,16 @@
 'use client';
 import { useState, useMemo } from 'react';
 import {
-  ChevronDown, ClipboardList, CheckCircle2, Clock,
-  XCircle, Package, AlertTriangle, RefreshCw, ShoppingCart, Calendar,
+  ChevronDown, ClipboardList, AlertTriangle,
+  RefreshCw, ShoppingCart, Calendar, Package,
 } from 'lucide-react';
-import { useCachedApi } from '@/hooks/useCachedApi';
-import type {
-  Site, DailyUsageRecord, StoreMaterial, ActivityTab,
-} from '@/types/store';
+import { useApi } from '@/hooks/useApi';
+import type { Site, DailyUsageRecord, StoreMaterial, ActivityTab } from '@/types/store';
 
 
-function SiteSelector({ sites, selectedSiteId, onChange, isLoading }: {
-  sites: Site[];
-  selectedSiteId: number | null;
-  onChange: (id: number) => void;
-  isLoading: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1 w-full sm:w-64">
-      <p className="gv-label">Viewing site</p>
-      {isLoading
-        ? <div className="h-10 rounded-lg animate-pulse bg-[color:var(--gv-glass-bg)]" />
-        : (
-          <div className="relative">
-            <select
-              className="w-full appearance-none pr-9 pl-3 h-10 rounded-lg border border-[color:var(--border)]
-                         bg-[color:var(--gv-glass-bg)] text-[color:var(--foreground)] text-sm cursor-pointer
-                         outline-none transition-colors focus:border-[color:var(--gv-glass-border-hover)]
-                         hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white"
-              value={selectedSiteId ?? ''}
-              onChange={(e) => onChange(Number(e.target.value))}
-            >
-              {sites.length === 0 && <option value="">No sites available</option>}
-              {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[color:var(--gv-text-subtle)] pointer-events-none" />
-          </div>
-        )}
-    </div>
-  );
-}
-
-
-function DateFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="gv-label">Filter by date</p>
-      <div className="relative">
-        <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--muted-foreground)] pointer-events-none" />
-        <input
-          type="date"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="pl-9 pr-3 h-10 rounded-lg border border-[color:var(--border)]
-                     bg-[color:var(--gv-glass-bg)] text-[color:var(--foreground)] text-sm
-                     outline-none transition-colors focus:border-[color:var(--gv-glass-border-hover)]
-                     hover:border-[color:var(--gv-glass-border)] cursor-pointer"
-        />
-      </div>
-    </div>
-  );
+function extractList<T>(raw: T[] | { items?: T[] } | null | undefined): T[] {
+  if (!raw) return [];
+  return Array.isArray(raw) ? raw : (raw.items ?? []);
 }
 
 function safeDateSlice(iso: string | null | undefined): string {
@@ -74,46 +25,129 @@ function fmtDate(iso: string, opts?: Intl.DateTimeFormatOptions) {
   return d.toLocaleDateString(undefined, opts);
 }
 
-function extractList<T>(raw: T[] | { items?: T[] } | null | undefined): T[] {
-  if (!raw) return [];
-  return Array.isArray(raw) ? raw : (raw.items ?? []);
+
+function TableRowSkeleton({ cols }: { cols: number }) {
+  return (
+    <tr className="border-b border-[color:var(--border)] last:border-0">
+      {Array.from({ length: cols }).map((_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[80%]">
+            <div
+              className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                         bg-gradient-to-r from-transparent via-white/5 to-transparent"
+              style={{ animationDelay: `${i * 60}ms` }}
+            />
+          </div>
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+function TableSkeleton({ cols, rows = 5 }: { cols: number; rows?: number }) {
+  return (
+    <div className="gv-card p-0 overflow-hidden">
+      <table className="w-full text-sm">
+        <tbody>
+          {Array.from({ length: rows }).map((_, i) => (
+            <TableRowSkeleton key={i} cols={cols} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+function SiteSelector({
+  sites, selectedSiteId, onChange, isLoading,
+}: {
+  sites: Site[];
+  selectedSiteId: number | null;
+  onChange: (id: number) => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 w-full sm:w-64">
+      <p className="gv-label">Viewing site</p>
+      {isLoading ? (
+        <div className="h-10 rounded-lg bg-[color:var(--gv-glass-bg)] relative overflow-hidden">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                          bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+        </div>
+      ) : (
+        <div className="relative">
+          <select
+            className="w-full appearance-none pr-9 pl-3 h-10 rounded-lg border border-[color:var(--border)]
+                       bg-[color:var(--gv-glass-bg)] text-[color:var(--foreground)] text-sm cursor-pointer
+                       outline-none transition-colors focus:border-[color:var(--gv-glass-border-hover)]
+                       hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white"
+            value={selectedSiteId ?? ''}
+            onChange={(e) => onChange(Number(e.target.value))}
+          >
+            {sites.length === 0 && <option value="">No sites available</option>}
+            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2
+                                            text-[color:var(--gv-text-subtle)] pointer-events-none" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DateFilter({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="gv-label">Filter by date</p>
+      <div className="relative">
+        <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2
+                                       text-[color:var(--muted-foreground)] pointer-events-none" />
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="pl-9 pr-3 h-10 rounded-lg border border-[color:var(--border)]
+                     bg-[color:var(--gv-glass-bg)] text-[color:var(--foreground)] text-sm
+                     outline-none transition-colors focus:border-[color:var(--gv-glass-border-hover)]
+                     hover:border-[color:var(--gv-glass-border)] cursor-pointer"
+        />
+      </div>
+    </div>
+  );
 }
 
 
 export default function StoreActivityPage() {
-  const [tab, setTab]                       = useState<ActivityTab>('usage');
+  const [tab,            setTab]            = useState<ActivityTab>('usage');
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
-  const [dateFilter, setDateFilter]         = useState('');
+  const [dateFilter,     setDateFilter]     = useState('');
 
   const { data: sitesRaw, loading: isSitesLoading } =
-    useCachedApi<Site[] | { items: Site[] }>('/sites/list');
+    useApi<Site[] | { items: Site[] }>('/sites/list');
 
-  const sites: Site[] = useMemo(() => extractList(sitesRaw), [sitesRaw]);
+  const sites: Site[]  = useMemo(() => extractList(sitesRaw), [sitesRaw]);
   const resolvedSiteId = selectedSiteId ?? sites[0]?.id ?? null;
 
   const {
-    data: usageRaw, loading: isUsageLoading, error: usageError,
-    refetch: refetchUsage,
-  } = useCachedApi<DailyUsageRecord[] | { items: DailyUsageRecord[] }>(
+    data: usageRaw, loading: isUsageLoading, error: usageError, refetch: refetchUsage,
+  } = useApi<DailyUsageRecord[] | { items: DailyUsageRecord[] }>(
     '/daily-usage/all',
-    { site_id: resolvedSiteId },
-    { enabled: resolvedSiteId !== null },
+    { enabled: resolvedSiteId !== null, params: { site_id: resolvedSiteId } },
   );
-
-  const usageLogs: DailyUsageRecord[] = useMemo(() => extractList(usageRaw), [usageRaw]);
 
   const {
     data: matsRaw, loading: isMatsLoading,
-  } = useCachedApi<StoreMaterial[] | { items?: StoreMaterial[] }>(
+  } = useApi<StoreMaterial[] | { items?: StoreMaterial[] }>(
     `/store/materials/${resolvedSiteId}/all`,
-    undefined,
     { enabled: resolvedSiteId !== null },
   );
 
-  const materials: StoreMaterial[] = useMemo(() => extractList(matsRaw), [matsRaw]);
+  const usageLogs: DailyUsageRecord[] = useMemo(() => extractList(usageRaw),  [usageRaw]);
+  const materials: StoreMaterial[]    = useMemo(() => extractList(matsRaw),   [matsRaw]);
 
-  const materialById = useMemo(() =>
-    new Map(materials.map((m) => [m.id, m])),
+  const materialById = useMemo(
+    () => new Map(materials.map((m) => [m.id, m])),
     [materials],
   );
 
@@ -122,20 +156,19 @@ export default function StoreActivityPage() {
     return usageLogs.filter((log) => safeDateSlice(log.usage_date) === dateFilter);
   }, [usageLogs, dateFilter]);
 
-  
   const allOrders = useMemo(() =>
     usageLogs.flatMap((log) =>
-      (log.orders ?? []).map((order) => {
+      (log.orders ?? []).map((order: { material_id: number; order_quantity: number }) => {
         const mat = materialById.get(order.material_id);
         return {
           material_id:    order.material_id,
           order_quantity: order.order_quantity,
           usage_date:     log.usage_date,
           log_id:         log.id,
-          material_name:  mat?.name  ?? `Material #${order.material_id}`,
+          material_name:  mat?.name ?? `Material #${order.material_id}`,
           material_unit:  mat?.unit?.symbol ?? mat?.unit?.name ?? '',
         };
-      })
+      }),
     ),
     [usageLogs, materialById],
   );
@@ -145,12 +178,10 @@ export default function StoreActivityPage() {
     return allOrders.filter((o) => safeDateSlice(o.usage_date) === dateFilter);
   }, [allOrders, dateFilter]);
 
-  const isLoading = isUsageLoading && !usageLogs.length;
+  const isDataLoading = isUsageLoading || isMatsLoading;
 
   return (
     <div className="space-y-6">
-
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>
@@ -186,15 +217,14 @@ export default function StoreActivityPage() {
         <DateFilter value={dateFilter} onChange={setDateFilter} />
       </div>
 
-      {isLoading && (
-        <div className="space-y-2">
-          {Array.from({ length: 3 }, (_, i) => <div key={i} className="gv-card h-16 animate-pulse" />)}
-        </div>
+      {isDataLoading && (
+        <TableSkeleton cols={tab === 'usage' ? 3 : 3} rows={5} />
       )}
 
-      {!isLoading && tab === 'usage' && (
+      {!isDataLoading && tab === 'usage' && (
         usageError && !usageLogs.length ? (
-          <div className="gv-card flex flex-col items-center justify-center py-16 text-center border-[color:var(--gv-border-danger)]">
+          <div className="gv-card flex flex-col items-center justify-center py-16 text-center
+                          border-[color:var(--gv-border-danger)]">
             <AlertTriangle size={36} className="text-[color:var(--destructive)] opacity-40 mb-3" />
             <p className="text-sm text-[color:var(--muted-foreground)] mb-3">Failed to load usage logs.</p>
             <button
@@ -215,11 +245,16 @@ export default function StoreActivityPage() {
         ) : (
           <div className="gv-card p-0 overflow-hidden">
             <table className="w-full text-sm table-fixed">
-              <colgroup><col className="w-[35%]" /><col className="w-[20%]" /><col className="w-[45%]" /></colgroup>
+              <colgroup>
+                <col className="w-[35%]" />
+                <col className="w-[20%]" />
+                <col className="w-[45%]" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-[color:var(--border)] bg-[color:var(--muted)]">
                   {['Material', 'Qty Used', 'Notes'].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[color:var(--muted-foreground)] uppercase tracking-wider">
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold
+                                           text-[color:var(--muted-foreground)] uppercase tracking-wider">
                       {h}
                     </th>
                   ))}
@@ -231,13 +266,25 @@ export default function StoreActivityPage() {
                   return log.items.map((item, idx) => {
                     const unitSymbol = item.material?.unit?.symbol ?? item.material?.unit?.name ?? '';
                     return (
-                      <tr key={`${log.id}-${idx}`} className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--accent)] transition-colors">
+                      <tr
+                        key={`${log.id}-${idx}`}
+                        className="border-b border-[color:var(--border)] last:border-0
+                                   hover:bg-[color:var(--accent)] transition-colors"
+                      >
                         <td className="px-4 py-3 font-medium">{item.material?.name ?? '—'}</td>
                         <td className="px-4 py-3 tabular-nums">
-                          <span className="font-semibold">{item.quantity_used}</span>
-                          {unitSymbol && <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">{unitSymbol}</span>}
+                          <span className="font-semibold">
+                            {item.quantityUsed != null ? item.quantityUsed : '—'}
+                          </span>
+                          {unitSymbol && (
+                            <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">
+                              {unitSymbol}
+                            </span>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-xs text-[color:var(--muted-foreground)]">{item.notes ?? '—'}</td>
+                        <td className="px-4 py-3 text-xs text-[color:var(--muted-foreground)]">
+                          {item.notes ?? '—'}
+                        </td>
                       </tr>
                     );
                   });
@@ -248,9 +295,10 @@ export default function StoreActivityPage() {
         )
       )}
 
-      {!isLoading && tab === 'orders' && (
+      {!isDataLoading && tab === 'orders' && (
         usageError && !usageLogs.length ? (
-          <div className="gv-card flex flex-col items-center justify-center py-16 text-center border-[color:var(--gv-border-danger)]">
+          <div className="gv-card flex flex-col items-center justify-center py-16 text-center
+                          border-[color:var(--gv-border-danger)]">
             <AlertTriangle size={36} className="text-[color:var(--destructive)] opacity-40 mb-3" />
             <p className="text-sm text-[color:var(--muted-foreground)] mb-3">Failed to load orders.</p>
             <button
@@ -271,11 +319,16 @@ export default function StoreActivityPage() {
         ) : (
           <div className="gv-card p-0 overflow-hidden">
             <table className="w-full text-sm table-fixed">
-              <colgroup><col className="w-[45%]" /><col className="w-[25%]" /><col className="w-[30%]" /></colgroup>
+              <colgroup>
+                <col className="w-[45%]" />
+                <col className="w-[25%]" />
+                <col className="w-[30%]" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-[color:var(--border)] bg-[color:var(--muted)]">
                   {['Material', 'Order Qty', 'Date Logged'].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[color:var(--muted-foreground)] uppercase tracking-wider">
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold
+                                           text-[color:var(--muted-foreground)] uppercase tracking-wider">
                       {h}
                     </th>
                   ))}
@@ -283,10 +336,15 @@ export default function StoreActivityPage() {
               </thead>
               <tbody>
                 {filteredOrders.map((order, idx) => (
-                  <tr key={idx} className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--accent)] transition-colors">
+                  <tr
+                    key={idx}
+                    className="border-b border-[color:var(--border)] last:border-0
+                               hover:bg-[color:var(--accent)] transition-colors"
+                  >
                     <td className="px-4 py-3 font-medium">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-md bg-[color:var(--muted)] flex items-center justify-center shrink-0">
+                        <div className="w-7 h-7 rounded-md bg-[color:var(--muted)]
+                                        flex items-center justify-center shrink-0">
                           <Package size={12} className="text-[color:var(--primary)]" />
                         </div>
                         {order.material_name}
@@ -294,7 +352,11 @@ export default function StoreActivityPage() {
                     </td>
                     <td className="px-4 py-3 tabular-nums">
                       <span className="font-semibold">{order.order_quantity}</span>
-                      {order.material_unit && <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">{order.material_unit}</span>}
+                      {order.material_unit && (
+                        <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">
+                          {order.material_unit}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-xs text-[color:var(--muted-foreground)]">
                       {fmtDate(order.usage_date, { year: 'numeric', month: 'short', day: 'numeric' })}

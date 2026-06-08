@@ -91,6 +91,7 @@ export interface ApiUser {
   role?: string;
   is_active?: boolean;
 }
+
 export interface ClientInvoiceItem {
   id: number;
   item_index: number;
@@ -135,3 +136,4 @@ export interface PaginatedResponse<T> {
   skip: number;
   limit: number;
 }
+
