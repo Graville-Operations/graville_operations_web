@@ -111,7 +111,7 @@ export default function HomePage() {
     }
 
     if (!invoicesLoaded) {
-      api.get(`${API.invoices.all}?limit=5`)
+      api.get('/client-invoices/all?limit=5')
         .then(({ data }) => {
           const payload = data?.data ?? data;
           const list = Array.isArray(payload)
@@ -229,7 +229,7 @@ export default function HomePage() {
               </h3>
             </div>
             <Link
-              href={ROUTES.finance.invoices}
+              href={'finance/invoice/client'}
               className="flex items-center gap-1 text-xs font-medium"
               style={{ color: '#33907c' }}
             >
@@ -286,7 +286,7 @@ export default function HomePage() {
           {!invoicesLoading && (
             <div className="px-5 py-3" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
               <Link
-                href={ROUTES.finance.new}
+                href={'finance/invoice/client/new'}
                 className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium"
                 style={{ background: 'rgba(51,144,124,0.10)', color: '#33907c', border: '1px solid rgba(51,144,124,0.20)' }}
               >
