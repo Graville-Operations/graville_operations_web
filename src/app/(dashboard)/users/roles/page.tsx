@@ -10,7 +10,8 @@ interface Role {
   id: number;
   name: string;
   description: string;
-  createdAt: string;
+  created_at?: string; // snake_case from backend
+  createdAt?:  string;
 }
 
 export default function RolesPage() {
@@ -139,7 +140,7 @@ export default function RolesPage() {
                   <div>
                     <p className="font-semibold text-white text-sm">{role.name}</p>
                     <p className="text-xs text-white/40 mt-0.5">
-                      {formatDate(role.createdAt)}
+                      {formatDate(role.created_at ?? role.createdAt)}
                     </p>
                   </div>
                 </div>
