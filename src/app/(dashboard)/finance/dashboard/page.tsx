@@ -42,10 +42,9 @@ interface SiteStat {
   error:   boolean;
 }
 
-function formatKES(amount: number): string {
-  if (amount >= 1_000_000) return `KES ${(amount / 1_000_000).toFixed(1)}M`;
-  if (amount >= 1_000)     return `KES ${(amount / 1_000).toFixed(1)}K`;
-  return `KES ${amount.toLocaleString()}`;
+
+function formatAmount(amount: number): string {
+  return amount.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 async function fetchInvoiceStat(
@@ -132,15 +131,16 @@ function SiteExpenseCard({ siteStat, onRetry }: { siteStat: SiteStat; onRetry: (
 
       <div className="border-t border-[color:var(--gv-glass-border)]" />
 
-      <div className="grid grid-cols-[1fr_2.5rem_5rem] gap-x-2 px-2 pb-0.5">
+  
+      <div className="grid grid-cols-[1fr_2rem_5.5rem] gap-x-1 px-2 pb-0.5">
         <span className="text-[10px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide">
           Expense
         </span>
-        <span className="text-[10px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide text-center">
+        <span className="text-[10px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide text-right">
           No.
         </span>
         <span className="text-[10px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide text-right">
-          Total
+          Total (KES)
         </span>
       </div>
 
@@ -149,7 +149,7 @@ function SiteExpenseCard({ siteStat, onRetry }: { siteStat: SiteStat; onRetry: (
           <button
             key={row.label}
             onClick={() => router.push(row.route)}
-            className="w-full grid grid-cols-[1fr_2.5rem_5rem] gap-x-2 items-center
+            className="w-full grid grid-cols-[1fr_2rem_5.5rem] gap-x-1 items-center
                        px-2 py-2 rounded-lg text-left
                        bg-transparent border border-transparent
                        hover:bg-[color:var(--gv-glass-bg-strong)]
@@ -157,24 +157,23 @@ function SiteExpenseCard({ siteStat, onRetry }: { siteStat: SiteStat; onRetry: (
                        active:scale-[0.98]
                        transition-all duration-150 group"
           >
-
             <span className="flex items-center gap-1.5 min-w-0">
               <span className="text-[color:var(--primary)] opacity-60 group-hover:opacity-100 flex-shrink-0 transition-opacity">
                 {row.icon}
               </span>
               <span className="text-[11px] text-[color:var(--foreground)] group-hover:text-[color:var(--primary)]
-                               transition-colors leading-tight truncate">
+                               transition-colors leading-tight truncate ">
                 {row.label}
               </span>
             </span>
 
-            <span className="text-[11px] text-[color:var(--muted-foreground)] text-center tabular-nums">
+            <span className="text-[11px] text-[color:var(--muted-foreground)] text-right tabular-nums">
               {row.count}
             </span>
 
             <span className="flex items-center gap-0.5 justify-end">
               <span className="text-[11px] font-semibold text-[color:var(--foreground)] tabular-nums">
-                {row.amount > 0 ? formatKES(row.amount) : '—'}
+                {row.amount > 0 ? formatAmount(row.amount) : '—'}
               </span>
               <ChevronRight
                 size={10}
@@ -189,7 +188,7 @@ function SiteExpenseCard({ siteStat, onRetry }: { siteStat: SiteStat; onRetry: (
 }
 
 export default function FinanceDashboardPage() {
-  const [siteStats, setSiteStats]     = useState<SiteStat[]>([]);
+  const [siteStats,    setSiteStats]    = useState<SiteStat[]>([]);
   const [sitesLoading, setSitesLoading] = useState(true);
   const [sitesError,   setSitesError]   = useState(false);
   const [siteSearch,   setSiteSearch]   = useState('');
@@ -244,9 +243,7 @@ export default function FinanceDashboardPage() {
     });
   }, []);
 
-  useEffect(() => {
-    loadSiteStats();
-  }, [loadSiteStats]);
+  useEffect(() => { loadSiteStats(); }, [loadSiteStats]);
 
   const retryAll = () => {
     setSitesLoading(true);
@@ -324,9 +321,7 @@ export default function FinanceDashboardPage() {
       {sitesError && (
         <div className="gv-card flex flex-col items-center justify-center py-10 text-center">
           <AlertTriangle size={28} className="text-[color:var(--destructive)] opacity-40 mb-3" />
-          <p className="text-sm text-[color:var(--muted-foreground)] mb-4">
-            Failed to load sites
-          </p>
+          <p className="text-sm text-[color:var(--muted-foreground)] mb-4">Failed to load sites</p>
           <button
             onClick={retryAll}
             className="gv-tag border-[color:var(--gv-glass-border)] hover:border-[color:var(--gv-glass-border-hover)]
@@ -343,13 +338,9 @@ export default function FinanceDashboardPage() {
             <h2 className="text-base font-semibold text-[color:var(--foreground)] shrink-0">
               Site Expenses
             </h2>
-
             {!sitesLoading && siteStats.length > 0 && (
               <div className="relative flex items-center max-w-[220px] w-full">
-                <Search
-                  size={12}
-                  className="absolute left-2.5 text-[color:var(--muted-foreground)] pointer-events-none"
-                />
+                <Search size={12} className="absolute left-2.5 text-[color:var(--muted-foreground)] pointer-events-none" />
                 <input
                   type="text"
                   value={siteSearch}
@@ -364,8 +355,7 @@ export default function FinanceDashboardPage() {
                 {siteSearch && (
                   <button
                     onClick={() => setSiteSearch('')}
-                    className="absolute right-2 text-[color:var(--muted-foreground)]
-                               hover:text-[color:var(--foreground)] transition-colors"
+                    className="absolute right-2 text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] transition-colors"
                   >
                     <X size={11} />
                   </button>
