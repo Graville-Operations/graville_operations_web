@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { useProfileStore } from '@/store/profile-store';
 import api from '@/lib/api';
+import { formatRole } from '@/lib/utils/format-role';
 import {
   User, Mail, Phone, Shield, KeyRound,
   Eye, EyeOff, Check, AlertCircle, ArrowLeft,
@@ -127,7 +128,7 @@ export default function AccountPage() {
                 {profile?.firstName} {profile?.middleName} {profile?.lastName}
               </h3>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#33907C]/20 text-[#33907C] border border-[#33907C]/30">
-                {role ?? profile?.role ?? '—'}
+                {formatRole(role ?? profile?.role) || '—'}
               </span>
             </div>
           </div>

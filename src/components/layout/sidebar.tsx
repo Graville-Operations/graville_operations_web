@@ -9,35 +9,7 @@ import { MenuItem } from '@/types';
 import { ChevronDown, ChevronRight, LogOut, User, Bell } from 'lucide-react';
 import { API } from '@/lib/endpoints';
 import { ROUTES } from '@/lib/routes';
-
-// Hardcoded links for subsubmenus until backend seeds them
-const subSubMenuLinks: Record<string, string> = {
-  'finance.invoices.company':        '/finance/invoices/company',
-  'finance.invoices.client':         '/finance/invoices/client',
-  'finance.invoices.supplier':       '/finance/invoices/supplier',
-  'finance.invoices.sub-contractor': '/finance/invoices/sub-contractor',
-};
-
-// Hardcoded submenu routes until backend seeds them
-const subRouteMap: Record<string, string> = {
-  'users.dashboard':            '/users/dashboard',
-  'users.add-user':             '/users/new',
-  'users.roles-and-permission': '/users/roles',
-  'users.reports':              '/users/reports',
-  'users.imports':              '/users/import',
-  'finance.dashboard':          '/finance',
-  'finance.invoices':           '/finance/invoices',
-  'finance.expenses':           '/finance/expenses',
-  'projects.dashboard':         '/projects',
-  'projects.new-project':       '/projects/new',
-  'store.dashboard':            '/stores/dashboard',
-  'store.orders':               '/stores/orders',
-  'store.stocks':               '/stores/stocks',
-  'department.menus':           '/department/menus',
-  'department.groups':          '/department/groups',
-  'department.users':           '/department/users',
-    // add more as you build pages...
-};
+import { formatRole } from '@/lib/utils/format-role';
 
 export default function Sidebar() {
   const { menus, isLoaded, setMenus, clearMenus } = useMenuStore();
@@ -99,25 +71,8 @@ useEffect(() => {
 
   const getMenuHref = (menu: MenuItem): string => {
     const routeMap: Record<string, string> = {
-      home:       '/home',
-      workers:    '/workers',
-      inventory:  '/store',
-      account:    '/account',
-      users:      '/users',
-      finance:    '/finance',
-      admin:      '/admin',
-      projects:   '/projects',
-      department: '/department/menus',
     };
-    return routeMap[menu.name] ?? menu.link ?? '#';
-  };
-
-  const getSubMenuHref = (sub: { link?: string | null; name: string }): string => {
-  return subRouteMap[sub.name] ?? sub.link ?? '#';
-};
-
-  const getSubSubMenuHref = (subsub: { link?: string | null; name: string }): string => {
-    return subsub.link ?? subSubMenuLinks[subsub.name] ?? '#';
+    return menu.link ?? routeMap[menu.name] ?? '#';
   };
 
   const isMenuActive = (menu: MenuItem): boolean => {
@@ -181,15 +136,14 @@ useEffect(() => {
                     />
                   </button>
 
-                  {/* Submenus — show on hover*/}
-                  {(openMenus.has(menu.id) || hoveredMenu === menu.id) && (
+                  {/* Submenus — only show when toggled open */}
+                  {openMenus.has(menu.id) && (
                     <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
                       {menu.submenus
                         .sort((a, b) => a.order - b.order)
                         .map((sub) => (
                           <div key={sub.id}>
                             {sub.subsubmenus && sub.subsubmenus.length > 0 ? (
-                              /* Submenu with sub-submenus — split title link + chevron toggle */
                               <div>
                                 {/* Submenu with children */}
                                 <div className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
@@ -303,7 +257,7 @@ useEffect(() => {
             <p className="text-xs font-semibold text-white truncate">
               {user?.first_name} {user?.last_name}
             </p>
-            <p className="text-xs text-white/40 truncate">{role}</p>
+            <p className="text-xs text-white/40 truncate">{formatRole(role)}</p>
           </div>
           <User size={14} className="shrink-0 opacity-40" />
         </Link>

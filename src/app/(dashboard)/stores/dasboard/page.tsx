@@ -69,7 +69,9 @@ function StatCard({ label, value, sub, icon, variant = 'default', onClick }: Sta
   return (
     <div
       className={`gv-card flex flex-col gap-4 ${BORDER_CLS[variant]} ${
-        onClick ? 'cursor-pointer hover:border-[color:var(--gv-glass-border-hover)] transition-colors' : ''
+        onClick
+          ? 'cursor-pointer hover:bg-[color:var(--gv-glass-bg-strong)] hover:border-[color:var(--gv-glass-border-hover)] hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(0,0,0,0.55)] transition-all duration-200'
+          : ''
       }`}
       onClick={onClick}
     >
