@@ -22,40 +22,58 @@ interface Site {
 
 type DateFilterMode = 'single' | 'range';
 
-// Parses "8th June 2026" or "8th June2026" → "2026-06-08"
+const today = new Date().toISOString().split('T')[0];
+
 const parseBackendDate = (dateStr: string): string => {
   if (!dateStr) return '';
   try {
-    // Strip ordinal suffix: "8th" → "8", "1st" → "1", etc.
     const cleaned = dateStr.replace(/(\d+)(st|nd|rd|th)/i, '$1');
     const date = new Date(cleaned);
     if (isNaN(date.getTime())) return '';
-    return date.toISOString().split('T')[0]; // "2026-06-08"
+    return date.toISOString().split('T')[0];
   } catch {
     return '';
   }
 };
 
-export default function ClientInvoicesPage() {
-  const router  = useRouter();
-  const calendarRef = useRef<HTMLDivElement>(null);
-  const siteRef  = useRef<HTMLDivElement>(null);
+/* ── shared dropdown card style matching image 2 ── */
+const dropdownCard: React.CSSProperties = {
+  position:              'absolute',
+  top:                   'calc(100% + 8px)',
+  right:                 0,
+  left:                  'auto',
+  zIndex:                9999,
+  background:            '#0d1828',
+  backdropFilter:        'blur(20px)',
+  WebkitBackdropFilter:  'blur(20px)',
+  border:                '1px solid rgba(255,255,255,0.15)',
+  borderRadius:          '0.875rem',
+  boxShadow:             '0 12px 40px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.4)',
+  padding:               '1.25rem',
+  overflow:              'visible',
+};
 
-  const [invoices,  setInvoices] = useState<ClientInvoice[]>([]);
-  const [filtered, setFiltered] = useState<ClientInvoice[]>([]);
-  const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading]       = useState(true);
-  const [total, setTotal] = useState(0);
-  const [sites, setSites] = useState<Site[]>([]);
-  const [selectedSite, setSelectedSite]    = useState<Site | null>(null);
-  const [siteOpen, setSiteOpen] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [dateMode, setDateMode] = useState<DateFilterMode>('single');
-  const [singleDate, setSingleDate] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+export default function ClientInvoicesPage() {
+  const router      = useRouter();
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const siteRef     = useRef<HTMLDivElement>(null);
+
+  const [invoices,  setInvoices]  = useState<ClientInvoice[]>([]);
+  const [filtered,  setFiltered]  = useState<ClientInvoice[]>([]);
+  const [search,    setSearch]    = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [total,     setTotal]     = useState(0);
+  const [sites,     setSites]     = useState<Site[]>([]);
+
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [siteOpen,     setSiteOpen]     = useState(false);
+
+  const [calendarOpen,    setCalendarOpen]    = useState(false);
+  const [dateMode,        setDateMode]        = useState<DateFilterMode>('single');
+  const [singleDate,      setSingleDate]      = useState('');
+  const [dateFrom,        setDateFrom]        = useState('');
+  const [dateTo,          setDateTo]          = useState('');
   const [activeDateLabel, setActiveDateLabel] = useState('');
-  const today = new Date().toISOString().split('T')[0]; // "2026-06-09"
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -67,6 +85,7 @@ export default function ClientInvoicesPage() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
   useEffect(() => {
     api.get('/sites/list?limit=100')
       .then(({ data }) => {
@@ -76,6 +95,7 @@ export default function ClientInvoicesPage() {
       })
       .catch((err) => console.error('[Sites]', err));
   }, []);
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -96,20 +116,18 @@ export default function ClientInvoicesPage() {
     };
     load();
   }, [selectedSite]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       const q = search.toLowerCase();
       let result = invoices.filter(
         (inv) =>
           inv.invoiceNo?.toLowerCase().includes(q) ||
-          inv.clientName?.toLowerCase().includes(q)
+          inv.clientName?.toLowerCase().includes(q),
       );
-
       if (activeDateLabel) {
         if (dateMode === 'single' && singleDate) {
-          result = result.filter(
-            (inv) => parseBackendDate(inv.invoiceDate) === singleDate
-          );
+          result = result.filter((inv) => parseBackendDate(inv.invoiceDate) === singleDate);
         } else if (dateMode === 'range' && dateFrom && dateTo) {
           result = result.filter((inv) => {
             const d = parseBackendDate(inv.invoiceDate);
@@ -117,7 +135,6 @@ export default function ClientInvoicesPage() {
           });
         }
       }
-
       setFiltered(result);
     }, 300);
     return () => clearTimeout(timer);
@@ -139,10 +156,25 @@ export default function ClientInvoicesPage() {
     setCalendarOpen(false);
   };
 
+  const hasActiveFilters = !!(selectedSite || activeDateLabel);
+
+  /* ── shared date input style matching image 2 ── */
+  const dateInputStyle: React.CSSProperties = {
+    width:        '100%',
+    padding:      '0.65rem 0.875rem',
+    background:   'rgba(255,255,255,0.07)',
+    border:       '1px solid rgba(255,255,255,0.22)',
+    borderRadius: '0.5rem',
+    color:        'var(--gv-text-primary)',
+    fontSize:     '0.9rem',
+    outline:      'none',
+    colorScheme:  'dark' as never,
+  };
+
   return (
     <div className="space-y-6">
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>
@@ -158,27 +190,28 @@ export default function ClientInvoicesPage() {
         </Link>
       </div>
 
-      {/* Search + Filters */}
-      <div className="gv-card space-y-3" style={{ overflow: 'visible' }}>
-        <div className="relative">
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2"
-            style={{ color: 'var(--gv-text-faint)' }}
-          />
-          <input
-            type="text"
-            placeholder="Search by invoice number or client name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="gv-input pl-10"
-          />
-        </div>
+      {/* ── Search + Filters ── */}
+      <div className="gv-card" style={{ overflow: 'visible' }}>
+        <div className="flex items-center gap-3">
 
-        <div className="flex items-center gap-3 flex-wrap">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+              style={{ color: 'var(--gv-text-faint)' }}
+            />
+            <input
+              type="text"
+              placeholder="Search by invoice number or client name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="gv-input pl-10"
+            />
+          </div>
 
-          {/* Site dropdown */}
-          <div className="relative" ref={siteRef}>
+          {/* ── All Sites pill + dropdown ── */}
+          <div className="relative flex-shrink-0" ref={siteRef}>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => { setSiteOpen((p) => !p); setCalendarOpen(false); }}
@@ -187,10 +220,7 @@ export default function ClientInvoicesPage() {
                 <span>{selectedSite ? selectedSite.name : 'All Sites'}</span>
                 <ChevronDown
                   size={13}
-                  style={{
-                    transform:  siteOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s',
-                  }}
+                  style={{ transform: siteOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
                 />
               </button>
               {selectedSite && (
@@ -205,16 +235,34 @@ export default function ClientInvoicesPage() {
             </div>
 
             {siteOpen && (
-              <div className="gv-dropdown" style={{ width: '14rem' }}>
-                <div style={{ maxHeight: '13rem', overflowY: 'auto' }}>
+              <div style={{ ...dropdownCard, width: '15rem' }}>
+                {/* header */}
+                <p style={{ fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gv-text-subtle)', marginBottom: '0.75rem' }}>
+                  Site
+                </p>
+                <div style={{ maxHeight: '14rem', overflowY: 'auto', margin: '0 -0.25rem' }}>
+                  {/* All Sites option */}
                   <button
                     onClick={() => { setSelectedSite(null); setSiteOpen(false); }}
-                    className={`gv-dropdown-item ${!selectedSite ? 'gv-dropdown-item--active' : ''}`}
+                    style={{
+                      display:      'block',
+                      width:        '100%',
+                      textAlign:    'left',
+                      padding:      '0.55rem 0.75rem',
+                      borderRadius: '0.5rem',
+                      fontSize:     '0.875rem',
+                      background:   !selectedSite ? 'rgba(51,144,124,0.15)' : 'transparent',
+                      color:        !selectedSite ? 'var(--gv-brand)' : 'var(--gv-text-muted)',
+                      fontWeight:   !selectedSite ? 600 : 400,
+                      border:       'none',
+                      cursor:       'pointer',
+                      transition:   'background 0.15s',
+                    }}
                   >
                     All Sites
                   </button>
                   {sites.length === 0 ? (
-                    <p className="px-4 py-3 text-xs" style={{ color: 'var(--gv-text-faint)' }}>
+                    <p style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', color: 'var(--gv-text-faint)' }}>
                       No sites found
                     </p>
                   ) : (
@@ -222,7 +270,20 @@ export default function ClientInvoicesPage() {
                       <button
                         key={site.id}
                         onClick={() => { setSelectedSite(site); setSiteOpen(false); }}
-                        className={`gv-dropdown-item ${selectedSite?.id === site.id ? 'gv-dropdown-item--active' : ''}`}
+                        style={{
+                          display:      'block',
+                          width:        '100%',
+                          textAlign:    'left',
+                          padding:      '0.55rem 0.75rem',
+                          borderRadius: '0.5rem',
+                          fontSize:     '0.875rem',
+                          background:   selectedSite?.id === site.id ? 'rgba(51,144,124,0.15)' : 'transparent',
+                          color:        selectedSite?.id === site.id ? 'var(--gv-brand)' : 'var(--gv-text-muted)',
+                          fontWeight:   selectedSite?.id === site.id ? 600 : 400,
+                          border:       'none',
+                          cursor:       'pointer',
+                          transition:   'background 0.15s',
+                        }}
                       >
                         {site.name}
                       </button>
@@ -233,8 +294,8 @@ export default function ClientInvoicesPage() {
             )}
           </div>
 
-          {/* Date filter */}
-          <div className="relative" ref={calendarRef}>
+          {/* ── Filter by Date pill + dropdown ── */}
+          <div className="relative flex-shrink-0" ref={calendarRef}>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => { setCalendarOpen((p) => !p); setSiteOpen(false); }}
@@ -244,10 +305,7 @@ export default function ClientInvoicesPage() {
                 <span>{activeDateLabel || 'Filter by Date'}</span>
                 <ChevronDown
                   size={13}
-                  style={{
-                    transform:  calendarOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s',
-                  }}
+                  style={{ transform: calendarOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
                 />
               </button>
               {activeDateLabel && (
@@ -262,106 +320,144 @@ export default function ClientInvoicesPage() {
             </div>
 
             {calendarOpen && (
-              <div
-                className="gv-dropdown"
-                style={{ width: '17rem', overflow: 'visible', padding: '1rem' }}
-              >
-                <div className="space-y-4">
-                  {/* Mode toggle */}
-                  <div
-                    className="flex rounded-lg overflow-hidden"
-                    style={{ border: '1px solid rgba(255,255,255,0.12)' }}
-                  >
-                    {(['single', 'range'] as DateFilterMode[]).map((mode) => (
-                      <button
-                        key={mode}
-                        onClick={() => setDateMode(mode)}
-                        className="flex-1 py-1.5 text-xs font-medium transition-colors"
-                        style={{
-                          background: dateMode === mode ? 'var(--gv-brand)' : 'transparent',
-                          color:      dateMode === mode ? '#fff' : 'var(--gv-text-muted)',
-                        }}
-                      >
-                        {mode === 'single' ? 'Single Date' : 'Date Range'}
-                      </button>
-                    ))}
-                  </div>
+              <div style={{ ...dropdownCard, width: '20rem' }}>
 
-                  {dateMode === 'single' && (
-                    <div className="space-y-1">
-                      <label className="gv-label">Date</label>
+                {/* Mode toggle — pill style matching image 2 */}
+                <div
+                  style={{
+                    display:      'flex',
+                    background:   'rgba(255,255,255,0.06)',
+                    borderRadius: '9999px',
+                    padding:      '3px',
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  {(['single', 'range'] as DateFilterMode[]).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setDateMode(mode)}
+                      style={{
+                        flex:         1,
+                        padding:      '0.45rem 0',
+                        borderRadius: '9999px',
+                        fontSize:     '0.8rem',
+                        fontWeight:   500,
+                        border:       'none',
+                        cursor:       'pointer',
+                        transition:   'background 0.2s, color 0.2s',
+                        background:   dateMode === mode ? 'var(--gv-brand)' : 'transparent',
+                        color:        dateMode === mode ? '#ffffff' : 'var(--gv-text-muted)',
+                      }}
+                    >
+                      {mode === 'single' ? 'Single Date' : 'Date Range'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Single date */}
+                {dateMode === 'single' && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gv-text-subtle)', marginBottom: '0.5rem' }}>
+                      Date
+                    </p>
+                    <input
+                      type="date"
+                      value={singleDate}
+                      onChange={(e) => setSingleDate(e.target.value)}
+                      max={today}
+                      style={dateInputStyle}
+                    />
+                  </div>
+                )}
+
+                {/* Date range */}
+                {dateMode === 'range' && (
+                  <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                    <div>
+                      <p style={{ fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gv-text-subtle)', marginBottom: '0.5rem' }}>
+                        From
+                      </p>
                       <input
                         type="date"
-                        value={singleDate}
-                        onChange={(e) => setSingleDate(e.target.value)}
-                        max={today}
-                        className="gv-input"
-                        style={{ colorScheme: 'dark' }}
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        max={dateTo || today}
+                        style={dateInputStyle}
                       />
                     </div>
-                  )}
-
-                  {dateMode === 'range' && (
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <label className="gv-label">From</label>
-                        <input
-                          type="date"
-                          value={dateFrom}
-                          onChange={(e) => setDateFrom(e.target.value)}
-                          max={dateTo || today} 
-                          className="gv-input"
-                          style={{ colorScheme: 'dark' }}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="gv-label">To</label>
-                        <input
-                          type="date"
-                          value={dateTo}
-                          onChange={(e) => setDateTo(e.target.value)}
-                          min={dateFrom} 
-                          max={today} 
-                          className="gv-input"
-                          style={{ colorScheme: 'dark' }}
-                        />
-                      </div>
+                    <div>
+                      <p style={{ fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gv-text-subtle)', marginBottom: '0.5rem' }}>
+                        To
+                      </p>
+                      <input
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        min={dateFrom}
+                        max={today}
+                        style={dateInputStyle}
+                      />
                     </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={clearDateFilter}
-                      className="gv-btn-outline flex-1 py-1.5 text-xs"
-                    >
-                      Clear
-                    </button>
-                    <button
-                      onClick={applyDateFilter}
-                      disabled={dateMode === 'single' ? !singleDate : !dateFrom || !dateTo}
-                      className="gv-btn-brand flex-1 py-1.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Apply
-                    </button>
                   </div>
+                )}
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={clearDateFilter}
+                    style={{
+                      flex:         1,
+                      padding:      '0.6rem',
+                      borderRadius: '0.5rem',
+                      fontSize:     '0.875rem',
+                      fontWeight:   500,
+                      background:   'rgba(255,255,255,0.07)',
+                      border:       '1px solid rgba(255,255,255,0.15)',
+                      color:        'var(--gv-text-muted)',
+                      cursor:       'pointer',
+                      transition:   'background 0.15s',
+                    }}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={applyDateFilter}
+                    disabled={dateMode === 'single' ? !singleDate : !dateFrom || !dateTo}
+                    style={{
+                      flex:         1,
+                      padding:      '0.6rem',
+                      borderRadius: '0.5rem',
+                      fontSize:     '0.875rem',
+                      fontWeight:   600,
+                      background:   'var(--gv-brand)',
+                      border:       'none',
+                      color:        '#ffffff',
+                      cursor:       'pointer',
+                      opacity:      (dateMode === 'single' ? !singleDate : !dateFrom || !dateTo) ? 0.4 : 1,
+                      transition:   'background 0.15s, opacity 0.15s',
+                    }}
+                  >
+                    Apply
+                  </button>
                 </div>
               </div>
             )}
           </div>
 
-          {(selectedSite || activeDateLabel) && (
+          {/* Clear all */}
+          {hasActiveFilters && (
             <button
               onClick={() => { setSelectedSite(null); clearDateFilter(); }}
-              className="text-xs underline transition-colors"
+              className="shrink-0 text-xs underline transition-colors"
               style={{ color: 'var(--gv-text-faint)' }}
             >
-              Clear all filters
+              Clear all
             </button>
           )}
         </div>
       </div>
 
-      {/* Table */}
+      {/* ── Table ── */}
       <div className="gv-card" style={{ padding: 0, overflow: 'hidden' }}>
         {isLoading ? (
           <div className="flex items-center justify-center h-48">
@@ -411,19 +507,14 @@ export default function ClientInvoicesPage() {
                   key={inv.id}
                   onClick={() => router.push(`/finance/invoice/client/${inv.id}`)}
                   className="transition-colors cursor-pointer hover:bg-white/5"
-                  style={{
-                    borderTop: i > 0 ? '1px solid var(--gv-glass-border)' : undefined,
-                  }}
+                  style={{ borderTop: i > 0 ? '1px solid var(--gv-glass-border)' : undefined }}
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="gv-icon-box" style={{ width: '2rem', height: '2rem' }}>
                         <Receipt size={14} style={{ color: 'var(--gv-brand)' }} />
                       </div>
-                      <span
-                        className="text-sm font-medium"
-                        style={{ color: 'var(--gv-text-primary)' }}
-                      >
+                      <span className="text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>
                         {inv.invoiceNo ?? '—'}
                       </span>
                     </div>
