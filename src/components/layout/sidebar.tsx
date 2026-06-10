@@ -9,6 +9,7 @@ import { MenuItem } from '@/types';
 import { ChevronDown, ChevronRight, LogOut, User, Bell } from 'lucide-react';
 import { API } from '@/lib/endpoints';
 import { ROUTES } from '@/lib/routes';
+import { formatRole } from '@/lib/utils/format-role';
 
 export default function Sidebar() {
   const { menus, isLoaded, setMenus, clearMenus } = useMenuStore();
@@ -256,7 +257,7 @@ useEffect(() => {
             <p className="text-xs font-semibold text-white truncate">
               {user?.first_name} {user?.last_name}
             </p>
-            <p className="text-xs text-white/40 truncate">{role}</p>
+            <p className="text-xs text-white/40 truncate">{formatRole(role)}</p>
           </div>
           <User size={14} className="shrink-0 opacity-40" />
         </Link>
