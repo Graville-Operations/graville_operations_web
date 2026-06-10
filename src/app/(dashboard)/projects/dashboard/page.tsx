@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchOverviewKPIs, fetchSites } from '@/lib/api/sites';
+import api from '@/lib/api';                          // ← auth-aware axios instance
 import { OverviewKPIs, ProjectStatus, Site, SiteStatus } from '@/types/site';
 import {
   Building2, Users, ClipboardList, FileText,
@@ -9,12 +10,21 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, Calendar,
 } from 'lucide-react';
 
+
 function normProjectStatus(s: string): ProjectStatus {
+
   const map: Record<string, ProjectStatus> = {
-    planning: 'PLANNING', 'in progress': 'IN_PROGRESS', in_progress: 'IN_PROGRESS',
-    'on hold': 'ON_HOLD', on_hold: 'ON_HOLD', completed: 'COMPLETED', cancelled: 'CANCELLED',
+    planning:    'PLANNING',
+    in_progress: 'IN_PROGRESS',
+    'in progress': 'IN_PROGRESS',
+    inprogress:  'IN_PROGRESS',
+    on_hold:     'ON_HOLD',
+    'on hold':   'ON_HOLD',
+    onhold:      'ON_HOLD',
+    completed:   'COMPLETED',
+    cancelled:   'CANCELLED',
   };
-  return map[s?.toLowerCase()] ?? 'PLANNING';
+  return map[s?.toLowerCase().replace(/-/g, '_')] ?? 'PLANNING';
 }
 
 function normSiteStatus(s: string): SiteStatus {
@@ -22,82 +32,64 @@ function normSiteStatus(s: string): SiteStatus {
   return map[s?.toLowerCase()] ?? 'INACTIVE';
 }
 
+
 function toISO(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const y   = d.getFullYear();
+  const m   = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
-interface AttendanceDay { date: string; present_count: number; }
+interface AttendanceDay {
+  date: string;
+  present_count: number;
+}
 
-// Normalise whatever shape the API returns into AttendanceDay[]
-// Handles: plain array, { summary }, { data }, { results }, { attendance }
-// Handles field name variants: present_count | present | count | workers_present | total_present | total
-function normaliseAttendanceResponse(raw: unknown): AttendanceDay[] {
+function normaliseAnalyticsResponse(raw: unknown): AttendanceDay[] {
+  if (!raw || typeof raw !== 'object') return [];
+  const obj = raw as Record<string, unknown>;
+
   let arr: unknown[] = [];
-  if (Array.isArray(raw)) {
-    arr = raw;
-  } else if (raw && typeof raw === 'object') {
-    const obj = raw as Record<string, unknown>;
-    const candidate = obj.summary ?? obj.data ?? obj.results ?? obj.attendance ?? null;
-    if (Array.isArray(candidate)) arr = candidate;
+  if (Array.isArray(obj.data)) {
+    arr = obj.data;
+  } else if (Array.isArray(raw)) {
+    arr = raw as unknown[];
   }
+
   return arr
     .map((row: any) => ({
-      date: String(row.date ?? row.attendance_date ?? row.day ?? ''),
+      date: String(row.date ?? row.attendance_date ?? ''),
       present_count: Number(
-        row.present_count ??
-        row.present ??
-        row.count ??
-        row.workers_present ??
-        row.total_present ??
-        row.total ??
+        row.attendance_count ??   
+        row.present_count      ??
+        row.present            ??
+        row.count              ??
+        row.workers_present    ??
+        row.total_present      ??
+        row.total              ??
         0,
       ),
     }))
-    .filter(r => r.date !== '');
+    .filter(r => r.date !== '' && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
 }
 
-async function fetchAttendanceSummaryForSite(
-  siteId: string | number,
+async function fetchAttendanceAnalytics(
   dateFrom: string,
   dateTo: string,
 ): Promise<AttendanceDay[]> {
-  const url = `/api/v1/attendance/summary/${siteId}?date_from=${dateFrom}&date_to=${dateTo}`;
   try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.warn(`[Attendance] site ${siteId} → HTTP ${res.status}`);
-      return [];
-    }
-    const raw = await res.json();
-    console.log(`[Attendance] site ${siteId} raw:`, JSON.stringify(raw).slice(0, 300));
-    return normaliseAttendanceResponse(raw);
+    const res = await api.get('/attendance/analytics', {
+      params: { date_from: dateFrom, date_to: dateTo },
+    });
+    const raw = res.data;
+    console.log('[Attendance/analytics] raw:', JSON.stringify(raw).slice(0, 400));
+    const result = normaliseAnalyticsResponse(raw);
+    console.log('[Attendance/analytics] parsed:', result);
+    return result;
   } catch (err) {
-    console.warn(`[Attendance] site ${siteId} fetch error:`, err);
+    console.warn('[Attendance/analytics] fetch error:', err);
     return [];
   }
-}
-
-// Fetch from every site and aggregate present_count per date
-async function fetchAttendanceAllSites(
-  siteIds: (string | number)[],
-  dateFrom: string,
-  dateTo: string,
-): Promise<AttendanceDay[]> {
-  if (siteIds.length === 0) return [];
-  const results = await Promise.allSettled(
-    siteIds.map(id => fetchAttendanceSummaryForSite(id, dateFrom, dateTo)),
-  );
-  const totals: Record<string, number> = {};
-  for (const r of results) {
-    if (r.status !== 'fulfilled') continue;
-    for (const row of r.value) {
-      totals[row.date] = (totals[row.date] ?? 0) + row.present_count;
-    }
-  }
-  return Object.entries(totals).map(([date, present_count]) => ({ date, present_count }));
 }
 
 function KpiCard({ label, value, sub, icon: Icon, loading }: {
@@ -120,11 +112,13 @@ function KpiCard({ label, value, sub, icon: Icon, loading }: {
 }
 
 function CalendarPicker({
-  dateFrom, dateTo, onSelect, onClose,
+  dateFrom, dateTo, onSelect, onClose, constrainWidth, anchorRef,
 }: {
   dateFrom: string; dateTo: string;
   onSelect: (from: string, to: string) => void;
   onClose: () => void;
+  constrainWidth?: boolean;
+  anchorRef?: React.RefObject<HTMLElement>;
 }) {
   const today = new Date();
   const [viewYear, setViewYear]   = useState(today.getFullYear());
@@ -139,10 +133,17 @@ function CalendarPicker({
                        'July','August','September','October','November','December'];
   const DAY_NAMES = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 
+  const [maxW, setMaxW] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    if (constrainWidth && anchorRef?.current) {
+      setMaxW(anchorRef.current.getBoundingClientRect().width);
+    }
+  }, [constrainWidth, anchorRef]);
+
   function getDaysInMonth(year: number, month: number) {
-    const firstDay  = new Date(year, month, 1);
-    const startDow  = (firstDay.getDay() + 6) % 7;
-    const daysInMo  = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1);
+    const startDow = (firstDay.getDay() + 6) % 7;
+    const daysInMo = new Date(year, month + 1, 0).getDate();
     const days: (Date | null)[] = [];
     for (let i = 0; i < startDow; i++) days.push(null);
     for (let d = 1; d <= daysInMo; d++) days.push(new Date(year, month, d));
@@ -188,11 +189,17 @@ function CalendarPicker({
   while (weeks[weeks.length - 1]?.length < 7) weeks[weeks.length - 1].push(null);
 
   return (
-    <div className="absolute z-50 rounded-2xl shadow-2xl p-4 select-none"
+    <div
+      className="absolute z-50 rounded-2xl shadow-2xl p-4 select-none"
       style={{
-        background: 'rgba(18,20,30,0.98)', border: '1px solid rgba(255,255,255,0.15)',
-        backdropFilter: 'blur(20px)', top: '100%', left: 0, marginTop: 8, minWidth: 280,
-      }}>
+        background: 'rgba(18,20,30,0.98)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        backdropFilter: 'blur(20px)',
+        top: '100%', left: 0, marginTop: 8,
+        minWidth: 280,
+        ...(maxW ? { width: maxW } : {}),
+      }}
+    >
       <div className="flex items-center justify-between mb-3">
         <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg"
           style={{ background: 'rgba(255,255,255,0.07)' }}>
@@ -220,12 +227,12 @@ function CalendarPicker({
         <div key={wi} className="grid grid-cols-7">
           {week.map((date, di) => {
             if (!date) return <div key={di} />;
-            const selected     = isSelected(date);
-            const inR          = inRange(date);
-            const iso          = toISO(date);
-            const isFrom       = iso === dateFrom;
-            const isTo         = iso === dateTo;
-            const isTodayDate  = iso === toISO(today);
+            const selected    = isSelected(date);
+            const inR         = inRange(date);
+            const iso         = toISO(date);
+            const isFrom      = iso === dateFrom;
+            const isTo        = iso === dateTo;
+            const isTodayDate = iso === toISO(today);
             return (
               <div key={di} className="flex items-center justify-center"
                 style={{
@@ -265,13 +272,15 @@ function CalendarPicker({
   );
 }
 
+
 interface Bar {
-  label: string;       // short x-axis label  e.g. "Mon", "1"
-  fullLabel: string;   // full day name        e.g. "Monday"
-  date: string;        // ISO date             e.g. "2025-06-02"
-  dateDisplay: string; // human date           e.g. "02 Jun 2025"
+  label: string;
+  fullLabel: string;
+  date: string;
+  dateDisplay: string;
   present: number;
 }
+
 function AttendanceBarChart({
   bars, loading, tab, activeBarIdx, onBarClick,
 }: {
@@ -281,7 +290,6 @@ function AttendanceBarChart({
   activeBarIdx: number | null;
   onBarClick: (idx: number | null) => void;
 }) {
-
   const maxData = Math.max(...bars.map(b => b.present), 1);
 
   function niceMax(v: number) {
@@ -308,7 +316,7 @@ function AttendanceBarChart({
 
   const W = 400, H = 185;
   const PL = 28, PB = 28, PT = 12, PR = 4;
-  const cW = W - PL - PR;   // chart area width (bars live here)
+  const cW = W - PL - PR;
   const cH = H - PB - PT;
 
   const count   = Math.max(bars.length, 1);
@@ -316,7 +324,6 @@ function AttendanceBarChart({
   const isMonth = tab === 'Month';
 
   const gap  = cW / count;
-  // Thinner bars for month (31 bars) than week (7 bars)
   const barW = Math.max(3, Math.floor(gap) - (count > 20 ? 1 : count > 7 ? 4 : 10));
 
   if (loading) {
@@ -328,39 +335,24 @@ function AttendanceBarChart({
   }
 
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="w-full"
-      style={{ height: H, display: 'block' }}
-      onClick={() => { if (activeBarIdx !== null) onBarClick(null); }}
-    >
-      {/* ── Y-axis labels (LEFT) + gridlines ── */}
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H, display: 'block' }}
+      onClick={() => { if (activeBarIdx !== null) onBarClick(null); }}>
+
       {yTicks.map((tick) => {
         const y = PT + cH - (tick / yMax) * cH;
         return (
           <g key={tick}>
-            {/* gridline across full chart area */}
-            <line
-              x1={PL} x2={W - PR} y1={y} y2={y}
-              stroke="rgba(255,255,255,0.08)" strokeWidth="1"
-            />
-            {/* y-axis number left of chart area */}
-            <text
-              x={PL - 4} y={y}
-              textAnchor="end" dominantBaseline="central"
-              fontSize="13" fontWeight="500"
-              fill="rgba(255,255,255,0.55)"
-              fontFamily="inherit"
-            >
+            <line x1={PL} x2={W - PR} y1={y} y2={y}
+              stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+            <text x={PL - 4} y={y} textAnchor="end" dominantBaseline="central"
+              fontSize="13" fontWeight="500" fill="rgba(255,255,255,0.55)" fontFamily="inherit">
               {tick}
             </text>
           </g>
         );
       })}
 
-      {/* ── Bars ── */}
       {bars.map((b, i) => {
-        // bars are positioned inside the chart area (starts at PL)
         const cx   = PL + i * gap + gap / 2;
         const x    = cx - barW / 2;
         const pH   = b.present > 0 ? (b.present / yMax) * cH : 0;
@@ -368,40 +360,26 @@ function AttendanceBarChart({
         const open = isWeek && activeBarIdx === i;
 
         return (
-          <g key={i}
-            style={{ cursor: isWeek ? 'pointer' : 'default' }}
+          <g key={i} style={{ cursor: isWeek ? 'pointer' : 'default' }}
             onClick={(e) => {
               if (!isWeek) return;
               e.stopPropagation();
               onBarClick(open ? null : i);
-            }}
-          >
-            {/* Full-column transparent hit area */}
+            }}>
             <rect x={x - 4} y={PT} width={barW + 8} height={cH} fill="transparent" />
-
-            {/* Active column highlight */}
             {open && (
               <rect x={x - 4} y={PT} width={barW + 8} height={cH}
                 fill="rgba(255,255,255,0.06)" rx="3" />
             )}
-
-            {/* Present bar — always render so 0 shows baseline */}
             {b.present > 0 && (
-              <rect
-                x={x} y={pY} width={barW} height={pH} rx="2"
-                fill="#3b82f6" opacity={open ? 1 : 0.85}
-              />
+              <rect x={x} y={pY} width={barW} height={pH} rx="2"
+                fill="#3b82f6" opacity={open ? 1 : 0.85} />
             )}
-
-            {/* X-axis label — every date for month, every day for week/today */}
-            <text
-              x={cx} y={H - 6}
-              textAnchor="middle"
+            <text x={cx} y={H - 6} textAnchor="middle"
               fontSize={isMonth ? 10 : 13}
               fontWeight={open ? '700' : '400'}
               fill={open ? '#fff' : 'rgba(255,255,255,0.55)'}
-              fontFamily="inherit"
-            >
+              fontFamily="inherit">
               {b.label}
             </text>
           </g>
@@ -415,6 +393,7 @@ function WorkersDonut({ total, present, loading }: { total: number; present: num
   const R = 54, SW = 13, CX = 70, CY = 70;
   const circ = 2 * Math.PI * R;
   const dash  = total > 0 ? (present / total) * circ : 0;
+
   if (loading) return (
     <div className="flex items-center justify-center" style={{ width: 140, height: 140 }}>
       <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
@@ -432,17 +411,51 @@ function WorkersDonut({ total, present, loading }: { total: number; present: num
   );
 }
 
-function SiteStatusDonut({ active, planning, paused, done, loading }: {
-  active: number; planning: number; paused: number; done: number; loading?: boolean;
+
+interface ProjectStatusCounts {
+  planning:    number;
+  inProgress:  number;
+  onHold:      number;
+  completed:   number;
+  cancelled:   number;
+}
+
+const PROJECT_STATUS_RINGS: Array<{
+  key: keyof ProjectStatusCounts;
+  label: string;
+  color: string;
+  r: number;
+  sw: number;
+}> = [
+  { key: 'inProgress', label: 'In Progress', color: '#3b82f6', r: 54, sw: 11 },
+  { key: 'planning',   label: 'Planning',    color: '#a78bfa', r: 42, sw: 10 },
+  { key: 'completed',  label: 'Completed',   color: '#22c55e', r: 30, sw: 10 },
+  { key: 'onHold',     label: 'On Hold',     color: '#eab308', r: 19, sw: 9  },
+  { key: 'cancelled',  label: 'Cancelled',   color: '#f87171', r: 9,  sw: 7  },
+];
+
+function countProjectStatuses(sites: Site[]): ProjectStatusCounts {
+  const counts: ProjectStatusCounts = { planning: 0, inProgress: 0, onHold: 0, completed: 0, cancelled: 0 };
+  for (const site of sites) {
+   
+    const raw  = (site as any).projectStatus ?? site.project_status ?? '';
+    const norm = normProjectStatus(String(raw));
+    if      (norm === 'PLANNING')    counts.planning++;
+    else if (norm === 'IN_PROGRESS') counts.inProgress++;
+    else if (norm === 'ON_HOLD')     counts.onHold++;
+    else if (norm === 'COMPLETED')   counts.completed++;
+    else if (norm === 'CANCELLED')   counts.cancelled++;
+  }
+  return counts;
+}
+
+function ProjectStatusDonut({ counts, loading }: {
+  counts: ProjectStatusCounts;
+  loading?: boolean;
 }) {
-  const total = active + planning + paused + done || 1;
-  const rings = [
-    { value: active,   color: '#22c55e', r: 54, sw: 11 },
-    { value: planning, color: '#3b82f6', r: 40, sw: 11 },
-    { value: paused,   color: '#eab308', r: 26, sw: 11 },
-    { value: done,     color: '#14b8a6', r: 13, sw: 8  },
-  ];
+  const total = Object.values(counts).reduce((s, v) => s + v, 0) || 1;
   const CX = 70, CY = 70;
+
   if (loading) return (
     <div className="flex items-center justify-center" style={{ width: 140, height: 140 }}>
       <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
@@ -450,14 +463,15 @@ function SiteStatusDonut({ active, planning, paused, done, loading }: {
   );
   return (
     <svg viewBox="0 0 140 140" style={{ width: 140, height: 140 }}>
-      {rings.map((ring) => {
-        const circ = 2 * Math.PI * ring.r;
-        const dash = (ring.value / total) * circ;
+      {PROJECT_STATUS_RINGS.map((ring) => {
+        const value = counts[ring.key];
+        const circ  = 2 * Math.PI * ring.r;
+        const dash  = (value / total) * circ;
         return (
-          <g key={ring.r}>
+          <g key={ring.key}>
             <circle cx={CX} cy={CY} r={ring.r} fill="none"
               stroke="rgba(255,255,255,0.06)" strokeWidth={ring.sw} />
-            {ring.value > 0 && (
+            {value > 0 && (
               <circle cx={CX} cy={CY} r={ring.r} fill="none" stroke={ring.color}
                 strokeWidth={ring.sw} strokeDasharray={`${dash} ${circ}`}
                 strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
@@ -465,6 +479,7 @@ function SiteStatusDonut({ active, planning, paused, done, loading }: {
           </g>
         );
       })}
+
     </svg>
   );
 }
@@ -476,22 +491,26 @@ export default function ProjectsDashboardPage() {
   const [loadingSites, setLoadingSites] = useState(true);
   const [kpisError, setKpisError]       = useState<string | null>(null);
 
-  const [attendanceTab, setAttendanceTab]     = useState<'Today' | 'Week' | 'Month' | 'Custom'>('Month');
-  const [dateFrom, setDateFrom]               = useState('');
-  const [dateTo, setDateTo]                   = useState('');
-  const [showCalendar, setShowCalendar]       = useState(false);
-  const calendarRef                           = useRef<HTMLDivElement>(null);
-  const chartCardRef                          = useRef<HTMLDivElement>(null);
+  const [attendanceTab, setAttendanceTab]   = useState<'Today' | 'Week' | 'Month' | 'Custom'>('Month');
+  const [dateFrom, setDateFrom]             = useState('');
+  const [dateTo, setDateTo]                 = useState('');
+  const [showCalendar, setShowCalendar]     = useState(false);
 
-  // Bars: fetched from backend
-  const [bars, setBars]                       = useState<Bar[]>([]);
-  const [loadingBars, setLoadingBars]         = useState(false);
-  const [barsError, setBarsError]             = useState<string | null>(null);
+  const attendanceCardRef = useRef<HTMLDivElement>(null);
+  const calendarRef       = useRef<HTMLDivElement>(null);
+  const chartCardRef      = useRef<HTMLDivElement>(null);
 
-  // Week overlay
-  const [activeBarIdx, setActiveBarIdx]       = useState<number | null>(null);
-  const [overlayPos, setOverlayPos]           = useState<{ top: number; left: number } | null>(null);
+  const [bars, setBars]                   = useState<Bar[]>([]);
+  const [loadingBars, setLoadingBars]     = useState(false);
+  const [barsError, setBarsError]         = useState<string | null>(null);
 
+  const [activeBarIdx, setActiveBarIdx]   = useState<number | null>(null);
+  const [overlayPos, setOverlayPos]       = useState<{ top: number; left: number } | null>(null);
+
+  const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const DAY_FULL    = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'
   const load = useCallback(() => {
     setLoadingKpis(true); setKpisError(null);
     fetchOverviewKPIs()
@@ -501,17 +520,23 @@ export default function ProjectsDashboardPage() {
 
     setLoadingSites(true);
     fetchSites()
-      .then(setSites)
+      .then((data) => {
+        
+        const items: Site[] = Array.isArray(data)
+          ? data
+          : Array.isArray((data as any)?.data?.items)
+          ? (data as any).data.items
+          : Array.isArray((data as any)?.items)
+          ? (data as any).items
+          : [];
+        setSites(items);
+      })
       .catch(() => setSites([]))
       .finally(() => setLoadingSites(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const DAY_NAMES  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const DAY_FULL   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const MONTH_NAMES = ['January','February','March','April','May','June',
-                       'July','August','September','October','November','December'];
 
   function buildDateRange(tab: typeof attendanceTab): { from: string; to: string } | null {
     const now = new Date();
@@ -532,13 +557,16 @@ export default function ProjectsDashboardPage() {
       return { from: toISO(first), to: toISO(last) };
     }
     if (tab === 'Custom') {
+  
       if (!dateFrom || !dateTo) return null;
-      return { from: dateFrom, to: dateTo };
+     
+      const today = toISO(new Date());
+      const safeTo = dateTo > today ? today : dateTo;
+      return { from: dateFrom, to: safeTo };
     }
     return null;
   }
 
-  // Convert API response into Bar[] — filling every date in range with 0 if missing
   function buildBars(
     summary: AttendanceDay[],
     fromISO: string,
@@ -546,23 +574,37 @@ export default function ProjectsDashboardPage() {
     tab: typeof attendanceTab,
   ): Bar[] {
     const lookup: Record<string, number> = {};
-    for (const row of summary) lookup[row.date] = row.present_count;
+    for (const row of summary) {
+      lookup[row.date] = row.present_count;
+    }
 
     const result: Bar[] = [];
-    const cur = new Date(fromISO);
-    const end = new Date(toISO_);
+
+    function parseLocalDate(iso: string): Date {
+      const [y, m, d] = iso.split('-').map(Number);
+      return new Date(y, m - 1, d); // local midnight, no timezone shift
+    }
+
+    const cur = parseLocalDate(fromISO);
+    const end = parseLocalDate(toISO_);
+    const rangeDays = (end.getTime() - cur.getTime()) / 86400000;
 
     while (cur <= end) {
-      const iso  = toISO(cur);
-      const dow  = cur.getDay();
+      const iso = toISO(cur);   
+      const dow = cur.getDay();
+
       const label =
         tab === 'Today'  ? 'Today' :
         tab === 'Week'   ? DAY_NAMES[dow] :
-        /* Month/Custom */ String(cur.getDate());
+        tab === 'Custom' && rangeDays > 7
+          ? `${cur.getDate()}/${cur.getMonth() + 1}` 
+          : tab === 'Custom'
+          ? DAY_NAMES[dow]                            
+          : String(cur.getDate());
 
       result.push({
         label,
-        fullLabel:   tab === 'Today' ? 'Today' : DAY_FULL[dow],
+        fullLabel:   DAY_FULL[dow],
         date:        iso,
         dateDisplay: cur.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         present:     lookup[iso] ?? 0,
@@ -576,33 +618,21 @@ export default function ProjectsDashboardPage() {
     const range = buildDateRange(attendanceTab);
     if (!range) { setBars([]); return; }
 
-    // Collect all site IDs from the loaded sites list.
-    // Falls back to site ID 1 if sites haven't loaded yet so we still attempt a fetch.
-    const siteIds = sites.length > 0
-      ? sites.map(s => (s as any).id ?? (s as any).site_id).filter(Boolean)
-      : [1];
-
-    console.log('[Attendance] fetching for sites:', siteIds, 'range:', range);
-
     setLoadingBars(true); setBarsError(null);
     try {
-      const summary = await fetchAttendanceAllSites(siteIds, range.from, range.to);
-      console.log('[Attendance] aggregated summary:', summary);
+      const summary = await fetchAttendanceAnalytics(range.from, range.to);
+      console.log('[Dashboard] attendance summary rows:', summary.length);
       setBars(buildBars(summary, range.from, range.to, attendanceTab));
     } catch (err) {
-      console.error('[Attendance] loadBars error:', err);
+      console.error('[Dashboard] loadBars error:', err);
       setBarsError('Could not load attendance data.');
       setBars(buildBars([], range.from, range.to, attendanceTab));
     } finally {
       setLoadingBars(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attendanceTab, dateFrom, dateTo, sites]);
+  }, [attendanceTab, dateFrom, dateTo]);
 
-  useEffect(() => {
-    setActiveBarIdx(null);
-    loadBars();
-  }, [loadBars]);
+  useEffect(() => { setActiveBarIdx(null); loadBars(); }, [loadBars]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -622,20 +652,15 @@ export default function ProjectsDashboardPage() {
 
   function handleBarClick(idx: number | null) {
     if (idx === null) { setActiveBarIdx(null); setOverlayPos(null); return; }
-
     setActiveBarIdx(idx);
-
-    // Position the overlay above the chart card
     if (chartCardRef.current) {
       const rect     = chartCardRef.current.getBoundingClientRect();
       const count    = bars.length || 1;
-      // fraction of card width where bar centre sits
       const fraction = (idx + 0.5) / count;
-      const left     = rect.left + fraction * rect.width;
-      const top      = rect.top;      // overlay will sit above this
-      setOverlayPos({ top, left });
+      setOverlayPos({ top: rect.top, left: rect.left + fraction * rect.width });
     }
   }
+
   const totalTasks     = kpis?.totalTasks     ?? 0;
   const completedTasks = kpis?.completedTasks ?? 0;
   const taskPct        = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -646,20 +671,17 @@ export default function ProjectsDashboardPage() {
   const totalInvoiced  = kpis?.totalInvoiced  ?? 0;
   const invoicedFmt    = `KSH ${totalInvoiced.toLocaleString()}`;
   const pendingFmt     = `KSH ${(kpis?.pendingInvoiceValue ?? 0).toLocaleString()} pending`;
-  const totalSites     = kpis?.totalSites    ?? 0;
-  const activeSites    = kpis?.activeSites   ?? 0;
-  const planningSites  = kpis?.planningSites ?? 0;
-  const pausedSites    = sites.filter(s => normProjectStatus(s.project_status) === 'ON_HOLD').length;
-  const doneSites      = sites.filter(s => normProjectStatus(s.project_status) === 'COMPLETED').length;
+  const totalSites          = kpis?.totalSites ?? sites.length;
+ 
+  const projectStatusCounts = countProjectStatuses(sites);
 
-  const customLabel    = dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : 'Pick dates';
-  const activeBar      = activeBarIdx !== null ? bars[activeBarIdx] : null;
-  const now            = new Date();
+  const customLabel = dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : 'Pick dates';
+  const activeBar   = activeBarIdx !== null ? bars[activeBarIdx] : null;
+  const now         = new Date();
 
   return (
     <div className="gv-page-dashboard flex flex-col gap-0 overflow-y-auto pb-10">
 
-      {/* ── Header ── */}
       <div className="px-4 pt-6 pb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">Projects Dashboard</h1>
         <button onClick={load} className="w-8 h-8 rounded-xl flex items-center justify-center"
@@ -678,11 +700,10 @@ export default function ProjectsDashboardPage() {
         </div>
       )}
 
-      {/* ── Overview KPIs ── */}
       <div className="px-4 pb-5">
         <p className="text-lg font-bold text-white mb-3">Overview</p>
         <div className="grid grid-cols-2 gap-3">
-          <KpiCard icon={Building2}     label="Total Sites"      loading={loadingKpis} value={totalSites}              sub={`${activeSites} active`} />
+          <KpiCard icon={Building2}     label="Total Sites"      loading={loadingKpis} value={totalSites}              sub={`${projectStatusCounts.inProgress} in progress`} />
           <KpiCard icon={Users}         label="Workers"          loading={loadingKpis} value={totalWorkers}            sub={`${activeWorkers} active`} />
           <KpiCard icon={ClipboardList} label="Tasks"            loading={loadingKpis} value={`${completedTasks}/${totalTasks}`} sub={`${taskPct}% done`} />
           <KpiCard icon={FileText}      label="Invoiced"         loading={loadingKpis} value={invoicedFmt}             sub={pendingFmt} />
@@ -690,140 +711,135 @@ export default function ProjectsDashboardPage() {
           <KpiCard icon={UserCheck}     label="Attendance Today" loading={loadingKpis} value={`${attendancePct}%`}    sub={`${presentToday} present`} />
         </div>
       </div>
-
-      {/* ── Attendance ── */}
       <div className="px-4 pb-5">
-        <p className="text-lg font-bold text-white mb-3">Attendance</p>
+        <div className="grid grid-cols-2 gap-3 items-stretch">
 
-        {/* Period tabs */}
-        <div className="flex items-center gap-2 mb-3 overflow-x-auto">
-          {(['Today', 'Week', 'Month', 'Custom'] as const).map((t) => {
-            const active = attendanceTab === t;
-            return (
-              <button key={t}
-                onClick={() => { setAttendanceTab(t); if (t === 'Custom') setShowCalendar(true); }}
-                className="text-sm font-medium px-3 py-1.5 rounded-full whitespace-nowrap flex-shrink-0 transition-all"
-                style={active
-                  ? { background: 'var(--gv-brand)', color: '#fff' }
-                  : { background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}>
-                {t === 'Custom' && (dateFrom || dateTo) ? customLabel : t}
-              </button>
-            );
-          })}
-        </div>
+          <div ref={attendanceCardRef} className="flex flex-col gap-3">
+            <p className="text-lg font-bold text-white">Attendance</p>
 
-        {/* Custom — calendar trigger */}
-        {attendanceTab === 'Custom' && (
-          <div className="relative mb-3" ref={calendarRef}>
-            <button
-              onClick={() => setShowCalendar(v => !v)}
-              className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
-              style={{
-                background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)',
-                color: dateFrom ? '#fff' : 'var(--gv-text-muted)',
-              }}>
-              <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--gv-brand)' }} />
-              {dateFrom && dateTo ? `${dateFrom}  →  ${dateTo}` : dateFrom ? `From ${dateFrom} — pick end date` : 'Select date range'}
-              <ChevronRightIcon className="w-4 h-4 ml-auto opacity-40" />
-            </button>
-            {showCalendar && (
-              <CalendarPicker
-                dateFrom={dateFrom} dateTo={dateTo}
-                onSelect={(from, to) => { setDateFrom(from); setDateTo(to); }}
-                onClose={() => setShowCalendar(false)}
-              />
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {(['Today', 'Week', 'Month', 'Custom'] as const).map((t) => {
+                const active = attendanceTab === t;
+                return (
+                  <button key={t}
+                    onClick={() => {
+                      setAttendanceTab(t);
+                      if (t === 'Custom') setShowCalendar(true);
+                    }}
+                    className="text-sm font-medium px-3 py-1.5 rounded-full whitespace-nowrap flex-shrink-0 transition-all"
+                    style={active
+                      ? { background: 'var(--gv-brand)', color: '#fff' }
+                      : { background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}>
+                    {t === 'Custom' && (dateFrom || dateTo) ? customLabel : t}
+                  </button>
+                );
+              })}
+            </div>
+            {attendanceTab === 'Custom' && (
+              <div className="relative" ref={calendarRef}>
+                <button
+                  onClick={() => setShowCalendar(v => !v)}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
+                  style={{
+                    background: 'var(--gv-glass-bg)',
+                    border: '1px solid var(--gv-glass-border)',
+                    color: dateFrom ? '#fff' : 'var(--gv-text-muted)',
+                  }}>
+                  <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--gv-brand)' }} />
+                  {dateFrom && dateTo
+                    ? `${dateFrom}  →  ${dateTo}`
+                    : dateFrom
+                    ? `From ${dateFrom} — pick end date`
+                    : 'Select date range'}
+                  <ChevronRightIcon className="w-4 h-4 ml-auto opacity-40" />
+                </button>
+
+                {showCalendar && (
+                  <CalendarPicker
+                    dateFrom={dateFrom}
+                    dateTo={dateTo}
+                    onSelect={(from, to) => { setDateFrom(from); setDateTo(to); }}
+                    onClose={() => setShowCalendar(false)}
+                    constrainWidth
+                    anchorRef={attendanceCardRef as React.RefObject<HTMLElement>}
+                  />
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        {barsError && (
-          <p className="text-xs mb-2 px-1" style={{ color: '#fca5a5' }}>{barsError}</p>
-        )}
+            {barsError && (
+              <p className="text-xs px-1" style={{ color: '#fca5a5' }}>{barsError}</p>
+            )}
 
-        {/* Charts grid */}
-        <div className="grid grid-cols-2 gap-3">
+            <div
+              ref={chartCardRef}
+              className="rounded-2xl overflow-visible flex flex-col"
+              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', position: 'relative' }}
+            >
+              <div className="flex items-center justify-between px-3 pt-3 mb-1">
+                <p className="text-xs font-semibold" style={{ color: 'var(--gv-text-muted)' }}>
+                  {attendanceTab === 'Month'
+                    ? `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
+                    : attendanceTab === 'Custom' && dateFrom && dateTo
+                    ? `${dateFrom} – ${dateTo}`
+                    : attendanceTab}
+                </p>
+                <button onClick={loadBars} className="opacity-50 hover:opacity-100 transition-opacity">
+                  <RefreshCw className="w-3 h-3 text-white" />
+                </button>
+              </div>
 
-          {/* ── Attendance chart card ── */}
-          <div
-            ref={chartCardRef}
-            className="rounded-2xl overflow-visible flex flex-col"
-            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', position: 'relative' }}
-          >
-            {/* Period label + refresh */}
-            <div className="flex items-center justify-between px-3 pt-3 mb-1">
-              <p className="text-xs font-semibold" style={{ color: 'var(--gv-text-muted)' }}>
-                {attendanceTab === 'Month'
-                  ? `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
-                  : attendanceTab === 'Custom' && dateFrom && dateTo
-                  ? `${dateFrom} – ${dateTo}`
-                  : attendanceTab}
-              </p>
-              <button onClick={loadBars} className="opacity-50 hover:opacity-100 transition-opacity">
-                <RefreshCw className="w-3 h-3 text-white" />
-              </button>
-            </div>
+              <div className="w-full" style={{ overflow: 'visible' }}>
+                <AttendanceBarChart
+                  bars={bars}
+                  loading={loadingBars}
+                  tab={attendanceTab}
+                  activeBarIdx={activeBarIdx}
+                  onBarClick={handleBarClick}
+                />
+              </div>
 
-            {/* Chart — no horizontal padding, full bleed */}
-            <div className="w-full" style={{ overflow: 'visible' }}>
-              <AttendanceBarChart
-                bars={bars}
-                loading={loadingBars}
-                tab={attendanceTab}
-                activeBarIdx={activeBarIdx}
-                onBarClick={handleBarClick}
-              />
-            </div>
-
-            {/* Legend — only Present, shown on RIGHT */}
-            <div className="flex justify-end px-3 pb-3">
-              <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
-                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 inline-block" style={{ background: '#3b82f6' }} />
-                Present
-              </span>
+              <div className="flex justify-end px-3 pb-3">
+                <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+                  <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 inline-block" style={{ background: '#3b82f6' }} />
+                  Present
+                </span>
+              </div>
             </div>
           </div>
-
-          {/* ── Site Statuses ── */}
-          <div className="flex flex-col gap-2">
-            <p className="text-lg font-bold text-white">Site Statuses</p>
+          <div className="flex flex-col gap-3 h-full">
+            <p className="text-lg font-bold text-white">Project Statuses</p>
             <div className="rounded-2xl p-3 flex flex-col items-center justify-between flex-1"
               style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-              <SiteStatusDonut
-                active={activeSites} planning={planningSites}
-                paused={pausedSites} done={doneSites}
-                loading={loadingSites || loadingKpis} />
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 w-full">
-                {[
-                  { label: 'Active',   color: '#22c55e' },
-                  { label: 'Planning', color: '#3b82f6' },
-                  { label: 'Paused',   color: '#eab308' },
-                  { label: 'Done',     color: '#14b8a6' },
-                ].map((l) => (
-                  <span key={l.label} className="flex items-center gap-1.5 text-xs"
+              <ProjectStatusDonut
+                counts={projectStatusCounts}
+                loading={loadingSites}
+              />
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-3 w-full">
+                {PROJECT_STATUS_RINGS.map((ring) => (
+                  <span key={ring.key} className="flex items-center gap-1.5 text-xs"
                     style={{ color: 'var(--gv-text-subtle)' }}>
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 inline-block"
-                      style={{ background: l.color }} />
-                    {l.label}
+                      style={{ background: ring.color }} />
+                    {ring.label}
+                    <span className="ml-auto font-semibold text-white">{projectStatusCounts[ring.key]}</span>
                   </span>
                 ))}
               </div>
             </div>
           </div>
+
         </div>
       </div>
-
-      {/* ── Week bar overlay — fixed-position, never clipped ── */}
       {attendanceTab === 'Week' && activeBar && overlayPos && (
-        <div
-          className="fixed z-50"
+        <div className="fixed z-50"
           style={{
-            top:  overlayPos.top - 8,
+            top: overlayPos.top - 8,
             left: overlayPos.left,
             transform: 'translate(-50%, -100%)',
             pointerEvents: 'auto',
           }}
-          onMouseDown={(e) => e.stopPropagation()}
-        >
+          onMouseDown={(e) => e.stopPropagation()}>
           <div className="rounded-2xl p-4 shadow-2xl"
             style={{
               minWidth: 200,
@@ -831,21 +847,16 @@ export default function ProjectsDashboardPage() {
               border: '1px solid rgba(255,255,255,0.18)',
               backdropFilter: 'blur(24px)',
             }}>
-            {/* Close */}
             <button
               onClick={() => { setActiveBarIdx(null); setOverlayPos(null); }}
               className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-full text-xs"
               style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>
               ✕
             </button>
-
-            {/* Day + date */}
             <p className="text-sm font-bold text-white leading-tight pr-6">{activeBar.fullLabel}</p>
             <p className="text-xs mt-0.5 mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
               {activeBar.dateDisplay}
             </p>
-
-            {/* Present count */}
             <div className="flex items-center justify-between gap-6">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-sm inline-block flex-shrink-0"
@@ -858,40 +869,45 @@ export default function ProjectsDashboardPage() {
         </div>
       )}
 
-      {/* ── Workers ── */}
       <div className="px-4 pb-5">
-        <p className="text-lg font-bold text-white mb-3">Workers</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 items-stretch">
 
-          <div className="rounded-2xl p-4 flex flex-col items-center justify-center"
-            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-            <WorkersDonut total={totalWorkers} present={presentToday} loading={loadingKpis} />
-            <div className="flex items-center gap-1.5 mt-2 text-xs" style={{ color: 'var(--gv-brand)' }}>
-              <RefreshCw className="w-3 h-3" />Present
+          {/* Workers Piechart */}
+          <div className="flex flex-col gap-2 h-full">
+            <p className="text-lg font-bold text-white">Workers Piechart</p>
+            <div className="rounded-2xl p-4 flex flex-col items-center justify-center flex-1"
+              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+              <WorkersDonut total={totalWorkers} present={presentToday} loading={loadingKpis} />
+              <div className="flex items-center gap-1.5 mt-2 text-xs" style={{ color: 'var(--gv-brand)' }}>
+                <RefreshCw className="w-3 h-3" />Present
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-lg font-bold text-white">Workers Analytics</p>
+            <div className="rounded-2xl overflow-hidden"
+              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+              {[
+                { label: 'Total',    value: totalWorkers },
+                { label: 'Active',   value: activeWorkers },
+                { label: 'Inactive', value: Math.max(0, totalWorkers - activeWorkers) },
+                { label: 'Present',  value: presentToday },
+                { label: 'Late',     value: 0 },
+                { label: 'Absent',   value: Math.max(0, totalWorkers - presentToday) },
+                { label: 'Skills',   value: '—' },
+                { label: 'In Tasks', value: '—' },
+              ].map((row, i, arr) => (
+                <div key={row.label} className="flex items-center justify-between px-3 py-2"
+                  style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}>
+                  <p className="text-xs" style={{ color: 'var(--gv-text-muted)' }}>{row.label}</p>
+                  {loadingKpis
+                    ? <div className="h-3 w-5 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
+                    : <p className="text-xs font-semibold text-white">{row.value}</p>}
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="rounded-2xl overflow-hidden"
-            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-            {[
-              { label: 'Total',    value: totalWorkers },
-              { label: 'Active',   value: activeWorkers },
-              { label: 'Inactive', value: Math.max(0, totalWorkers - activeWorkers) },
-              { label: 'Present',  value: presentToday },
-              { label: 'Late',     value: 0 },
-              { label: 'Absent',   value: Math.max(0, totalWorkers - presentToday) },
-              { label: 'Skills',   value: '—' },
-              { label: 'In Tasks', value: '—' },
-            ].map((row, i, arr) => (
-              <div key={row.label} className="flex items-center justify-between px-3 py-2"
-                style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}>
-                <p className="text-xs" style={{ color: 'var(--gv-text-muted)' }}>{row.label}</p>
-                {loadingKpis
-                  ? <div className="h-3 w-5 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                  : <p className="text-xs font-semibold text-white">{row.value}</p>}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
