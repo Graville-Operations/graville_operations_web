@@ -20,6 +20,7 @@ export interface PermitApproval {
 }
 
 export interface PermitListItem {
+  [x: string]: string | null | undefined;
   id:           number;
   title:        string;
   status:       PermitStatus;
