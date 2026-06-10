@@ -7,12 +7,10 @@ import {
 import { useApi } from '@/hooks/useApi';
 import type { Site, StoreMaterial, StoreTool, StockTab } from '@/types/store';
 
-
 function extractList<T>(raw: T[] | { items?: T[] } | null | undefined): T[] {
   if (!raw) return [];
   return Array.isArray(raw) ? raw : (raw.items ?? []);
 }
-
 
 function RowSkeleton({ cols }: { cols: number }) {
   return (
@@ -52,7 +50,6 @@ function TableSkeleton({ cols, rows = 6 }: { cols: number; rows?: number }) {
     </div>
   );
 }
-
 
 function SiteSelector({
   sites, selectedSiteId, onChange, isLoading,
@@ -97,6 +94,7 @@ export default function StockRegistersPage() {
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const [search,         setSearch]         = useState('');
 
+  // ── Sites ──
   const { data: sitesRaw, loading: isSitesLoading } =
     useApi<Site[] | { items: Site[] }>('/sites/list');
 
@@ -153,6 +151,7 @@ export default function StockRegistersPage() {
 
   return (
     <div className="space-y-6">
+
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="gv-eyebrow">Store</p>
@@ -248,6 +247,7 @@ export default function StockRegistersPage() {
         </div>
       )}
 
+      {/* ══ MATERIALS TABLE ══ */}
       {!isCurrentLoading && !isCurrentError && tab === 'materials' && (
         <div className="gv-card p-0 overflow-hidden">
           <table className="w-full text-sm table-fixed">

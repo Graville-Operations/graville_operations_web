@@ -10,6 +10,7 @@ export interface User {
   staff_id?: string;
   enabled?: boolean;
   expires_at?: string;
+  is_active?: boolean;
 }
 
 export interface LoginResponse {
@@ -88,6 +89,7 @@ export interface ApiUser {
   nationalId?: string;
   accountStatus?: string;
   role?: string;
+  is_active?: boolean;
 }
 
 export interface ClientInvoiceItem {

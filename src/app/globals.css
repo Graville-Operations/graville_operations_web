@@ -132,7 +132,7 @@
 
 @layer components {
 
-  /* ── Page ── */
+  /* Page */
   .gv-page {
     background:  transparent;
     min-height:  100vh;
@@ -144,7 +144,7 @@
   padding-top: 0; 
 }
 
-  /* ── Nav ── */
+  /* Nav */
   .gv-nav {
     position:                flex;
     top:                     0;
@@ -159,7 +159,7 @@
                              0 4px 24px rgba(0,0,0,0.5);
   }
 
-  /* ── Cards ── */
+  /* Cards */
   .gv-card {
     background:              var(--gv-glass-bg);
     backdrop-filter:         blur(12px);
@@ -257,7 +257,7 @@
     border-color: var(--gv-glass-border-hover);
   }
 
-  /* ── Icon box ── */
+  /* Icon box */
   .gv-icon-box {
     display:         flex;
     align-items:     center;
@@ -270,7 +270,7 @@
     flex-shrink:     0;
   }
 
-  /* ── Typography helpers ── */
+  /*  Typography helpers */
   .gv-tag {
     display:        inline-block;
     font-size:      0.7rem;
@@ -297,7 +297,7 @@
     margin-bottom:  0.375rem;
   }
 
-  /* ── Decorative ── */
+  /* Decorative */
   .gv-rule {
     width:      2rem;
     height:     1px;
@@ -325,3 +325,43 @@
     transform: translateX(100%);
   }
 }
+/* Dropdowns  */
+  .gv-dropdown {
+    position:                absolute;
+    top:                     calc(100% + 6px);
+    left:                    0;
+    z-index:                 9999;
+    background:              #0d1828;
+    backdrop-filter:         blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border:                  1px solid rgba(255, 255, 255, 0.18);
+    border-radius:           0.75rem;
+    box-shadow:              0 8px 32px rgba(0, 0, 0, 0.6),
+                             0 2px 8px rgba(0, 0, 0, 0.4);
+    overflow:                hidden;
+  }
+
+  .gv-dropdown-item {
+    width:       100%;
+    text-align:  left;
+    padding:     0.625rem 1rem;
+    font-size:   0.875rem;
+    color:       var(--gv-text-muted);
+    transition:  background 0.15s ease, color 0.15s ease;
+    cursor:      pointer;
+    background:  transparent;
+    border:      none;
+  }
+  .gv-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
+  .gv-dropdown-item--active {
+    color:       var(--gv-brand);
+    font-weight: 600;
+  }
+
+  .gv-pill-active {
+    background:   rgba(51, 144, 124, 0.15);
+    border-color: rgba(51, 144, 124, 0.5);
+    color:        var(--gv-brand);
+  }

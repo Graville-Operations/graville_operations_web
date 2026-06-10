@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
@@ -12,46 +12,55 @@ interface Site {
 
 interface InvoiceItem {
   particulars: string;
-  quantity: string;
-  unit_price: string;
+  quantity:    string;
+  unit_price:  string;
 }
 
 const emptyItem = (): InvoiceItem => ({
   particulars: '',
-  quantity: '',
-  unit_price: '',
+  quantity:  '',
+  unit_price:  '',
 });
 
 export default function NewClientInvoicePage() {
-  const router = useRouter();
+  const router  = useRouter();
+  const notesRef  = useRef<HTMLTextAreaElement>(null);
   const [sites, setSites] = useState<Site[]>([]);
   const [sitesLoading, setSitesLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
+  const today = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState({
     invoice_number: '',
-    invoice_date:   new Date().toISOString().split('T')[0],
-    client_name:    '',
-    site_id:        '',
-    notes:          '',
+    invoice_date: new Date().toISOString().split('T')[0],
+    client_name: '',
+    site_id: '',
+    notes: '',
   });
-
   const [items, setItems] = useState<InvoiceItem[]>([emptyItem()]);
 
   useEffect(() => {
     api.get('/sites/list')
       .then(({ data }) => {
         const payload = data?.data ?? data;
-        const list = Array.isArray(payload) ? payload : payload?.items ?? [];
+        const list    = Array.isArray(payload) ? payload : payload?.items ?? [];
         setSites(list);
       })
       .catch(() => setSites([]))
       .finally(() => setSitesLoading(false));
   }, []);
+  useEffect(() => {
+    if (notesRef.current) {
+      notesRef.current.style.height = 'auto';
+      notesRef.current.style.height = `${notesRef.current.scrollHeight}px`;
+    }
+  }, [form.notes]);
 
+  /* ── line item helpers ── */
   const updateItem = (index: number, field: keyof InvoiceItem, value: string) => {
-    setItems((prev) => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+    setItems((prev) =>
+      prev.map((item, i) => i === index ? { ...item, [field]: value } : item)
+    );
   };
 
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
@@ -62,18 +71,18 @@ export default function NewClientInvoicePage() {
   };
 
   const getLineTotal = (item: InvoiceItem) => {
-    const qty = parseFloat(item.quantity) || 0;
+    const qty   = parseFloat(item.quantity)   || 0;
     const price = parseFloat(item.unit_price) || 0;
     return qty * price;
   };
 
   const grandTotal = items.reduce((sum, item) => sum + getLineTotal(item), 0);
 
+  /* ── submit ── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validate items
     for (const item of items) {
       if (!item.particulars || !item.quantity || !item.unit_price) {
         setError('All line items must have particulars, quantity and unit price');
@@ -85,10 +94,10 @@ export default function NewClientInvoicePage() {
     try {
       await api.post('/client-invoices/create', {
         invoice_number: form.invoice_number,
-        invoice_date:   form.invoice_date,
-        client_name:    form.client_name,
-        site_id:        Number(form.site_id),
-        notes:          form.notes || null,
+        invoice_date: form.invoice_date,
+        client_name: form.client_name,
+        site_id:  Number(form.site_id),
+        notes:  form.notes || null,
         items: items.map((item) => ({
           particulars: item.particulars,
           quantity:    parseFloat(item.quantity),
@@ -98,17 +107,23 @@ export default function NewClientInvoicePage() {
       router.push('/finance/invoice/client');
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; detail?: string } } };
-      setError(e.response?.data?.message || e.response?.data?.detail || 'Failed to create invoice');
+      setError(
+        e.response?.data?.message ||
+        e.response?.data?.detail  ||
+        'Failed to create invoice'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const inputClass = 'w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm';
+  const inputClass =
+    'w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
+
+      {/* Header  */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.back()}
@@ -129,13 +144,16 @@ export default function NewClientInvoicePage() {
           </div>
         )}
 
-        {/* Invoice details */}
+        {/* ── Invoice details ── */}
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 space-y-4">
           <h3 className="font-semibold text-white mb-2">Invoice Details</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Invoice Number */}
             <div>
-              <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">Invoice Number *</label>
+              <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">
+                Invoice Number *
+              </label>
               <input
                 type="text"
                 value={form.invoice_number}
@@ -145,18 +163,28 @@ export default function NewClientInvoicePage() {
                 className={inputClass}
               />
             </div>
+
+            {/* Invoice Date */}
             <div>
-              <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">Invoice Date *</label>
+              <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">
+                Invoice Date *
+              </label>
               <input
                 type="date"
                 value={form.invoice_date}
                 onChange={(e) => setForm({ ...form, invoice_date: e.target.value })}
                 required
+                max={today}
                 className={inputClass}
+                style={{ colorScheme: 'dark' }}
               />
             </div>
+
+            {/* Client Name */}
             <div>
-              <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">Client Name *</label>
+              <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">
+                Client Name *
+              </label>
               <input
                 type="text"
                 value={form.client_name}
@@ -166,8 +194,12 @@ export default function NewClientInvoicePage() {
                 className={inputClass}
               />
             </div>
+
+            {/* Site */}
             <div>
-              <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">Site *</label>
+              <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">
+                Site *
+              </label>
               <select
                 value={form.site_id}
                 onChange={(e) => setForm({ ...form, site_id: e.target.value })}
@@ -175,7 +207,11 @@ export default function NewClientInvoicePage() {
                 className={`${inputClass} [&>option]:bg-[#0d1b2a]`}
               >
                 <option value="">
-                  {sitesLoading ? 'Loading sites...' : sites.length === 0 ? 'No sites available' : 'Select a site...'}
+                  {sitesLoading
+                    ? 'Loading sites...'
+                    : sites.length === 0
+                    ? 'No sites available'
+                    : 'Select a site...'}
                 </option>
                 {sites.map((site) => (
                   <option key={site.id} value={site.id}>{site.name}</option>
@@ -184,19 +220,29 @@ export default function NewClientInvoicePage() {
             </div>
           </div>
 
+          {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">Notes</label>
+            <label className="block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide">
+              Notes
+            </label>
             <textarea
+              ref={notesRef}
               value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, notes: e.target.value });
+                if (notesRef.current) {
+                  notesRef.current.style.height = 'auto';
+                  notesRef.current.style.height = `${notesRef.current.scrollHeight}px`;
+                }
+              }}
               placeholder="Optional notes..."
               rows={2}
-              className={`${inputClass} resize-none`}
+              className={`${inputClass} resize-none overflow-hidden transition-[height] duration-200 ease-in-out`}
             />
           </div>
         </div>
 
-        {/* Line items */}
+        {/* ── Line items ── */}
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-white">Line Items</h3>
