@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { normaliseInvoice, Invoice } from '@/types/invoice';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ArrowLeft, Receipt, Loader2 } from 'lucide-react';
 
 const statusStyles: Record<string, { bg: string; color: string }> = {
@@ -23,7 +24,6 @@ export default function InvoiceDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    // Read site + date stashed by the list page
     const siteFromList = sessionStorage.getItem(`invoice_${id}_site`) ?? null;
     const dateFromList = sessionStorage.getItem(`invoice_${id}_date`) ?? null;
 
@@ -79,7 +79,7 @@ export default function InvoiceDetailPage() {
           </h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>{invoice.supplier_name}</p>
         </div>
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0" style={{ background: st.bg, color: st.color }}>
+        <span className="text-xs font-bold px-3 py-1.5 rounded-full shrink-0" style={{ background: st.bg, color: st.color }}>
           {invoice.status.replace(/_/g, ' ')}
         </span>
       </div>
@@ -105,7 +105,7 @@ export default function InvoiceDetailPage() {
 
       {/* Line items */}
       {invoice.items && invoice.items.length > 0 && (
-        <div className="gv-card !p-0 overflow-hidden">
+        <div className="gv-card p-0! overflow-hidden">
           <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
             <p className="gv-eyebrow">Line Items</p>
           </div>
@@ -153,7 +153,7 @@ export default function InvoiceDetailPage() {
 
       {/* Notes */}
       {invoice.notes && (
-        <div className="gv-card" style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}>
+        <div className="gv-card">
           <p className="gv-eyebrow mb-2">Notes</p>
           <p className="text-sm leading-relaxed" style={{ color: 'var(--gv-text-muted)' }}>{invoice.notes}</p>
         </div>

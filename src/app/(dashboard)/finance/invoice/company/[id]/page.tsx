@@ -55,27 +55,25 @@ export default function CompanyInvoiceDetailPage() {
     <div className="space-y-6 w-full" style={{ maxWidth: '75vw', margin: '0 auto' }}>
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="p-2 rounded-xl"
-            style={{
-              background: 'var(--gv-glass-bg)',
-              border: '1px solid var(--gv-glass-border)',
-              color: 'var(--gv-text-muted)',
-            }}
-          >
-            <ArrowLeft size={16} />
-          </button>
-          <div>
-            <h2 className="text-xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>
-              Invoice {invoice.invoice_number}
-            </h2>
-            <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>
-              {invoice.invoiced_by ?? 'Company Invoice'}
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => router.back()}
+          className="p-2 rounded-xl"
+          style={{
+            background: 'var(--gv-glass-bg)',
+            border: '1px solid var(--gv-glass-border)',
+            color: 'var(--gv-text-muted)',
+          }}
+        >
+          <ArrowLeft size={16} />
+        </button>
+        <div>
+          <h2 className="text-xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>
+            Invoice {invoice.invoice_number}
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+            {invoice.invoiced_by ?? 'Company Invoice'}
+          </p>
         </div>
       </div>
 
@@ -85,7 +83,7 @@ export default function CompanyInvoiceDetailPage() {
           {[
             { label: 'Invoice Date', value: invoice.invoice_date ?? '—' },
             { label: 'Invoiced By',  value: invoice.invoiced_by  ?? '—' },
-            { label: 'Last Updated', value: invoice.created_at   ?? '—' },
+            { label: 'Created On',   value: invoice.created_at   ?? '—' },
           ].map(({ label, value }) => (
             <div key={label}>
               <p className="gv-eyebrow mb-0.5 text-[10px]">{label}</p>
@@ -94,15 +92,17 @@ export default function CompanyInvoiceDetailPage() {
           ))}
         </div>
       </div>
+
+      {/* ── Line items ── */}
       {invoice.items && invoice.items.length > 0 && (
-        <div className="gv-card p-0! overflow-hidden">
+        <div className="gv-card !p-0 overflow-hidden">
           <div className="px-5 py-3.5" style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
             <p className="gv-eyebrow text-[10px]">Line Items</p>
           </div>
           <table className="w-full">
             <thead>
               <tr style={{ background: 'rgba(51,144,124,0.08)' }}>
-                {['','Particulars','Quantity','Unit Price', 'Total'].map((h) => (
+                {['', 'Particulars', 'Quantity', 'Unit Price', 'Total'].map((h) => (
                   <th
                     key={h}
                     className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider"
@@ -128,30 +128,21 @@ export default function CompanyInvoiceDetailPage() {
         </div>
       )}
 
-      {/* ── Total + Notes row ── */}
+      {/* ── Total + Notes ── */}
       <div className="grid grid-cols-2 gap-4">
         <div className="gv-card flex items-center justify-between">
           <span className="text-sm font-semibold" style={{ color: 'var(--gv-text-muted)' }}>Total Amount</span>
           <span className="text-2xl font-bold" style={{ color: '#33907c' }}>KES {invoice.total.toLocaleString()}</span>
         </div>
 
-        {invoice.notes ? (
-          <div
-            className="rounded-xl px-5 py-4"
-            style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}
-          >
-            <p className="gv-eyebrow text-[10px] mb-1">Notes</p>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--gv-text-muted)' }}>{invoice.notes}</p>
-          </div>
-        ) : (
-          <div
-            className="rounded-xl px-5 py-4 flex items-center justify-center"
-            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}
-          >
-            <p className="text-xs" style={{ color: 'var(--gv-text-faint)' }}>No notes</p>
-          </div>
-        )}
+        <div className="gv-card">
+          <p className="gv-eyebrow text-[10px] mb-1">Notes</p>
+          <p className="text-sm leading-relaxed" style={{ color: invoice.notes ? 'var(--gv-text-muted)' : 'var(--gv-text-faint)' }}>
+            {invoice.notes ?? 'No notes'}
+          </p>
+        </div>
       </div>
+
     </div>
   );
 }
