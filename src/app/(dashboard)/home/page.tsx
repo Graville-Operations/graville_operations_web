@@ -10,12 +10,17 @@ import { fetchOverviewKPIs } from '@/lib/api/sites';
 import { OverviewKPIs } from '@/types/site';
 import { API } from '@/lib/endpoints';
 import { ROUTES } from '@/lib/routes';
-import { formatDate } from '@/lib/utils/date';
+//import { formatDate } from '@/lib/utils/date';
 import {
   Users, BarChart2, Briefcase, TrendingUp,
   ArrowRight, Clock, Receipt, CheckCircle2,
   AlertCircle, Loader2, UserCircle, Building2,
 } from 'lucide-react';
+
+const formatRole = (role?: string) =>
+  role
+    ? role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    : '';
 
 function StatusIcon({ status }: { status?: string }) {
   if (!status) return null;
@@ -111,7 +116,7 @@ export default function HomePage() {
     }
 
     if (!invoicesLoaded) {
-      api.get(`${API.invoices.all}?limit=5`)
+      api.get('/client-invoices/all?limit=5')
         .then(({ data }) => {
           const payload = data?.data ?? data;
           const list = Array.isArray(payload)
@@ -197,7 +202,7 @@ export default function HomePage() {
                 border: '1px solid rgba(51,144,124,0.30)',
               }}
             >
-              {role}
+              {formatRole(role)}
             </span>
             Here&apos;s what&apos;s happening today.
           </p>
@@ -229,7 +234,7 @@ export default function HomePage() {
               </h3>
             </div>
             <Link
-              href={ROUTES.finance.invoices}
+              href={'finance/invoice/client'}
               className="flex items-center gap-1 text-xs font-medium"
               style={{ color: '#33907c' }}
             >
@@ -259,23 +264,23 @@ export default function HomePage() {
                       className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                       style={{ background: 'rgba(51,144,124,0.12)' }}
                     >
-                      <StatusIcon status={inv.status} />
+                      <Receipt size={14} style={{ color: '#33907c' }} />
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate" style={{ color: 'var(--gv-text-primary)' }}>
-                        {inv.invoice_number}
+                        {inv.invoiceNo}
                       </p>
                       <p className="text-xs truncate" style={{ color: 'var(--gv-text-subtle)' }}>
-                        {inv.supplier_name}
+                        {inv.clientName}
                       </p>
                     </div>
                   </div>
                   <div className="text-right shrink-0 ml-3">
                     <p className="text-sm font-semibold" style={{ color: '#33907c' }}>
-                      KES {inv.total_invoice_value?.toLocaleString()}
+                      KES {inv.total?.toLocaleString()}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
-                      {formatDate(inv.invoice_date)}
+                      {inv.invoiceDate}
                     </p>
                   </div>
                 </div>
@@ -286,7 +291,7 @@ export default function HomePage() {
           {!invoicesLoading && (
             <div className="px-5 py-3" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
               <Link
-                href={ROUTES.finance.new}
+                href={'finance/invoice/client/new'}
                 className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium"
                 style={{ background: 'rgba(51,144,124,0.10)', color: '#33907c', border: '1px solid rgba(51,144,124,0.20)' }}
               >
@@ -355,7 +360,7 @@ export default function HomePage() {
                       className="text-xs px-2 py-0.5 rounded-full shrink-0"
                       style={{ background: 'rgba(51,144,124,0.15)', color: '#33907c', border: '1px solid rgba(51,144,124,0.25)' }}
                     >
-                      {u.role ?? '—'}
+                      {formatRole(u.role) || '—'}
                     </span>
                   </div>
                 ))}
