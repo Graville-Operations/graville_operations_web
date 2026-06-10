@@ -1,10 +1,4 @@
-export interface CreatedBy {
-  name: string;
-  email: string;
-  phone: string;
-}
-
-export interface InvoiceItem {
+export interface RawInvoiceItem {
   id: number;
   index: number;
   materialName: string;
@@ -13,43 +7,94 @@ export interface InvoiceItem {
   totalMaterialPrice: number;
 }
 
-export interface Invoice {
-  id: number;
-
-  // support BOTH backend styles safely
-  invoice_no?: string;
-  invoiceNo?: string;
-
-  delivery_no?: string;
-  deliveryNo?: string;
-
-  lpo_no?: string;
-  lpoNo?: string;
-
-  supplier_name?: string;
-  supplierName?: string;
-
-  invoice_date?: string;
-  invoiceDate?: string;
-
-  notes: string;
-
-  created_by?: CreatedBy;
-  createdBy?: CreatedBy;
-
-  total: number;
-  created_at: string;
-
-  items: InvoiceItem[];
+export interface RawCreatedBy {
+  name: string;
+  email: string;
+  phone: string;
 }
 
-export interface InvoiceResponse {
+export interface RawInvoice {
+  id: number;
+  invoiceNo: string;
+  deliveryNo: string | null;
+  lpoNo: string | null;
+  supplierName: string;
+  invoiceDate: string;   // FormattedDate  → e.g. "3rd May 2026"
+  notes: string | null;
+  // detail endpoint
+  createdBy: RawCreatedBy | null;
+  created_at: string;    // FormattedDateTime → e.g. "11:59am, 3rd May 2026"
+  // list endpoint
+  requester: string | null;
+  source: string | null;
+  updatedAt: string | null;
+  total: number;
+  amountPaid: number;
+  status: string;
+  items: RawInvoiceItem[];
+}
+
+export interface RawPaginatedResponse<T> {
   code: number;
   data: {
-    items: Invoice[];
+    items: T[];
     total: number;
     skip: number;
     limit: number;
   };
   message: string;
+}
+
+export interface InvoiceItem {
+  id: number;
+  index: number;
+  particular: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
+export interface Invoice {
+  id: number;
+  invoice_number: string;
+  lpo_number: string | null;
+  delivery_number: string | null;
+  supplier_name: string;
+  invoice_date: string;   // already human-readable string from backend
+  total_amount: number;
+  amount_paid: number;
+  status: string;
+  site: string | null;
+  items: InvoiceItem[];
+  submitted_by: string | null;
+  submitted_by_id: number;
+  notes: string | null;
+  created_at: string | null;  // already human-readable string from backend
+}
+
+export function normaliseInvoice(raw: RawInvoice): Invoice {
+  return {
+    id:              raw.id,
+    invoice_number:  raw.invoiceNo,
+    lpo_number:      raw.lpoNo      ?? null,
+    delivery_number: raw.deliveryNo ?? null,
+    supplier_name:   raw.supplierName,
+    invoice_date:    raw.invoiceDate,          // e.g. "3rd May 2026" — render as-is
+    total_amount:    raw.total,
+    amount_paid:     raw.amountPaid  ?? 0,
+    status:          raw.status      ?? 'PENDING',
+    site:            raw.source      ?? null,  // list sends `source`; detail has none
+    submitted_by:    raw.requester   ?? raw.createdBy?.name ?? null,
+    submitted_by_id: 0,
+    notes:           raw.notes       ?? null,
+    created_at:      raw.created_at  ?? raw.updatedAt ?? null, // e.g. "11:59am, 3rd May 2026"
+    items: (raw.items ?? []).map((item) => ({
+      id:          item.id,
+      index:       item.index,
+      particular:  item.materialName,
+      quantity:    item.quantity,
+      unit_price:  item.unitPrice,
+      total_price: item.totalMaterialPrice,
+    })),
+  };
 }
