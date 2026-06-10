@@ -20,6 +20,7 @@ export interface PermitApproval {
 }
 
 export interface PermitListItem {
+  [x: string]: string | number | null | undefined;
   id:           number;
   title:        string;
   status:       PermitStatus;
@@ -64,6 +65,7 @@ export interface PendingApprovalItem {
   comment:     string | null;
   actioned_at: string | null;
   created_at:  string;
+  updated_at:  string;
 }
 
 // Payload for creating a permit
@@ -74,7 +76,7 @@ export interface ApproverStep {
 
 export interface CreatePermitPayload {
   title:       string;
-  description: string;
+  description: string| null;
   category_id: number;
   approvers:   ApproverStep[];
 }

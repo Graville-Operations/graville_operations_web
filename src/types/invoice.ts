@@ -13,25 +13,24 @@ export interface RawCreatedBy {
   phone: string;
 }
 
-export interface RawSite {
-  id: number;
-  name: string;
-}
-
 export interface RawInvoice {
   id: number;
   invoiceNo: string;
   deliveryNo: string | null;
   lpoNo: string | null;
   supplierName: string;
-  invoiceDate: string;
+  invoiceDate: string;   // FormattedDate  → e.g. "3rd May 2026"
   notes: string | null;
+  // detail endpoint
   createdBy: RawCreatedBy | null;
+  created_at: string;    // FormattedDateTime → e.g. "11:59am, 3rd May 2026"
+  // list endpoint
+  requester: string | null;
+  source: string | null;
+  updatedAt: string | null;
   total: number;
   amountPaid: number;
   status: string;
-  site: string | RawSite | null;  
-  created_at: string;
   items: RawInvoiceItem[];
 }
 
@@ -61,7 +60,7 @@ export interface Invoice {
   lpo_number: string | null;
   delivery_number: string | null;
   supplier_name: string;
-  invoice_date: string;
+  invoice_date: string;   // already human-readable string from backend
   total_amount: number;
   amount_paid: number;
   status: string;
@@ -70,13 +69,7 @@ export interface Invoice {
   submitted_by: string | null;
   submitted_by_id: number;
   notes: string | null;
-  created_at: string;
-}
-
-function resolveSite(site: string | RawSite | null): string | null {
-  if (!site) return null;
-  if (typeof site === 'string') return site;
-  return site.name ?? null;
+  created_at: string | null;  // already human-readable string from backend
 }
 
 export function normaliseInvoice(raw: RawInvoice): Invoice {
@@ -86,15 +79,15 @@ export function normaliseInvoice(raw: RawInvoice): Invoice {
     lpo_number:      raw.lpoNo      ?? null,
     delivery_number: raw.deliveryNo ?? null,
     supplier_name:   raw.supplierName,
-    invoice_date:    raw.invoiceDate,
+    invoice_date:    raw.invoiceDate,          // e.g. "3rd May 2026" — render as-is
     total_amount:    raw.total,
     amount_paid:     raw.amountPaid  ?? 0,
     status:          raw.status      ?? 'PENDING',
-    site:            resolveSite(raw.site),
-    submitted_by:    raw.createdBy?.name ?? null,
+    site:            raw.source      ?? null,  // list sends `source`; detail has none
+    submitted_by:    raw.requester   ?? raw.createdBy?.name ?? null,
     submitted_by_id: 0,
-    notes:           raw.notes ?? null,
-    created_at:      raw.created_at,
+    notes:           raw.notes       ?? null,
+    created_at:      raw.created_at  ?? raw.updatedAt ?? null, // e.g. "11:59am, 3rd May 2026"
     items: (raw.items ?? []).map((item) => ({
       id:          item.id,
       index:       item.index,
