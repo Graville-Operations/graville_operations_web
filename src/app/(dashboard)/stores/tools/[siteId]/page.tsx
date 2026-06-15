@@ -20,6 +20,13 @@ const TAB_STATUS: Record<ToolTab, string | undefined> = {
   damaged:   'DAMAGED',
 };
 
+const TAB_OPTIONS: Record<ToolTab, { params: Record<string, unknown> }> = {
+  all:       { params: { limit: LIMIT, skip: 0 } },
+  available: { params: { limit: LIMIT, skip: 0, status: 'AVAILABLE' } },
+  in_use:    { params: { limit: LIMIT, skip: 0, status: 'IN_USE' } },
+  damaged:   { params: { limit: LIMIT, skip: 0, status: 'DAMAGED' } },
+};
+
 const TOOL_STATUS_COLOR: Record<string, string> = {
   AVAILABLE: 'text-[color:var(--gv-text-success)]',
   IN_USE:    'text-[color:var(--gv-text-info)]',
@@ -40,7 +47,6 @@ function extractList<T>(data: T[] | PagedResponse<T> | null | undefined): T[] {
 function TableSkeleton() {
   return (
     <div className="gv-card flex flex-col gap-0 p-0 overflow-hidden">
-     
       <div
         className="grid gap-x-2 px-4 py-2.5 border-b border-[color:var(--border)] bg-[color:var(--muted)]"
         style={{ gridTemplateColumns: '1fr 1fr 90px' }}
@@ -81,14 +87,13 @@ function TableSkeleton() {
   );
 }
 
-
 export default function ToolsPage() {
   const params       = useParams<{ siteId: string }>();
   const router       = useRouter();
   const searchParams = useSearchParams();
   const siteId       = Number(params.siteId);
 
-  const initialTab   = (searchParams.get('tab') as ToolTab | null) ?? 'all';
+  const initialTab = (searchParams.get('tab') as ToolTab | null) ?? 'all';
   const [activeTab,   setActiveTab]   = useState<ToolTab>(
     TOOL_TABS.some((t) => t.key === initialTab) ? initialTab : 'all',
   );
@@ -102,19 +107,17 @@ export default function ToolsPage() {
   );
   const siteName = sites.find((s) => s.id === siteId)?.name ?? 'Site';
 
-  const status = TAB_STATUS[activeTab];
-
   const { data, loading, error } = useApi<PagedResponse<ToolItem> | ToolItem[]>(
     `/store/tools/${siteId}/all`,
-    {
-      params: { limit: LIMIT, skip: 0, ...(status ? { status } : {}) },
-    },
+    TAB_OPTIONS[activeTab],
   );
 
   const firstPage = useMemo(() => extractList(data), [data]);
   const extra     = extraItems[activeTab] ?? [];
   const items     = extra.length > 0 ? [...firstPage, ...extra] : firstPage;
   const hasMore   = items.length > 0 && items.length % LIMIT === 0;
+
+  const status = TAB_STATUS[activeTab];
 
   const handleTabChange = useCallback((tab: ToolTab) => {
     setActiveTab(tab);
