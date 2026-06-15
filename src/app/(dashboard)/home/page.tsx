@@ -230,7 +230,7 @@ export default function HomePage() {
                 <Receipt size={15} style={{ color: '#33907c' }} />
               </div>
               <h3 className="font-semibold text-sm" style={{ color: 'var(--gv-text-primary)' }}>
-                Recent Invoices
+                Client Invoices
               </h3>
             </div>
             <Link
