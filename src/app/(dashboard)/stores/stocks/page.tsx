@@ -1,11 +1,13 @@
 'use client';
 import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  Search, Package, Wrench, ChevronDown,
+  Search, Package, Wrench, ChevronDown, ChevronRight,
   AlertTriangle, CheckCircle2, XCircle, RefreshCw, Clock,
+  TrendingDown, Coins, AlertOctagon,
 } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
-import type { Site, StoreMaterial, StoreTool, StockTab } from '@/types/store';
+import type { Site, StoreMaterial, StoreTool, StockTab, StoreSummary } from '@/types/store';
 
 function extractList<T>(raw: unknown): T[] {
   if (!raw) return [];
@@ -19,6 +21,55 @@ function extractList<T>(raw: unknown): T[] {
   if (Array.isArray(r.data))  return r.data  as T[];
   if (Array.isArray(r.items)) return r.items as T[];
   return [];
+}
+
+function fmtKES(n: number) {
+  return `KSH ${n.toLocaleString('en-KE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+type Variant = 'default' | 'warn' | 'danger' | 'success' | 'info';
+
+const BORDER_CLS: Record<Variant, string> = {
+  default: 'border-[color:var(--border)]',
+  warn:    'border-[color:var(--gv-border-warn)]',
+  danger:  'border-[color:var(--gv-border-danger)]',
+  success: 'border-[color:var(--gv-border-success)]',
+  info:    'border-[color:var(--gv-border-info)]',
+};
+const ICON_CLS: Record<Variant, string> = {
+  default: 'text-[color:var(--primary)]',
+  warn:    'text-[color:var(--gv-text-warn)]',
+  danger:  'text-[color:var(--destructive)]',
+  success: 'text-[color:var(--gv-text-success)]',
+  info:    'text-[color:var(--gv-text-info)]',
+};
+const VAL_CLS: Record<Variant, string> = {
+  default: 'text-[color:var(--foreground)]',
+  warn:    'text-[color:var(--gv-text-warn)]',
+  danger:  'text-[color:var(--destructive)]',
+  success: 'text-[color:var(--gv-text-success)]',
+  info:    'text-[color:var(--gv-text-info)]',
+};
+const TAG_CLS: Record<Exclude<Variant, 'default'>, string> = {
+  warn:    'border-[color:var(--gv-border-warn)] text-[color:var(--gv-text-warn)]',
+  danger:  'border-[color:var(--gv-border-danger)] text-[color:var(--destructive)]',
+  success: 'border-[color:var(--gv-border-success)] text-[color:var(--gv-text-success)]',
+  info:    'border-[color:var(--gv-border-info)] text-[color:var(--gv-text-info)]',
+};
+const TAG_LABEL: Record<Exclude<Variant, 'default'>, string> = {
+  warn: 'Warning', danger: 'Critical', success: 'Good', info: 'Info',
+};
+
+function CardSkeleton() {
+  return (
+    <div className="gv-card h-36 overflow-hidden relative">
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                      bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+    </div>
+  );
 }
 
 function RowSkeleton({ cols }: { cols: number }) {
@@ -56,6 +107,47 @@ function TableSkeleton({ cols, rows = 6 }: { cols: number; rows?: number }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+interface StatCardProps {
+  label:    string;
+  value:    string | number;
+  sub?:     string;
+  icon:     React.ReactNode;
+  variant?: Variant;
+  onClick?: () => void;
+}
+
+function StatCard({ label, value, sub, icon, variant = 'default', onClick }: StatCardProps) {
+  return (
+    <div
+      className={`gv-card flex flex-col gap-4 ${BORDER_CLS[variant]} ${
+        onClick
+          ? 'cursor-pointer hover:bg-[color:var(--gv-glass-bg-strong)] hover:border-[color:var(--gv-glass-border-hover)] hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(0,0,0,0.55)] transition-all duration-200'
+          : ''
+      }`}
+      onClick={onClick}
+    >
+      <div className="flex items-start justify-between">
+        <div className="gv-icon-box">
+          <span className={ICON_CLS[variant]}>{icon}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {variant !== 'default' && (
+            <span className={`gv-tag ${TAG_CLS[variant as Exclude<Variant, 'default'>]}`}>
+              {TAG_LABEL[variant as Exclude<Variant, 'default'>]}
+            </span>
+          )}
+          {onClick && <ChevronRight size={14} className="text-(--gv-text-faint)" />}
+        </div>
+      </div>
+      <div>
+        <p className="gv-label">{label}</p>
+        <p className={`text-3xl font-bold tracking-tight ${VAL_CLS[variant]}`}>{value}</p>
+        {sub && <p className="text-muted-foreground text-xs mt-1">{sub}</p>}
+      </div>
     </div>
   );
 }
@@ -98,6 +190,7 @@ function SiteSelector({
 }
 
 export default function StockRegistersPage() {
+  const router = useRouter();
   const [tab,            setTab]            = useState<StockTab>('materials');
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const [search,         setSearch]         = useState('');
@@ -105,6 +198,14 @@ export default function StockRegistersPage() {
   const { data: sitesRaw, loading: isSitesLoading } = useApi<unknown>('/sites/list');
   const sites          = useMemo(() => extractList<Site>(sitesRaw), [sitesRaw]);
   const resolvedSiteId = selectedSiteId ?? sites[0]?.id ?? null;
+
+  const {
+    data: summary,
+    loading: isSummaryLoading,
+  } = useApi<StoreSummary>(
+    `/store/site/${resolvedSiteId}`,
+    { enabled: resolvedSiteId !== null },
+  );
 
   const {
     data: matsRaw, loading: isMatsLoading, error: matsError, refetch: refetchMats,
@@ -133,12 +234,12 @@ export default function StockRegistersPage() {
     [tools, q],
   );
 
-  const lowCount  = useMemo(
+  const lowCount = useMemo(
     () => materials.filter((m) => m.minimumStockLevel != null && m.quantity <= m.minimumStockLevel).length,
     [materials],
   );
-  const outCount  = useMemo(() => materials.filter((m) => m.quantity === 0).length, [materials]);
-  const availTool = useMemo(
+  const outCount    = useMemo(() => materials.filter((m) => m.quantity === 0).length, [materials]);
+  const availTool   = useMemo(
     () => tools.filter((t) => t.status?.toUpperCase() === 'AVAILABLE').length,
     [tools],
   );
@@ -146,17 +247,75 @@ export default function StockRegistersPage() {
     () => tools.filter((t) => (t as unknown as Record<string, unknown>).is_overdue === true).length,
     [tools],
   );
+  const damagedTools = useMemo(
+    () => tools.filter((t) => t.status?.toUpperCase() === 'DAMAGED').length,
+    [tools],
+  );
+
+  const statCards = useMemo(() => {
+    if (!summary || !resolvedSiteId) return [];
+    return [
+      {
+        label:   'Total Materials',
+        value:   summary.total_materials,
+        sub:     'Tap to view material details',
+        icon:    <Package size={18} />,
+        variant: 'default' as Variant,
+        onClick: () => router.push(`/stores/materials/${resolvedSiteId}`),
+      },
+      {
+        label:   'Low Stock Items',
+        value:   summary.low_stock_count,
+        sub:     'Below minimum level',
+        icon:    <TrendingDown size={18} />,
+        variant: (summary.low_stock_count > 0 ? 'warn' : 'default') as Variant,
+      },
+      {
+        label:   'Total Tools',
+        value:   summary.total_tools,
+        sub:     'Tap to view tools and their details',
+        icon:    <Wrench size={18} />,
+        variant: 'default' as Variant,
+        onClick: () => router.push(`/stores/tools/${resolvedSiteId}`),
+      },
+      {
+        label:   'Overdue Tools',
+        value:   summary.overdue_tools ?? 0,
+        sub:     'Past their hire end date',
+        icon:    <XCircle size={18} />,
+        variant: 'default' as Variant,
+      },
+      {
+        label:   'Damaged Tools',
+        value:   damagedTools,
+        sub:     'Tools marked as damaged',
+        icon:    <AlertOctagon size={18} />,
+        variant: 'default' as Variant,
+      },
+      {
+        label:   'Total Hire Cost',
+        value:   fmtKES(summary.total_hire_cost ?? 0),
+        sub:     'Active tool hire cost',
+        icon:    <Coins size={18} />,
+        variant: 'default' as Variant,
+      },
+    ];
+  }, [summary, resolvedSiteId, damagedTools]);
+
+  const showCardSkeletons = isSummaryLoading || (isSitesLoading && !summary);
 
   const isCurrentLoading = tab === 'materials'
     ? (isMatsLoading  && !materials.length)
     : (isToolsLoading && !tools.length);
-
   const isCurrentError = tab === 'materials'
     ? (matsError  && !materials.length)
     : (toolsError && !tools.length);
 
   const handleTabChange  = useCallback((t: StockTab) => { setTab(t); setSearch(''); }, []);
-  const handleSiteChange = useCallback((id: number)   => { setSelectedSiteId(id); setSearch(''); }, []);
+  const handleSiteChange = useCallback((id: number) => {
+    setSelectedSiteId(id);
+    setSearch('');
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -173,6 +332,18 @@ export default function StockRegistersPage() {
           isLoading={isSitesLoading}
         />
       </div>
+
+      {showCardSkeletons && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }, (_, i) => <CardSkeleton key={i} />)}
+        </div>
+      )}
+
+      {!showCardSkeletons && summary && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {statCards.map((c) => <StatCard key={c.label} {...c} />)}
+        </div>
+      )}
 
       {!isMatsLoading && !isToolsLoading && resolvedSiteId && (
         <div className="flex flex-wrap gap-2 items-center">
@@ -200,6 +371,11 @@ export default function StockRegistersPage() {
           {overdueTool > 0 && (
             <span className="gv-tag flex items-center gap-1">
               <Clock size={10} /> {overdueTool} overdue
+            </span>
+          )}
+          {damagedTools > 0 && (
+            <span className="gv-tag border-[color:var(--gv-border-danger)] text-[color:var(--destructive)] flex items-center gap-1">
+              <AlertOctagon size={10} /> {damagedTools} damaged
             </span>
           )}
         </div>
@@ -345,8 +521,8 @@ export default function StockRegistersPage() {
                 </tr>
               ) : filteredTools.map((tool) => {
                 const t = tool as unknown as Record<string, unknown>;
-                const isOverdue    = t.is_overdue === true;
-                const hireEndDate  = t.hire_end_date as string | undefined;
+                const isOverdue     = t.is_overdue === true;
+                const hireEndDate   = t.hire_end_date as string | undefined;
                 const totalHireCost = t.totalHireCost as number | undefined;
                 return (
                   <tr
@@ -373,7 +549,7 @@ export default function StockRegistersPage() {
                     </td>
                     <td className="px-4 py-3 tabular-nums">
                       {totalHireCost != null
-                        ? `${totalHireCost.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
+                        ? totalHireCost.toLocaleString('en-KE', { minimumFractionDigits: 2 })
                         : '—'}
                     </td>
                     <td className="px-4 py-3">
@@ -381,7 +557,9 @@ export default function StockRegistersPage() {
                         <span className="flex items-center gap-1 text-xs text-[color:var(--muted-foreground)]">
                           {isOverdue && <Clock size={10} />}
                           {hireEndDate}
-                          {isOverdue && <span className="ml-1 font-semibold text-[color:var(--foreground)]">· Overdue</span>}
+                          {isOverdue && (
+                            <span className="ml-1 font-semibold text-[color:var(--foreground)]">· Overdue</span>
+                          )}
                         </span>
                       ) : '—'}
                     </td>

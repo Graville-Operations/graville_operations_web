@@ -7,14 +7,80 @@ import type { MaterialItem, PagedResponse, Site } from '@/types/store';
 
 const LIMIT = 20;
 
+const FIRST_PAGE_OPTIONS = { params: { skip: 0, limit: LIMIT } };
+
 function extractList<T>(data: T[] | PagedResponse<T> | null | undefined): T[] {
   if (!data) return [];
   return Array.isArray(data) ? data : (data.items ?? []);
 }
 
+function splitIntoThreeColumns<T>(items: T[]): [T[], T[], T[]] {
+  const total = items.length;
+  if (total === 0) return [[], [], []];
+  const col1Size = Math.ceil(total / 3);
+  const remaining = total - col1Size;
+  const col2Size = Math.ceil(remaining / 2);
+  const col1 = items.slice(0, col1Size);
+  const col2 = items.slice(col1Size, col1Size + col2Size);
+  const col3 = items.slice(col1Size + col2Size);
+  return [col1, col2, col3];
+}
+
 function TableSkeleton() {
   return (
-    <div className="gv-card p-0 overflow-hidden">
+    <div className="grid grid-cols-3 gap-3">
+      {[0, 1, 2].map((colIdx) => (
+        <div key={colIdx} className="gv-card p-0 overflow-hidden">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col className="w-[68%]" />
+              <col className="w-[32%]" />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-[color:var(--border)] bg-[color:var(--muted)]">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-[color:var(--muted-foreground)] uppercase tracking-wider">
+                  Material
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[color:var(--muted-foreground)] uppercase tracking-wider">
+                  Qty
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i} className="border-b border-[color:var(--border)] last:border-0">
+                  <td className="px-4 py-4">
+                    <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[85%]">
+                      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                                      bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                    </div>
+                    <div className="relative overflow-hidden h-3 bg-[color:var(--muted)] rounded w-24 mt-2">
+                      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                                      bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                           style={{ animationDelay: `${i * 60}ms` }} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-14 ml-auto">
+                      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
+                                      bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                           style={{ animationDelay: `${i * 80}ms` }} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MaterialsTable({ items }: { items: MaterialItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="gv-card p-0 overflow-hidden h-full">
       <table className="w-full text-sm table-fixed">
         <colgroup>
           <col className="w-[68%]" />
@@ -22,38 +88,49 @@ function TableSkeleton() {
         </colgroup>
         <thead>
           <tr className="border-b border-[color:var(--border)] bg-[color:var(--muted)]">
-            <th className="text-left px-6 py-3 text-xs font-semibold text-[color:var(--muted-foreground)] uppercase tracking-wider">
+            <th className="text-left px-4 py-3 text-xs font-semibold
+                           text-[color:var(--muted-foreground)] uppercase tracking-wider">
               Material
             </th>
-            <th className="text-right px-6 py-3 text-xs font-semibold text-[color:var(--muted-foreground)] uppercase tracking-wider">
-              Quantity
+            <th className="text-right px-4 py-3 text-xs font-semibold
+                           text-[color:var(--muted-foreground)] uppercase tracking-wider">
+              Qty
             </th>
           </tr>
         </thead>
         <tbody>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <tr key={i} className="border-b border-[color:var(--border)] last:border-0">
-              <td className="px-6 py-4">
-                
-                <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[85%]">
-                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
-                                  bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-                </div>
-                <div className="relative overflow-hidden h-3 bg-[color:var(--muted)] rounded w-32 mt-2">
-                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
-                                  bg-gradient-to-r from-transparent via-white/5 to-transparent"
-                       style={{ animationDelay: `${i * 60}ms` }} />
-                </div>
-              </td>
-              <td className="px-6 py-4 text-right">
-                <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-20 ml-auto">
-                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
-                                  bg-gradient-to-r from-transparent via-white/5 to-transparent"
-                       style={{ animationDelay: `${i * 80}ms` }} />
-                </div>
-              </td>
-            </tr>
-          ))}
+          {items.map((m) => {
+            const isLow      = m.quantity <= m.minimum_stock;
+            const unitSymbol = m.unit?.symbol ?? m.unit?.name ?? '';
+            return (
+              <tr
+                key={m.id}
+                className="border-b border-[color:var(--border)] last:border-0
+                           hover:bg-[color:var(--accent)] transition-colors"
+              >
+                <td className="px-4 py-3">
+                  <p className="font-medium truncate">{m.name}</p>
+                  {isLow && (
+                    <p className="text-[11px] text-[color:var(--gv-text-warn)] mt-0.5 leading-none">
+                      Low · min {m.minimum_stock.toLocaleString()}
+                    </p>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums">
+                  <span className={`font-semibold ${
+                    isLow ? 'text-[color:var(--gv-text-warn)]' : 'text-[color:var(--foreground)]'
+                  }`}>
+                    {m.quantity.toLocaleString()}
+                  </span>
+                  {unitSymbol && (
+                    <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">
+                      {unitSymbol}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -78,7 +155,7 @@ export default function MaterialsPage() {
 
   const { data, loading, error } = useApi<PagedResponse<MaterialItem> | MaterialItem[]>(
     `/store/materials/${siteId}/all`,
-    { params: { skip: 0, limit: LIMIT } },
+    FIRST_PAGE_OPTIONS,
   );
 
   const firstPage = useMemo(() => extractList(data), [data]);
@@ -86,6 +163,8 @@ export default function MaterialsPage() {
     () => (extraItems.length > 0 ? [...firstPage, ...extraItems] : firstPage),
     [firstPage, extraItems],
   );
+
+  const [col1, col2, col3] = useMemo(() => splitIntoThreeColumns(items), [items]);
 
   const hasMore = items.length > 0 && items.length % LIMIT === 0;
 
@@ -101,7 +180,7 @@ export default function MaterialsPage() {
       const list: MaterialItem[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
       setExtraItems((prev) => [...prev, ...list]);
       setSkip(next);
-    } catch {  }
+    } catch { /* silent */ }
     setLoadingMore(false);
   }, [siteId, skip]);
 
@@ -132,7 +211,6 @@ export default function MaterialsPage() {
         </div>
       )}
 
-      {/* ── Empty ── */}
       {!loading && !error && items.length === 0 && (
         <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
           <Package size={36} className="opacity-20 mb-3" />
@@ -144,62 +222,15 @@ export default function MaterialsPage() {
       )}
 
       {items.length > 0 && (
-        <div className="gv-card p-0 overflow-hidden">
-          <table className="w-full text-sm table-fixed">
-            <colgroup>
-              <col className="w-[68%]" />
-              <col className="w-[32%]" />
-            </colgroup>
-            <thead>
-              <tr className="border-b border-[color:var(--border)] bg-[color:var(--muted)]">
-                <th className="text-left px-6 py-3 text-xs font-semibold
-                               text-[color:var(--muted-foreground)] uppercase tracking-wider">
-                  Material
-                </th>
-                <th className="text-right px-6 py-3 text-xs font-semibold
-                               text-[color:var(--muted-foreground)] uppercase tracking-wider">
-                  Quantity
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((m) => {
-                const isLow       = m.quantity <= m.minimum_stock;
-                const unitSymbol  = m.unit?.symbol ?? m.unit?.name ?? '';
-                return (
-                  <tr
-                    key={m.id}
-                    className="border-b border-[color:var(--border)] last:border-0
-                               hover:bg-[color:var(--accent)] transition-colors"
-                  >
-                    <td className="px-6 py-3">
-                      <p className="font-medium truncate">{m.name}</p>
-                      {isLow && (
-                        <p className="text-[11px] text-[color:var(--gv-text-warn)] mt-0.5 leading-none">
-                          Low stock · min {m.minimum_stock.toLocaleString()}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-3 text-right tabular-nums">
-                      <span className={`font-semibold ${
-                        isLow ? 'text-[color:var(--gv-text-warn)]' : 'text-[color:var(--foreground)]'
-                      }`}>
-                        {m.quantity.toLocaleString()}
-                      </span>
-                      {unitSymbol && (
-                        <span className="ml-1 text-xs text-[color:var(--muted-foreground)]">
-                          {unitSymbol}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <>
+          <div className="grid grid-cols-3 gap-3 items-start">
+            <MaterialsTable items={col1} />
+            <MaterialsTable items={col2} />
+            <MaterialsTable items={col3} />
+          </div>
 
           {hasMore && (
-            <div className="px-6 py-3 border-t border-[color:var(--border)]">
+            <div className="px-6 py-3 border border-[color:var(--border)] rounded-lg">
               <button
                 onClick={loadMore}
                 disabled={loadingMore}
@@ -211,7 +242,7 @@ export default function MaterialsPage() {
               </button>
             </div>
           )}
-        </div>
+        </>
       )}
 
     </div>

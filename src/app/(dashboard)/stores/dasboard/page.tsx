@@ -1,89 +1,89 @@
 'use client';
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import {
-  Package, AlertTriangle, TrendingDown, BarChart3,
-  XCircle, ChevronDown, Coins, ChevronRight, RefreshCw, Wrench,
+  Package, Wrench, ShoppingCart, AlertTriangle,
+  ArrowLeftRight, Plus, BarChart3,
 } from 'lucide-react';
-import { useApi } from '@/hooks/useApi';
-import type { Site, StoreSummary } from '@/types/store';
 
-const BORDER_CLS: Record<string, string> = {
+const DUMMY = {
+  total_orders:       47,
+  sites_low_stock:    [
+    { id: 1, name: 'Mishi Mboko',   low_count: 4 },
+    { id: 2, name: 'Kware Primary',       low_count: 2 },
+    { id: 3, name: 'Huruma',    low_count: 1 },
+  ],
+  total_materials:    312,
+  total_tools:        88,
+  total_transfers:    9,   
+  damaged_tools:      5,
+  total_hire_cost:    485_000,
+};
+
+function fmtKES(n: number) {
+  return `KSH ${n.toLocaleString('en-KE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+type Variant = 'default' | 'warn' | 'danger' | 'success' | 'info';
+
+const BORDER_CLS: Record<Variant, string> = {
   default: 'border-[color:var(--border)]',
   warn:    'border-[color:var(--gv-border-warn)]',
   danger:  'border-[color:var(--gv-border-danger)]',
   success: 'border-[color:var(--gv-border-success)]',
   info:    'border-[color:var(--gv-border-info)]',
 };
-
-const ICON_CLS: Record<string, string> = {
+const ICON_CLS: Record<Variant, string> = {
   default: 'text-[color:var(--primary)]',
   warn:    'text-[color:var(--gv-text-warn)]',
   danger:  'text-[color:var(--destructive)]',
   success: 'text-[color:var(--gv-text-success)]',
   info:    'text-[color:var(--gv-text-info)]',
 };
-
-const VAL_CLS: Record<string, string> = {
+const VAL_CLS: Record<Variant, string> = {
   default: 'text-[color:var(--foreground)]',
   warn:    'text-[color:var(--gv-text-warn)]',
   danger:  'text-[color:var(--destructive)]',
   success: 'text-[color:var(--gv-text-success)]',
   info:    'text-[color:var(--gv-text-info)]',
 };
-
-const TAG_CLS: Record<string, string> = {
+const TAG_CLS: Record<Exclude<Variant, 'default'>, string> = {
   warn:    'border-[color:var(--gv-border-warn)] text-[color:var(--gv-text-warn)]',
   danger:  'border-[color:var(--gv-border-danger)] text-[color:var(--destructive)]',
   success: 'border-[color:var(--gv-border-success)] text-[color:var(--gv-text-success)]',
   info:    'border-[color:var(--gv-border-info)] text-[color:var(--gv-text-info)]',
 };
-
-const TAG_LABEL: Record<string, string> = {
+const TAG_LABEL: Record<Exclude<Variant, 'default'>, string> = {
   warn: 'Warning', danger: 'Critical', success: 'Good', info: 'Info',
 };
-
-function fmtKES(n: number) {
-  return `KSH ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function CardSkeleton() {
-  return (
-    <div className="gv-card h-36 overflow-hidden relative">
-      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
-                      bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-    </div>
-  );
-}
 
 interface StatCardProps {
   label:    string;
   value:    string | number;
   sub?:     string;
   icon:     React.ReactNode;
-  variant?: 'default' | 'warn' | 'danger' | 'success' | 'info';
-  onClick?: () => void;
+  variant?: Variant;
+  badge?:   string;         
 }
 
-function StatCard({ label, value, sub, icon, variant = 'default', onClick }: StatCardProps) {
+function StatCard({ label, value, sub, icon, variant = 'default', badge }: StatCardProps) {
   return (
-    <div
-      className={`gv-card flex flex-col gap-4 ${BORDER_CLS[variant]} ${
-        onClick
-          ? 'cursor-pointer hover:bg-[color:var(--gv-glass-bg-strong)] hover:border-[color:var(--gv-glass-border-hover)] hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(0,0,0,0.55)] transition-all duration-200'
-          : ''
-      }`}
-      onClick={onClick}
-    >
+    <div className={`gv-card flex flex-col gap-4 ${BORDER_CLS[variant]}`}>
       <div className="flex items-start justify-between">
         <div className="gv-icon-box">
           <span className={ICON_CLS[variant]}>{icon}</span>
         </div>
         <div className="flex items-center gap-2">
-          {variant !== 'default' && (
-            <span className={`gv-tag ${TAG_CLS[variant]}`}>{TAG_LABEL[variant]}</span>
+          {badge && (
+            <span className="gv-tag text-[color:var(--gv-text-subtle)]">{badge}</span>
           )}
-          {onClick && <ChevronRight size={14} className="text-(--gv-text-faint)" />}
+          {variant !== 'default' && (
+            <span className={`gv-tag ${TAG_CLS[variant as Exclude<Variant, 'default'>]}`}>
+              {TAG_LABEL[variant as Exclude<Variant, 'default'>]}
+            </span>
+          )}
         </div>
       </div>
       <div>
@@ -95,117 +95,109 @@ function StatCard({ label, value, sub, icon, variant = 'default', onClick }: Sta
   );
 }
 
-
-function SiteSelector({
-  sites, selectedSiteId, onChange, isLoading,
-}: {
-  sites: Site[];
-  selectedSiteId: number | null;
-  onChange: (id: number) => void;
-  isLoading: boolean;
-}) {
+function LowStockCard({ sites }: { sites: typeof DUMMY.sites_low_stock }) {
   return (
-    <div className="flex flex-col gap-1 w-full sm:w-64">
-      <p className="gv-label">Viewing site</p>
-      {isLoading ? (
-        <div className="h-10 rounded-lg bg-[color:var(--gv-glass-bg)] relative overflow-hidden">
-          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
-                          bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+    <div className={`gv-card flex flex-row gap-4 ${BORDER_CLS.default}`}>
+      <div className="flex flex-col gap-4 shrink-0">
+        <div className="gv-icon-box">
+          <span className={ICON_CLS.default}><AlertTriangle size={18} /></span>
         </div>
-      ) : (
-        <div className="relative">
-          <select
-            className="w-full appearance-none pr-9 pl-3 h-10 rounded-lg border border-[color:var(--border)]
-                       bg-[color:var(--gv-glass-bg)] text-[color:var(--foreground)] text-sm cursor-pointer
-                       outline-none transition-colors focus:border-[color:var(--gv-glass-border-hover)]
-                       hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white"
-            value={selectedSiteId ?? ''}
-            onChange={(e) => onChange(Number(e.target.value))}
-          >
-            {sites.length === 0 && <option value="">No sites available</option>}
-            {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2
-                                            text-[color:var(--gv-text-subtle)] pointer-events-none" />
+        <div>
+          <p className="gv-label whitespace-nowrap">Sites with Low Stock</p>
+          <p className={`text-3xl font-bold tracking-tight ${VAL_CLS.default}`}>
+            {sites.length}
+          </p>
         </div>
+      </div>
+      {sites.length > 0 && (
+        <ul className="flex flex-col justify-center gap-1.5 pl-4 border-l border-[color:var(--border)] min-w-0">
+          {sites.map((s) => (
+            <li key={s.id} className="flex items-center gap-3 text-xs">
+              <span className="text-[color:var(--foreground)] truncate flex-1">{s.name}</span>
+              <span className="gv-tag shrink-0 text-[color:var(--muted-foreground)]">
+                {s.low_count} item{s.low_count !== 1 ? 's' : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
 }
 
+interface ActionBtnProps {
+  label:   string;
+  icon:    React.ReactNode;
+  onClick: () => void;
+}
+function ActionBtn({ label, icon, onClick }: ActionBtnProps) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                 bg-[color:var(--primary)] text-[color:var(--primary-foreground)]
+                 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
 
 export default function StoreDashboardPage() {
-  const router = useRouter();
-  const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
+  const d = DUMMY;
 
-  const { data: sitesRaw, loading: isSitesLoading } =
-    useApi<Site[] | { items: Site[] }>('/sites/list');
-
-  const sites: Site[] = useMemo(
-    () => sitesRaw ? (Array.isArray(sitesRaw) ? sitesRaw : (sitesRaw.items ?? [])) : [],
-    [sitesRaw],
-  );
-
-  const resolvedSiteId = selectedSiteId ?? sites[0]?.id ?? null;
-
-  const {
-    data: summary,
-    loading: isSummaryLoading,
-    error,
-    refetch,
-  } = useApi<StoreSummary>(
-    `/store/site/${resolvedSiteId}`,
-    { enabled: resolvedSiteId !== null },
-  );
-
-  const selectedSite = useMemo(
-    () => sites.find((s) => s.id === resolvedSiteId),
-    [sites, resolvedSiteId],
-  );
-
-  const cards = useMemo(() => {
-    if (!summary || !resolvedSiteId) return [];
-    return [
-      {
-        label: 'Total Materials',
-        value: summary.total_materials,
-        sub:   'Tap to view material details',
-        icon:  <Package size={18} />,
-        variant: 'default' as const,
-        onClick: () => router.push(`/stores/materials/${resolvedSiteId}`),
-      },
-      {
-        label: 'Low Stock Items',
-        value: summary.low_stock_count,
-        sub:   'Below minimum level',
-        icon:  <TrendingDown size={18} />,
-        variant: (summary.low_stock_count > 0 ? 'warn' : 'default') as const,
-      },
-      {
-        label: 'Total Tools',
-        value: summary.total_tools,
-        sub:   'Tap to view tools and their details',
-        icon:  <Wrench size={18} />,
-        variant: 'default' as const,
-        onClick: () => router.push(`/stores/tools/${resolvedSiteId}`),
-      },
-      {
-        label: 'Overdue Tools',
-        value: summary.overdue_tools ?? 0,
-        sub:   'Tools past their hire end date',
-        icon:  <XCircle size={18} />,
-        variant: 'default' as const,
-      },
-      {
-        label: 'Total Hire Cost',
-        value: fmtKES(summary.total_hire_cost ?? 0),
-        icon:  <Coins size={18} />,
-        variant: 'default' as const,
-      },
-    ];
-  }, [summary, resolvedSiteId, router]);
-
-  const showSkeletons = isSummaryLoading || (isSitesLoading && !summary);
+  const cards = useMemo(() => [
+    {
+      key:     'orders',
+      label:   'Total Orders',
+      value:   d.total_orders,
+      sub:     'Across all sites',
+      icon:    <ShoppingCart size={18} />,
+      variant: 'default' as Variant,
+    },
+    {
+      key:     'materials',
+      label:   'Total Materials',
+      value:   d.total_materials,
+      sub:     'Company-wide stock items',
+      icon:    <Package size={18} />,
+      variant: 'default' as Variant,
+    },
+    {
+      key:     'tools',
+      label:   'Total Tools',
+      value:   d.total_tools,
+      sub:     'All sites combined',
+      icon:    <Wrench size={18} />,
+      variant: 'default' as Variant,
+    },
+    {
+      key:     'transfers',
+      label:   'Total Transfers',
+      value:   d.total_transfers,
+      sub:     'Material transfers today',
+      icon:    <ArrowLeftRight size={18} />,
+      variant: 'default' as Variant,
+      badge:   'Today',
+    },
+    {
+      key:     'damaged',
+      label:   'Damaged Tools',
+      value:   d.damaged_tools,
+      sub:     'Tools marked as damaged',
+      icon:    <Wrench size={18} />,
+      variant: 'default' as Variant,
+    },
+    {
+      key:     'hire_cost',
+      label:   'Total Hire Cost',
+      value:   fmtKES(d.total_hire_cost),
+      sub:     'Active tool hire across all sites',
+      icon:    <BarChart3 size={18} />,
+      variant: 'default' as Variant,
+    },
+  ], [d]);
 
   return (
     <div className="space-y-6">
@@ -215,63 +207,37 @@ export default function StoreDashboardPage() {
           <p className="gv-eyebrow">Store</p>
           <h1 className="text-2xl font-bold mt-1">Dashboard</h1>
         </div>
-        <SiteSelector
-          sites={sites}
-          selectedSiteId={resolvedSiteId}
-          onChange={(id) => setSelectedSiteId(id)}
-          isLoading={isSitesLoading}
-        />
+
+        <div className="flex items-center gap-2">
+          <ActionBtn
+            label="Add Material"
+            icon={<Plus size={15} />}
+            onClick={() => {}}
+          />
+          <ActionBtn
+            label="Add Tool"
+            icon={<Plus size={15} />}
+            onClick={() => {}}
+          />
+        </div>
       </div>
 
-      {/* Context pill */}
-      {selectedSite && (
-        <div className="flex items-center gap-2">
-          <BarChart3 size={13} className="text-[color:var(--primary)]" />
-          <span className="text-xs text-[color:var(--muted-foreground)]">
-            Store analytics for{' '}
-            <span className="text-[color:var(--foreground)] font-medium">{selectedSite.name}</span>
-          </span>
-        </div>
-      )}
+      <p className="text-lg text-[color:var(--muted-foreground)]">
+        Company's wide overview: all figures aggregate across every active site.
+      </p>
 
-      {!isSitesLoading && sites.length === 0 && (
-        <div className="gv-card flex flex-col items-center justify-center py-16 text-center">
-          <BarChart3 size={40} className="text-[color:var(--muted-foreground)] opacity-30 mb-3" />
-          <p className="text-sm font-medium mb-1">No sites yet</p>
-          <p className="text-xs text-[color:var(--muted-foreground)]">
-            Add a site to start viewing store analytics
-          </p>
-        </div>
-      )}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {cards.slice(0, 1).map((c) => (
+          <StatCard key={c.key} {...c} />
+        ))}
 
-      {showSkeletons && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {Array.from({ length: 5 }, (_, i) => <CardSkeleton key={i} />)}
-        </div>
-      )}
+        <LowStockCard sites={d.sites_low_stock} />
 
-      {!isSitesLoading && error && !summary && (
-        <div className="gv-card flex flex-col items-center justify-center py-16 text-center
-                        border-[color:var(--gv-border-danger)]">
-          <AlertTriangle size={36} className="text-[color:var(--destructive)] opacity-40 mb-3" />
-          <p className="text-sm text-[color:var(--muted-foreground)] mb-3">
-            Failed to load store analytics.
-          </p>
-          <button
-            onClick={refetch}
-            className="gv-tag border-[color:var(--gv-glass-border)] hover:border-[color:var(--gv-glass-border-hover)]
-                       cursor-pointer flex items-center gap-1.5 transition-colors"
-          >
-            <RefreshCw size={11} /> Retry
-          </button>
-        </div>
-      )}
+        {cards.slice(1).map((c) => (
+          <StatCard key={c.key} {...c} />
+        ))}
 
-      {!showSkeletons && summary && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {cards.map((c) => <StatCard key={c.label} {...c} />)}
-        </div>
-      )}
+      </div>
 
     </div>
   );
