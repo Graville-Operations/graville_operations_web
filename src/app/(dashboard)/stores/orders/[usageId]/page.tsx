@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   AlertTriangle, RefreshCw, ClipboardList,
@@ -36,31 +36,39 @@ type UsageStatus = 'draft' | 'submitted' | 'approved' | 'pending_edit' | string;
 function statusMeta(status: UsageStatus | undefined): { label: string; color: string; icon: React.ReactNode } {
   switch (status?.toLowerCase()) {
     case 'submitted':
-      return { label: 'Submitted', color: 'var(--primary)',        icon: <CheckCircle2 size={11} /> };
+      return { label: 'Submitted',    color: 'var(--primary)',           icon: <CheckCircle2 size={11} /> };
     case 'approved':
-      return { label: 'Approved',  color: '#22c55e',               icon: <CheckCircle2 size={11} /> };
+      return { label: 'Approved',     color: '#22c55e',                  icon: <CheckCircle2 size={11} /> };
     case 'pending_edit':
-      return { label: 'Edit Pending', color: '#f59e0b',            icon: <FileEdit     size={11} /> };
+      return { label: 'Edit Pending', color: '#f59e0b',                  icon: <FileEdit     size={11} /> };
     default:
-      return { label: 'Draft',     color: 'var(--muted-foreground)', icon: <Clock      size={11} /> };
+      return { label: 'Draft',        color: 'var(--muted-foreground)',   icon: <Clock        size={11} /> };
   }
 }
 
-function TableRowSkeleton({ cols }: { cols: number }) {
+function ShimmerBar({ w = 'w-[80%]', h = 'h-4' }: { w?: string; h?: string }) {
   return (
-    <tr className="border-b border-[color:var(--border)] last:border-0">
-      {Array.from({ length: cols }).map((_, i) => (
-        <td key={i} className="px-4 py-3">
-          <div className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[80%]">
-            <div
-              className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
-                         bg-gradient-to-r from-transparent via-white/5 to-transparent"
-              style={{ animationDelay: `${i * 60}ms` }}
-            />
+    <div className={`relative overflow-hidden ${h} bg-[color:var(--muted)] rounded ${w}`}>
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+    </div>
+  );
+}
+
+function HeaderSkeleton() {
+  return (
+    <div className="gv-card p-0 overflow-hidden">
+      <div className="h-[3px] w-full bg-[color:var(--muted)]" />
+      <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-pulse">
+        <div className="space-y-2">
+          <ShimmerBar w="w-36" h="h-5" />
+          <div className="flex gap-3">
+            <ShimmerBar w="w-24" h="h-3" />
+            <ShimmerBar w="w-16" h="h-3" />
           </div>
-        </td>
-      ))}
-    </tr>
+        </div>
+        <ShimmerBar w="w-24" h="h-6" />
+      </div>
+    </div>
   );
 }
 
@@ -70,7 +78,18 @@ function TableSkeleton({ cols, rows = 5 }: { cols: number; rows?: number }) {
       <table className="w-full text-sm">
         <tbody>
           {Array.from({ length: rows }).map((_, i) => (
-            <TableRowSkeleton key={i} cols={cols} />
+            <tr key={i} className="border-b border-[color:var(--border)] last:border-0">
+              {Array.from({ length: cols }).map((_, j) => (
+                <td key={j} className="px-4 py-3">
+                  <div
+                    className="relative overflow-hidden h-4 bg-[color:var(--muted)] rounded w-[80%]"
+                    style={{ animationDelay: `${j * 60}ms` }}
+                  >
+                    <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                  </div>
+                </td>
+              ))}
+            </tr>
           ))}
         </tbody>
       </table>
@@ -78,15 +97,16 @@ function TableSkeleton({ cols, rows = 5 }: { cols: number; rows?: number }) {
   );
 }
 
-function HeaderSkeleton() {
+function PageSkeleton() {
   return (
-    <div className="gv-card p-4 animate-pulse space-y-3">
-      <div className="flex justify-between">
-        <div className="h-5 bg-[color:var(--muted)] rounded w-36" />
-        <div className="h-5 bg-[color:var(--muted)] rounded-full w-24" />
+    <>
+      <HeaderSkeleton />
+      <div className="flex gap-1 p-1 rounded-lg bg-[color:var(--muted)] w-fit animate-pulse">
+        <div className="px-4 py-1.5 rounded-md w-28 h-7 bg-[color:var(--muted-foreground)]/20" />
+        <div className="px-4 py-1.5 rounded-md w-20 h-7 bg-[color:var(--muted-foreground)]/10" />
       </div>
-      <div className="h-3 bg-[color:var(--muted)] rounded w-48" />
-    </div>
+      <TableSkeleton cols={3} rows={5} />
+    </>
   );
 }
 
@@ -137,9 +157,7 @@ function DetailHeader({ log }: { log: Record<string, unknown> }) {
               <Building2 size={11} />{siteName}
             </span>
             <span>{items.length} material{items.length !== 1 ? 's' : ''}</span>
-            {log.created_at && (
-              <span>Created {log.created_at as string}</span>
-            )}
+            {log.created_at && <span>Created {log.created_at as string}</span>}
           </div>
         </div>
         <span
@@ -195,11 +213,10 @@ function DailyUsageTab({ log }: { log: Record<string, unknown> }) {
             const mat        = item.material as Record<string, unknown> | undefined;
             const unit       = mat?.unit     as Record<string, unknown> | undefined;
             const unitSymbol = (unit?.symbol as string) ?? (unit?.name as string) ?? '';
-
             const qty        = item.quantityUsed ?? '—';
             return (
               <tr
-                key={item.id as number ?? idx}
+                key={(item.id as number) ?? idx}
                 className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--accent)] transition-colors"
               >
                 <td className="px-4 py-3 font-medium">
@@ -265,11 +282,10 @@ function OrdersTab({ usageId }: { usageId: number }) {
             const mat   = order.material     as Record<string, unknown> | undefined;
             const unit  = mat?.unit          as Record<string, unknown> | undefined;
             const reqBy = order.requested_by as Record<string, unknown> | undefined;
-   
             const qty   = order.quantityOrdered ?? order.quantity_ordered ?? order.quantity ?? '—';
             return (
               <tr
-                key={order.id as number ?? idx}
+                key={(order.id as number) ?? idx}
                 className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--accent)] transition-colors"
               >
                 <td className="px-4 py-3 font-medium">
@@ -304,14 +320,26 @@ export default function StoreActivityDetailPage() {
   const usageId = Number(params.usageId);
 
   const [tab, setTab] = useState<ActivityTab>('usage');
+  const [tabReady, setTabReady] = useState(true);
 
   const { data: raw, loading, error, refetch } = useApi<unknown>(`/daily-usage/${usageId}`);
   const log = useMemo(() => extractRecord(raw), [raw]);
 
+  function handleTabChange(next: ActivityTab) {
+    if (next === tab) return;
+    setTabReady(false);
+    setTab(next);
+  }
+
+  useEffect(() => {
+
+    const id = setTimeout(() => setTabReady(true), 0);
+    return () => clearTimeout(id);
+  }, [tab]);
+
   return (
     <div className="space-y-6">
 
-      {/* Header */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.back()}
@@ -328,15 +356,16 @@ export default function StoreActivityDetailPage() {
         </div>
       </div>
 
-      {/* Detail header card */}
-      {loading && <HeaderSkeleton />}
+      {loading && <PageSkeleton />}
+
       {!loading && error && (
         <ErrorState message="Failed to load this usage report." onRetry={refetch} />
       )}
-      {!loading && !error && log && <DetailHeader log={log} />}
 
       {!loading && !error && log && (
         <>
+          <DetailHeader log={log} />
+
           <div className="flex gap-1 p-1 rounded-lg bg-[color:var(--muted)] w-fit">
             {([
               { key: 'usage',  label: 'Daily Usage', icon: <ClipboardList size={14} /> },
@@ -344,7 +373,7 @@ export default function StoreActivityDetailPage() {
             ] as { key: ActivityTab; label: string; icon: React.ReactNode }[]).map((t) => (
               <button
                 key={t.key}
-                onClick={() => setTab(t.key)}
+                onClick={() => handleTabChange(t.key)}
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer ${
                   tab === t.key
                     ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)]'
@@ -356,8 +385,9 @@ export default function StoreActivityDetailPage() {
             ))}
           </div>
 
-          {tab === 'usage'  && <DailyUsageTab log={log} />}
-          {tab === 'orders' && <OrdersTab usageId={usageId} />}
+          {!tabReady && <TableSkeleton cols={3} rows={5} />}
+          {tabReady && tab === 'usage'  && <DailyUsageTab log={log} />}
+          {tabReady && tab === 'orders' && <OrdersTab usageId={usageId} />}
         </>
       )}
 

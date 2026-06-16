@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { ApiUser } from '@/types';
-import { UserPlus, Search, Trash2, Shield, X, Mail, Phone, Building2, BadgeCheck } from 'lucide-react';
+import { UserPlus, Search, Shield, X, Mail, Phone, Building2, BadgeCheck } from 'lucide-react';
 import { API } from '@/lib/endpoints';
 
 const roleColors: Record<string, string> = {
@@ -94,17 +94,6 @@ export default function UsersPage() {
     setTimeout(() => setSelected(null), 250);
   };
 
-  const deleteUser = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-    try {
-      await api.delete(API.users.delete(id));
-      closeModal();
-      fetchUsers();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   return (
     <div className="space-y-6">
 
@@ -152,7 +141,7 @@ export default function UsersPage() {
           <table className="w-full">
             <thead className="bg-white/5 border-b border-white/10">
               <tr>
-                {['Name', 'Email', 'Role', 'Phone', 'Actions'].map((h) => (
+                {['Name', 'Email', 'Role', 'Phone'].map((h) => (
                   <th key={h} className="px-6 py-3 text-left text-xs font-semibold text-white/50 uppercase tracking-wider">
                     {h}
                   </th>
@@ -185,14 +174,6 @@ export default function UsersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-white/60">{user.phone ?? '—'}</td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteUser(user.id); }}
-                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -322,16 +303,9 @@ export default function UsersPage() {
 
             {/* Modal footer */}
             <div
-              className="flex items-center justify-between px-7 py-4"
+              className="flex items-center justify-end px-7 py-4"
               style={{ borderTop: '1px solid var(--gv-glass-border)' }}
             >
-              <button
-                onClick={() => deleteUser(selected.id)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors text-sm font-medium"
-              >
-                <Trash2 size={15} />
-                Delete User
-              </button>
               <button
                 onClick={closeModal}
                 className="px-5 py-2 rounded-lg text-sm font-medium text-white/60 border border-white/10 hover:bg-white/10 hover:text-white transition-colors"

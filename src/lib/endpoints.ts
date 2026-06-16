@@ -13,6 +13,7 @@ export const API = {
     update: (id: number) => `/users/${id}`,
     get:         (id: number) => `/users/${id}`,
     departments: (id: number) => `/users/${id}/departments`,
+    menus: (id: number) => `/users/${id}/menus`,
   },
   roles: {
     list:   '/roles/list',
