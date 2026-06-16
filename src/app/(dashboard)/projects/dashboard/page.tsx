@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchOverviewKPIs, fetchSites } from '@/lib/api/sites';
-import api from '@/lib/api';                          // ← auth-aware axios instance
+import api from '@/lib/api';
 import { OverviewKPIs, ProjectStatus, Site, SiteStatus } from '@/types/site';
 import {
   Building2, Users, ClipboardList, FileText,
@@ -10,19 +10,19 @@ import {
   ChevronLeft, ChevronRight as ChevronRightIcon, Calendar,
 } from 'lucide-react';
 
+// ─── Status normalisers ────────────────────────────────────────────────────────
 
 function normProjectStatus(s: string): ProjectStatus {
-
   const map: Record<string, ProjectStatus> = {
-    planning:    'PLANNING',
-    in_progress: 'IN_PROGRESS',
+    planning:      'PLANNING',
+    in_progress:   'IN_PROGRESS',
     'in progress': 'IN_PROGRESS',
-    inprogress:  'IN_PROGRESS',
-    on_hold:     'ON_HOLD',
-    'on hold':   'ON_HOLD',
-    onhold:      'ON_HOLD',
-    completed:   'COMPLETED',
-    cancelled:   'CANCELLED',
+    inprogress:    'IN_PROGRESS',
+    on_hold:       'ON_HOLD',
+    'on hold':     'ON_HOLD',
+    onhold:        'ON_HOLD',
+    completed:     'COMPLETED',
+    cancelled:     'CANCELLED',
   };
   return map[s?.toLowerCase().replace(/-/g, '_')] ?? 'PLANNING';
 }
@@ -32,6 +32,7 @@ function normSiteStatus(s: string): SiteStatus {
   return map[s?.toLowerCase()] ?? 'INACTIVE';
 }
 
+// ─── Date helpers ─────────────────────────────────────────────────────────────
 
 function toISO(d: Date) {
   const y   = d.getFullYear();
@@ -39,6 +40,8 @@ function toISO(d: Date) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+// ─── Attendance API ───────────────────────────────────────────────────────────
 
 interface AttendanceDay {
   date: string;
@@ -50,47 +53,48 @@ function normaliseAnalyticsResponse(raw: unknown): AttendanceDay[] {
   const obj = raw as Record<string, unknown>;
 
   let arr: unknown[] = [];
-  if (Array.isArray(obj.data)) {
-    arr = obj.data;
-  } else if (Array.isArray(raw)) {
-    arr = raw as unknown[];
-  }
+  if (Array.isArray(obj.data))  arr = obj.data;
+  else if (Array.isArray(raw))  arr = raw as unknown[];
 
   return arr
     .map((row: any) => ({
       date: String(row.date ?? row.attendance_date ?? ''),
       present_count: Number(
-        row.attendance_count ??   
-        row.present_count      ??
-        row.present            ??
-        row.count              ??
-        row.workers_present    ??
-        row.total_present      ??
-        row.total              ??
+        row.attendance_count ??
+        row.present_count    ??
+        row.present          ??
+        row.count            ??
+        row.workers_present  ??
+        row.total_present    ??
+        row.total            ??
         0,
       ),
     }))
     .filter(r => r.date !== '' && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
 }
 
+/**
+ * FIX: backend query params are start_date / end_date — not date_from / date_to.
+ * Sending the wrong names caused FastAPI to receive None for both and always
+ * default to today, making every range look like a single-day fetch.
+ * No site_id is sent here so the analytics cover ALL sites globally.
+ */
 async function fetchAttendanceAnalytics(
-  dateFrom: string,
-  dateTo: string,
+  startDate: string,
+  endDate: string,
 ): Promise<AttendanceDay[]> {
   try {
     const res = await api.get('/attendance/analytics', {
-      params: { date_from: dateFrom, date_to: dateTo },
+      params: { start_date: startDate, end_date: endDate },  // ← fixed param names
     });
-    const raw = res.data;
-    console.log('[Attendance/analytics] raw:', JSON.stringify(raw).slice(0, 400));
-    const result = normaliseAnalyticsResponse(raw);
-    console.log('[Attendance/analytics] parsed:', result);
-    return result;
+    return normaliseAnalyticsResponse(res.data);
   } catch (err) {
     console.warn('[Attendance/analytics] fetch error:', err);
     return [];
   }
 }
+
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
 
 function KpiCard({ label, value, sub, icon: Icon, loading }: {
   label: string; value: React.ReactNode; sub?: string;
@@ -111,6 +115,8 @@ function KpiCard({ label, value, sub, icon: Icon, loading }: {
   );
 }
 
+// ─── Calendar Picker ──────────────────────────────────────────────────────────
+
 function CalendarPicker({
   dateFrom, dateTo, onSelect, onClose, constrainWidth, anchorRef,
 }: {
@@ -129,9 +135,8 @@ function CalendarPicker({
   const fromDate = dateFrom ? new Date(dateFrom) : null;
   const toDate   = dateTo   ? new Date(dateTo)   : null;
 
-  const MONTH_NAMES = ['January','February','March','April','May','June',
-                       'July','August','September','October','November','December'];
-  const DAY_NAMES = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAY_NAMES   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 
   const [maxW, setMaxW] = useState<number | undefined>(undefined);
   useEffect(() => {
@@ -272,6 +277,7 @@ function CalendarPicker({
   );
 }
 
+// ─── Bar Chart ────────────────────────────────────────────────────────────────
 
 interface Bar {
   label: string;
@@ -290,6 +296,19 @@ function AttendanceBarChart({
   activeBarIdx: number | null;
   onBarClick: (idx: number | null) => void;
 }) {
+  // Measure actual container width so SVG fills edge-to-edge with no centering gap
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [W, setW] = useState(400);
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setW(Math.floor(w));
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   const maxData = Math.max(...bars.map(b => b.present), 1);
 
   function niceMax(v: number) {
@@ -314,8 +333,9 @@ function AttendanceBarChart({
 
   const yTicks = getYTicks(yMax);
 
-  const W = 400, H = 185;
-  const PL = 28, PB = 28, PT = 12, PR = 4;
+  const H = 185;
+  // PL=22: labels flush to left edge; W comes from ResizeObserver so bars fill the full card width
+  const PL = 22, PB = 28, PT = 12, PR = 0;
   const cW = W - PL - PR;
   const cH = H - PB - PT;
 
@@ -328,14 +348,15 @@ function AttendanceBarChart({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center" style={{ height: H }}>
+      <div ref={containerRef} className="flex items-center justify-center" style={{ height: H, width: '100%' }}>
         <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
       </div>
     );
   }
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H, display: 'block' }}
+    <div ref={containerRef} style={{ width: '100%' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: 'block', width: '100%' }}
       onClick={() => { if (activeBarIdx !== null) onBarClick(null); }}>
 
       {yTicks.map((tick) => {
@@ -344,8 +365,8 @@ function AttendanceBarChart({
           <g key={tick}>
             <line x1={PL} x2={W - PR} y1={y} y2={y}
               stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
-            <text x={PL - 4} y={y} textAnchor="end" dominantBaseline="central"
-              fontSize="13" fontWeight="500" fill="rgba(255,255,255,0.55)" fontFamily="inherit">
+            <text x={2} y={y} textAnchor="start" dominantBaseline="central"
+              fontSize="10" fontWeight="500" fill="rgba(255,255,255,0.45)" fontFamily="inherit">
               {tick}
             </text>
           </g>
@@ -386,8 +407,11 @@ function AttendanceBarChart({
         );
       })}
     </svg>
+    </div>
   );
 }
+
+// ─── Workers Donut ────────────────────────────────────────────────────────────
 
 function WorkersDonut({ total, present, loading }: { total: number; present: number; loading?: boolean }) {
   const R = 54, SW = 13, CX = 70, CY = 70;
@@ -411,13 +435,14 @@ function WorkersDonut({ total, present, loading }: { total: number; present: num
   );
 }
 
+// ─── Project Status Donut ─────────────────────────────────────────────────────
 
 interface ProjectStatusCounts {
-  planning:    number;
-  inProgress:  number;
-  onHold:      number;
-  completed:   number;
-  cancelled:   number;
+  planning:   number;
+  inProgress: number;
+  onHold:     number;
+  completed:  number;
+  cancelled:  number;
 }
 
 const PROJECT_STATUS_RINGS: Array<{
@@ -437,7 +462,6 @@ const PROJECT_STATUS_RINGS: Array<{
 function countProjectStatuses(sites: Site[]): ProjectStatusCounts {
   const counts: ProjectStatusCounts = { planning: 0, inProgress: 0, onHold: 0, completed: 0, cancelled: 0 };
   for (const site of sites) {
-   
     const raw  = (site as any).projectStatus ?? site.project_status ?? '';
     const norm = normProjectStatus(String(raw));
     if      (norm === 'PLANNING')    counts.planning++;
@@ -449,10 +473,7 @@ function countProjectStatuses(sites: Site[]): ProjectStatusCounts {
   return counts;
 }
 
-function ProjectStatusDonut({ counts, loading }: {
-  counts: ProjectStatusCounts;
-  loading?: boolean;
-}) {
+function ProjectStatusDonut({ counts, loading }: { counts: ProjectStatusCounts; loading?: boolean }) {
   const total = Object.values(counts).reduce((s, v) => s + v, 0) || 1;
   const CX = 70, CY = 70;
 
@@ -479,10 +500,11 @@ function ProjectStatusDonut({ counts, loading }: {
           </g>
         );
       })}
-
     </svg>
   );
 }
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProjectsDashboardPage() {
   const [sites, setSites]               = useState<Site[]>([]);
@@ -491,26 +513,28 @@ export default function ProjectsDashboardPage() {
   const [loadingSites, setLoadingSites] = useState(true);
   const [kpisError, setKpisError]       = useState<string | null>(null);
 
-  const [attendanceTab, setAttendanceTab]   = useState<'Today' | 'Week' | 'Month' | 'Custom'>('Month');
-  const [dateFrom, setDateFrom]             = useState('');
-  const [dateTo, setDateTo]                 = useState('');
-  const [showCalendar, setShowCalendar]     = useState(false);
+  const [attendanceTab, setAttendanceTab] = useState<'Today' | 'Week' | 'Month' | 'Custom'>('Today');
+  const [dateFrom, setDateFrom]           = useState('');
+  const [dateTo, setDateTo]               = useState('');
+  const [showCalendar, setShowCalendar]   = useState(false);
 
   const attendanceCardRef = useRef<HTMLDivElement>(null);
   const calendarRef       = useRef<HTMLDivElement>(null);
   const chartCardRef      = useRef<HTMLDivElement>(null);
 
-  const [bars, setBars]                   = useState<Bar[]>([]);
-  const [loadingBars, setLoadingBars]     = useState(false);
-  const [barsError, setBarsError]         = useState<string | null>(null);
+  const [bars, setBars]               = useState<Bar[]>([]);
+  const [loadingBars, setLoadingBars] = useState(false);
+  const [barsError, setBarsError]     = useState<string | null>(null);
 
-  const [activeBarIdx, setActiveBarIdx]   = useState<number | null>(null);
-  const [overlayPos, setOverlayPos]       = useState<{ top: number; left: number } | null>(null);
+  const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
+  const [overlayPos, setOverlayPos]     = useState<{ top: number; left: number } | null>(null);
 
   const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const DAY_FULL    = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const MONTH_NAMES = ['January','February','March','April','May','June',
-                       'July','August','September','October','November','December'
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  // ── Load KPIs + sites ────────────────────────────────────────────────────────
+
   const load = useCallback(() => {
     setLoadingKpis(true); setKpisError(null);
     fetchOverviewKPIs()
@@ -521,7 +545,6 @@ export default function ProjectsDashboardPage() {
     setLoadingSites(true);
     fetchSites()
       .then((data) => {
-        
         const items: Site[] = Array.isArray(data)
           ? data
           : Array.isArray((data as any)?.data?.items)
@@ -537,6 +560,7 @@ export default function ProjectsDashboardPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // ── Date-range builder ───────────────────────────────────────────────────────
 
   function buildDateRange(tab: typeof attendanceTab): { from: string; to: string } | null {
     const now = new Date();
@@ -545,6 +569,7 @@ export default function ProjectsDashboardPage() {
       return { from: iso, to: iso };
     }
     if (tab === 'Week') {
+      // Monday → Sunday of the current week
       const monday = new Date(now);
       monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
       const sunday = new Date(monday);
@@ -557,15 +582,17 @@ export default function ProjectsDashboardPage() {
       return { from: toISO(first), to: toISO(last) };
     }
     if (tab === 'Custom') {
-  
+      // Both dates must be selected before fetching
       if (!dateFrom || !dateTo) return null;
-     
-      const today = toISO(new Date());
+      // Clamp future end dates to today
+      const today  = toISO(new Date());
       const safeTo = dateTo > today ? today : dateTo;
       return { from: dateFrom, to: safeTo };
     }
     return null;
   }
+
+  // ── Bar builder ──────────────────────────────────────────────────────────────
 
   function buildBars(
     summary: AttendanceDay[],
@@ -574,15 +601,14 @@ export default function ProjectsDashboardPage() {
     tab: typeof attendanceTab,
   ): Bar[] {
     const lookup: Record<string, number> = {};
-    for (const row of summary) {
-      lookup[row.date] = row.present_count;
-    }
+    for (const row of summary) lookup[row.date] = row.present_count;
 
     const result: Bar[] = [];
 
+    // Parse dates locally to avoid UTC-vs-local timezone shift
     function parseLocalDate(iso: string): Date {
       const [y, m, d] = iso.split('-').map(Number);
-      return new Date(y, m - 1, d); // local midnight, no timezone shift
+      return new Date(y, m - 1, d);
     }
 
     const cur = parseLocalDate(fromISO);
@@ -590,16 +616,16 @@ export default function ProjectsDashboardPage() {
     const rangeDays = (end.getTime() - cur.getTime()) / 86400000;
 
     while (cur <= end) {
-      const iso = toISO(cur);   
+      const iso = toISO(cur);
       const dow = cur.getDay();
 
       const label =
         tab === 'Today'  ? 'Today' :
         tab === 'Week'   ? DAY_NAMES[dow] :
         tab === 'Custom' && rangeDays > 7
-          ? `${cur.getDate()}/${cur.getMonth() + 1}` 
+          ? `${cur.getDate()}/${cur.getMonth() + 1}`
           : tab === 'Custom'
-          ? DAY_NAMES[dow]                            
+          ? DAY_NAMES[dow]
           : String(cur.getDate());
 
       result.push({
@@ -614,6 +640,10 @@ export default function ProjectsDashboardPage() {
     return result;
   }
 
+  // ── Load attendance bars ─────────────────────────────────────────────────────
+  // FIX: no site_id sent → analytics covers ALL sites.
+  // FIX: params renamed to start_date / end_date matching the FastAPI endpoint.
+
   const loadBars = useCallback(async () => {
     const range = buildDateRange(attendanceTab);
     if (!range) { setBars([]); return; }
@@ -621,10 +651,8 @@ export default function ProjectsDashboardPage() {
     setLoadingBars(true); setBarsError(null);
     try {
       const summary = await fetchAttendanceAnalytics(range.from, range.to);
-      console.log('[Dashboard] attendance summary rows:', summary.length);
       setBars(buildBars(summary, range.from, range.to, attendanceTab));
     } catch (err) {
-      console.error('[Dashboard] loadBars error:', err);
       setBarsError('Could not load attendance data.');
       setBars(buildBars([], range.from, range.to, attendanceTab));
     } finally {
@@ -634,16 +662,17 @@ export default function ProjectsDashboardPage() {
 
   useEffect(() => { setActiveBarIdx(null); loadBars(); }, [loadBars]);
 
+  // ── Close calendar on outside click ─────────────────────────────────────────
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node))
         setShowCalendar(false);
-      }
     }
     if (showCalendar) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showCalendar]);
 
+  // ── Close week overlay on outside click ──────────────────────────────────────
   useEffect(() => {
     function handleClick() { setActiveBarIdx(null); setOverlayPos(null); }
     if (activeBarIdx !== null) document.addEventListener('mousedown', handleClick);
@@ -661,6 +690,8 @@ export default function ProjectsDashboardPage() {
     }
   }
 
+  // ── Derived values ───────────────────────────────────────────────────────────
+
   const totalTasks     = kpis?.totalTasks     ?? 0;
   const completedTasks = kpis?.completedTasks ?? 0;
   const taskPct        = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -672,7 +703,6 @@ export default function ProjectsDashboardPage() {
   const invoicedFmt    = `KSH ${totalInvoiced.toLocaleString()}`;
   const pendingFmt     = `KSH ${(kpis?.pendingInvoiceValue ?? 0).toLocaleString()} pending`;
   const totalSites          = kpis?.totalSites ?? sites.length;
- 
   const projectStatusCounts = countProjectStatuses(sites);
 
   const customLabel = dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : 'Pick dates';
@@ -682,6 +712,7 @@ export default function ProjectsDashboardPage() {
   return (
     <div className="gv-page-dashboard flex flex-col gap-0 overflow-y-auto pb-10">
 
+      {/* ── Header ── */}
       <div className="px-4 pt-6 pb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">Projects Dashboard</h1>
         <button onClick={load} className="w-8 h-8 rounded-xl flex items-center justify-center"
@@ -700,23 +731,28 @@ export default function ProjectsDashboardPage() {
         </div>
       )}
 
+      {/* ── Overview KPIs ── */}
       <div className="px-4 pb-5">
         <p className="text-lg font-bold text-white mb-3">Overview</p>
         <div className="grid grid-cols-2 gap-3">
-          <KpiCard icon={Building2}     label="Total Sites"      loading={loadingKpis} value={totalSites}              sub={`${projectStatusCounts.inProgress} in progress`} />
-          <KpiCard icon={Users}         label="Workers"          loading={loadingKpis} value={totalWorkers}            sub={`${activeWorkers} active`} />
+          <KpiCard icon={Building2}     label="Total Sites"      loading={loadingKpis} value={totalSites}                       sub={`${projectStatusCounts.inProgress} in progress`} />
+          <KpiCard icon={Users}         label="Workers"          loading={loadingKpis} value={totalWorkers}                     sub={`${activeWorkers} active`} />
           <KpiCard icon={ClipboardList} label="Tasks"            loading={loadingKpis} value={`${completedTasks}/${totalTasks}`} sub={`${taskPct}% done`} />
-          <KpiCard icon={FileText}      label="Invoiced"         loading={loadingKpis} value={invoicedFmt}             sub={pendingFmt} />
-          <KpiCard icon={Shield}        label="Permits"          loading={loadingKpis} value={kpis?.totalPermits ?? 0} sub={`${kpis?.expiring_permits ?? 0} expiring`} />
-          <KpiCard icon={UserCheck}     label="Attendance Today" loading={loadingKpis} value={`${attendancePct}%`}    sub={`${presentToday} present`} />
+          <KpiCard icon={FileText}      label="Invoiced"         loading={loadingKpis} value={invoicedFmt}                      sub={pendingFmt} />
+          <KpiCard icon={Shield}        label="Permits"          loading={loadingKpis} value={kpis?.totalPermits ?? 0}          sub={`${kpis?.expiring_permits ?? 0} expiring`} />
+          <KpiCard icon={UserCheck}     label="Attendance Today" loading={loadingKpis} value={`${attendancePct}%`}              sub={`${presentToday} present`} />
         </div>
       </div>
+
+      {/* ── Attendance + Project Statuses ── */}
       <div className="px-4 pb-5">
         <div className="grid grid-cols-2 gap-3 items-stretch">
 
+          {/* LEFT: Attendance card */}
           <div ref={attendanceCardRef} className="flex flex-col gap-3">
             <p className="text-lg font-bold text-white">Attendance</p>
 
+            {/* Period tabs */}
             <div className="flex items-center gap-2 overflow-x-auto">
               {(['Today', 'Week', 'Month', 'Custom'] as const).map((t) => {
                 const active = attendanceTab === t;
@@ -735,6 +771,8 @@ export default function ProjectsDashboardPage() {
                 );
               })}
             </div>
+
+            {/* Custom calendar picker */}
             {attendanceTab === 'Custom' && (
               <div className="relative" ref={calendarRef}>
                 <button
@@ -771,25 +809,19 @@ export default function ProjectsDashboardPage() {
               <p className="text-xs px-1" style={{ color: '#fca5a5' }}>{barsError}</p>
             )}
 
+            {/* Chart card */}
             <div
               ref={chartCardRef}
-              className="rounded-2xl overflow-visible flex flex-col"
+              className="rounded-2xl overflow-hidden flex flex-col"
               style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', position: 'relative' }}
             >
-              <div className="flex items-center justify-between px-3 pt-3 mb-1">
-                <p className="text-xs font-semibold" style={{ color: 'var(--gv-text-muted)' }}>
-                  {attendanceTab === 'Month'
-                    ? `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
-                    : attendanceTab === 'Custom' && dateFrom && dateTo
-                    ? `${dateFrom} – ${dateTo}`
-                    : attendanceTab}
-                </p>
+              <div className="flex items-center justify-end px-3 pt-2">
                 <button onClick={loadBars} className="opacity-50 hover:opacity-100 transition-opacity">
                   <RefreshCw className="w-3 h-3 text-white" />
                 </button>
               </div>
 
-              <div className="w-full" style={{ overflow: 'visible' }}>
+              <div className="w-full">
                 <AttendanceBarChart
                   bars={bars}
                   loading={loadingBars}
@@ -802,19 +834,18 @@ export default function ProjectsDashboardPage() {
               <div className="flex justify-end px-3 pb-3">
                 <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
                   <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 inline-block" style={{ background: '#3b82f6' }} />
-                  Present
+                  Present (all sites)
                 </span>
               </div>
             </div>
           </div>
+
+          {/* RIGHT: Project Statuses */}
           <div className="flex flex-col gap-3 h-full">
             <p className="text-lg font-bold text-white">Project Statuses</p>
             <div className="rounded-2xl p-3 flex flex-col items-center justify-between flex-1"
               style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-              <ProjectStatusDonut
-                counts={projectStatusCounts}
-                loading={loadingSites}
-              />
+              <ProjectStatusDonut counts={projectStatusCounts} loading={loadingSites} />
               <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-3 w-full">
                 {PROJECT_STATUS_RINGS.map((ring) => (
                   <span key={ring.key} className="flex items-center gap-1.5 text-xs"
@@ -831,6 +862,8 @@ export default function ProjectsDashboardPage() {
 
         </div>
       </div>
+
+      {/* ── Week bar click overlay ── */}
       {attendanceTab === 'Week' && activeBar && overlayPos && (
         <div className="fixed z-50"
           style={{
@@ -869,10 +902,10 @@ export default function ProjectsDashboardPage() {
         </div>
       )}
 
+      {/* ── Workers section ── */}
       <div className="px-4 pb-5">
         <div className="grid grid-cols-2 gap-3 items-stretch">
 
-          {/* Workers Piechart */}
           <div className="flex flex-col gap-2 h-full">
             <p className="text-lg font-bold text-white">Workers Piechart</p>
             <div className="rounded-2xl p-4 flex flex-col items-center justify-center flex-1"
@@ -883,6 +916,7 @@ export default function ProjectsDashboardPage() {
               </div>
             </div>
           </div>
+
           <div className="flex flex-col gap-2">
             <p className="text-lg font-bold text-white">Workers Analytics</p>
             <div className="rounded-2xl overflow-hidden"
