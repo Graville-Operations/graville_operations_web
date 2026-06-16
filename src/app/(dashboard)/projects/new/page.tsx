@@ -27,8 +27,6 @@ const MONTH_NAMES = [
 ];
 const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 
-// ── Date Picker ─────────────────────────────────────────────────────────────
-
 function DatePicker({
   value,
   onChange,
@@ -43,11 +41,8 @@ function DatePicker({
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const wrapRef = useRef<HTMLDivElement>(null);
-
-  // Parse selected date for highlighting
   const selected = value ? new Date(value + 'T00:00:00') : null;
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -68,14 +63,12 @@ function DatePicker({
     else setViewMonth(m => m + 1);
   };
 
-  // Build calendar grid
   const firstDay  = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const cells: (number | null)[] = [
     ...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
-  // Pad to complete last row
   while (cells.length % 7 !== 0) cells.push(null);
 
   const selectDay = (day: number) => {
@@ -102,7 +95,6 @@ function DatePicker({
 
   return (
     <div ref={wrapRef} className="relative w-full">
-      {/* Trigger input */}
       <div
         className="gv-input w-full flex items-center justify-between cursor-pointer select-none"
         style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto' }}
@@ -117,7 +109,6 @@ function DatePicker({
         <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--gv-text-muted)' }} />
       </div>
 
-      {/* Calendar dropdown */}
       {open && (
         <div
           className="absolute z-50 mt-2 rounded-xl p-4 w-72"
@@ -129,7 +120,7 @@ function DatePicker({
             boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
           }}
         >
-          {/* Month / Year header */}
+
           <div className="flex items-center justify-between mb-3">
             <button
               type="button"
@@ -158,7 +149,6 @@ function DatePicker({
             </button>
           </div>
 
-          {/* Day-of-week labels */}
           <div className="grid grid-cols-7 mb-1">
             {DAY_NAMES.map(d => (
               <div key={d} className="text-center text-xs font-medium py-1"
@@ -168,7 +158,6 @@ function DatePicker({
             ))}
           </div>
 
-          {/* Day cells */}
           <div className="grid grid-cols-7 gap-y-0.5">
             {cells.map((day, i) => {
               if (day === null) return <div key={`e-${i}`} />;
@@ -209,7 +198,6 @@ function DatePicker({
             })}
           </div>
 
-          {/* Clear button */}
           {value && (
             <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
               <button
@@ -229,8 +217,6 @@ function DatePicker({
     </div>
   );
 }
-
-// ── Supporting components ────────────────────────────────────────────────────
 
 function Field({ label, required, hint, children }: {
   label: string;
@@ -258,7 +244,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-// ── Form state ───────────────────────────────────────────────────────────────
 
 interface FormState {
   name: string;
@@ -278,8 +263,6 @@ const EMPTY: FormState = {
   description: '', tender_name: '', inquiring_entity: '',
   completion_date: '', tagInput: '', tags: [],
 };
-
-// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function NewProjectPage() {
   const router                      = useRouter();
@@ -359,7 +342,6 @@ export default function NewProjectPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
 
-        {/* ── Basic Information ── */}
         <Section title="Basic Information">
           <Field label="Site name" required>
             <input
@@ -410,7 +392,6 @@ export default function NewProjectPage() {
               />
             </Field>
 
-            {/* ── Completion date with calendar picker ── */}
             <Field label="Completion date">
               <DatePicker
                 value={form.completion_date}
@@ -431,8 +412,6 @@ export default function NewProjectPage() {
             />
           </Field>
         </Section>
-
-        {/* ── Entity Details ── */}
         <Section title="Entity Details">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Tenderer">
@@ -456,7 +435,6 @@ export default function NewProjectPage() {
           </div>
         </Section>
 
-        {/* ── Tags ── */}
         <Section title="Tags">
           <Field label="Add tags" hint="Press Enter or click + to add a tag">
             <div className="flex gap-2">
@@ -502,7 +480,6 @@ export default function NewProjectPage() {
           )}
         </Section>
 
-        {/* ── Actions ── */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link href="/projects/dashboard">
             <button type="button" className="gv-btn-outline" disabled={submitting}>
