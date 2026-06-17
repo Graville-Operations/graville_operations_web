@@ -8,9 +8,6 @@ import {
 import api from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 
-const BILLING_TYPES = ['DAILY', 'WEEKLY', 'MONTHLY', 'FIXED'] as const;
-type BillingType = typeof BILLING_TYPES[number];
-
 const DUMMY = {
   total_orders:    47,
   sites_low_stock: [
@@ -29,12 +26,14 @@ function fmtKES(n: number) {
   return `KSH ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function extractList(raw: any): any[] {
+function extractList(raw: unknown): unknown[] {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
-  if (Array.isArray(raw.items)) return raw.items;
-  if (Array.isArray(raw.data)) return raw.data;
-  if (Array.isArray(raw.data?.items)) return raw.data.items;
+  const obj = raw as Record<string, unknown>;
+  if (Array.isArray(obj.items)) return obj.items;
+  if (Array.isArray(obj.data)) return obj.data;
+  const nested = obj.data as Record<string, unknown> | undefined;
+  if (nested && Array.isArray(nested.items)) return nested.items;
   return [];
 }
 
@@ -118,13 +117,12 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 const inputCls = 'w-full px-3 py-2 rounded-lg text-sm bg-[color:var(--muted)] border border-[color:var(--border)] text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-colors';
-const selectCls = 'w-full appearance-none px-3 py-2 pr-9 rounded-lg text-sm bg-[color:var(--gv-glass-bg)] border border-[color:var(--border)] text-[color:var(--foreground)] cursor-pointer outline-none transition-colors focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white';
 
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) { return <input {...props} className={inputCls} />; }
-function NumberInput(props: React.InputHTMLAttributes<HTMLInputElement>) { return <input type="number" {...props} className={inputCls} />; }
 function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) { return <textarea {...props} rows={3} className={`${inputCls} resize-none`} />; }
 
 function DarkSelect(props: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
+  const selectCls = 'w-full appearance-none px-3 py-2 pr-9 rounded-lg text-sm bg-[color:var(--gv-glass-bg)] border border-[color:var(--border)] text-[color:var(--foreground)] cursor-pointer outline-none transition-colors focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white';
   return (
     <div className="relative">
       <select {...props} className={selectCls}>{props.children}</select>
@@ -196,7 +194,7 @@ function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void 
   );
 }
 
-interface AddUnitOverlayProps { open: boolean; onClose: () => void; onSuccess?: (unit: any) => void; elevated?: boolean; }
+interface AddUnitOverlayProps { open: boolean; onClose: () => void; onSuccess?: (unit: { id: number; name: string; symbol: string }) => void; elevated?: boolean; }
 function AddUnitOverlay({ open, onClose, onSuccess, elevated = false }: AddUnitOverlayProps) {
   const [form, setForm] = useState({ name: '', symbol: '', description: '' });
   const [loading, setLoading] = useState(false);
@@ -217,9 +215,11 @@ function AddUnitOverlay({ open, onClose, onSuccess, elevated = false }: AddUnitO
       console.log('[AddUnit] create response:', res.data);
       onSuccess?.(res.data?.data ?? res.data);
       handleClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Unit creation failed:', err);
-      setError(err?.response?.data?.detail ?? err?.message ?? 'Failed to create unit');
+      const message = err instanceof Error ? err.message : 'Failed to create unit';
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(detail ?? message);
     } finally { setLoading(false); }
   };
 
@@ -274,9 +274,11 @@ function AddMaterialOverlay({ open, onClose, onSuccess }: AddMaterialOverlayProp
       console.log('[AddMaterial] create response:', res.data);
       onSuccess?.();
       handleClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Material creation failed:', err);
-      setError(err?.response?.data?.detail ?? err?.message ?? 'Failed to create material');
+      const message = err instanceof Error ? err.message : 'Failed to create material';
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(detail ?? message);
     } finally { setLoading(false); }
   };
 
@@ -318,94 +320,37 @@ function AddMaterialOverlay({ open, onClose, onSuccess }: AddMaterialOverlayProp
 
 interface AddToolOverlayProps { open: boolean; onClose: () => void; onSuccess?: () => void; }
 function AddToolOverlay({ open, onClose, onSuccess }: AddToolOverlayProps) {
-  const [form, setForm] = useState({
-    name: '', description: '', isCompanyTool: 'true', billingType: 'DAILY' as BillingType,
-    quantity: '1', vendor: '', hire_cost: '', hire_start_date: '', hire_end_date: '', notes: '',
-  });
+  const [form, setForm] = useState({ name: '', description: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleClose = () => { 
-    setForm({ name: '', description: '', isCompanyTool: 'true', billingType: 'DAILY', quantity: '1', vendor: '', hire_cost: '', hire_start_date: '', hire_end_date: '', notes: '' }); 
-    setError(null); onClose(); 
-  };
+  const handleClose = () => { setForm({ name: '', description: '' }); setError(null); onClose(); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return setError('Tool name is required.');
     setLoading(true); setError(null);
     try {
-      const isCompanyTool = form.isCompanyTool === 'true';
-
-      const payload: Record<string, any> = {
+      const res = await api.post('/materials/tool/add', {
         name: form.name.trim(),
         description: form.description.trim() || undefined,
-        is_company_tool: isCompanyTool,
-        quantity: Number(form.quantity) || 1,
-      };
-
-      if (!isCompanyTool) {
-        payload.billing_type = form.billingType;
-        payload.vendor = form.vendor.trim() || undefined;
-        payload.hire_cost = form.hire_cost ? Number(form.hire_cost) : undefined;
-        payload.hire_start_date = form.hire_start_date || undefined;
-        payload.hire_end_date = form.hire_end_date || undefined;
-      }
-      if (form.notes.trim()) payload.notes = form.notes.trim();
-
-      const res = await api.post('/materials/tool/add', payload);
+      });
       console.log('[AddTool] create response:', res.data);
       onSuccess?.();
       handleClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Tool creation failed:', err);
-      setError(err?.response?.data?.detail ?? err?.message ?? 'Failed to create tool');
+      const message = err instanceof Error ? err.message : 'Failed to create tool';
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(detail ?? message);
     } finally { setLoading(false); }
   };
-
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<any>) => setForm(p => ({...p, [k]: e.target.value}));
 
   return (
     <Overlay open={open} onClose={handleClose} title="Add Tool" subtitle="Register a new tool in the company catalogue" icon={<Wrench size={18} />}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div>
-          <p className="gv-eyebrow mb-3">Tool Details</p>
-          <div className="flex flex-col gap-4">
-            <Field label="Tool Name" required><TextInput placeholder="e.g. Concrete Mixer" value={form.name} onChange={set('name')} /></Field>
-            <Field label="Description"><Textarea placeholder="Optional description…" value={form.description} onChange={set('description')} /></Field>
-          </div>
-        </div>
-
-        <div className="border-t border-[color:var(--border)]" />
-
-        <div>
-          <p className="gv-eyebrow mb-3">Hire & Receipt</p>
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Ownership">
-                <DarkSelect value={form.isCompanyTool} onChange={set('isCompanyTool')}>
-                  <option value="true">Company-owned</option>
-                  <option value="false">Hired / External</option>
-                </DarkSelect>
-              </Field>
-              <Field label="Billing Type">
-                <DarkSelect value={form.billingType} onChange={set('billingType')}>
-                  {BILLING_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
-                </DarkSelect>
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Quantity"><NumberInput min={1} step={1} value={form.quantity} onChange={set('quantity')} /></Field>
-              <Field label="Hire Cost (KES)"><NumberInput min={0} step="any" placeholder="0.00" value={form.hire_cost} onChange={set('hire_cost')} /></Field>
-            </div>
-            <Field label="Vendor"><TextInput placeholder="Supplier / hire company name" value={form.vendor} onChange={set('vendor')} /></Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Hire Start"><TextInput type="date" value={form.hire_start_date} onChange={set('hire_start_date')} /></Field>
-              <Field label="Hire End"><TextInput type="date" value={form.hire_end_date} onChange={set('hire_end_date')} /></Field>
-            </div>
-            <Field label="Notes"><Textarea placeholder="Any additional notes…" value={form.notes} onChange={set('notes')} /></Field>
-          </div>
-        </div>
+        <Field label="Tool Name" required><TextInput placeholder="e.g. Concrete Mixer" value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} /></Field>
+        <Field label="Description"><Textarea placeholder="Optional description…" value={form.description} onChange={e => setForm(p => ({...p, description: e.target.value}))} /></Field>
 
         {error && <p className="text-xs text-[color:var(--destructive)] bg-[color:var(--destructive)]/10 px-3 py-2 rounded-lg">{error}</p>}
 
