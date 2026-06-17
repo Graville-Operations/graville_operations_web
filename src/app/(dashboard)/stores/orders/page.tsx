@@ -267,12 +267,14 @@ function UsageTile({ log, onClick }: { log: UsageLog; onClick: () => void }) {
 export default function StoreActivityPage() {
   const router = useRouter();
 
-  const today = toLocalDateString(new Date());
-  const thirtyDaysAgo = toLocalDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+  const [startDate, setStartDate] = useState<string>(
+    () => toLocalDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
+  );
+  const [endDate, setEndDate] = useState<string>(
+    () => toLocalDateString(new Date()),
+  );
 
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
-  const [startDate,      setStartDate]      = useState(thirtyDaysAgo);
-  const [endDate,        setEndDate]        = useState(today);
 
   const { data: sitesRaw, loading: isSitesLoading } = useApi<unknown>('/sites/list');
   const sites = useMemo(() => extractList<Site>(sitesRaw), [sitesRaw]);
@@ -304,7 +306,7 @@ export default function StoreActivityPage() {
         <div>
           <p className="gv-eyebrow">Store</p>
           <h1 className="text-2xl font-bold mt-1">Store Activity</h1>
-          <p className="text-sm text-[color:var(--muted-foreground)] mt-1">
+          <p className="text-lg text-[color:var(--muted-foreground)] mt-1">
             Daily usage reports across all sites
           </p>
         </div>

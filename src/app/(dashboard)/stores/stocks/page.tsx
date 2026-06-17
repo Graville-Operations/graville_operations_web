@@ -288,7 +288,7 @@ export default function StockRegistersPage() {
       {
         label:   'Damaged Tools',
         value:   damagedTools,
-        sub:     'Tools marked as damaged',
+        sub:     'Tools that need repair or replacement',
         icon:    <AlertOctagon size={18} />,
         variant: 'default' as Variant,
       },
