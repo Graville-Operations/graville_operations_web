@@ -254,6 +254,8 @@ interface FormState {
   tender_name: string;
   inquiring_entity: string;
   completion_date: string;
+  latitude: string;
+  longitude: string;
   tagInput: string;
   tags: string[];
 }
@@ -261,7 +263,7 @@ interface FormState {
 const EMPTY: FormState = {
   name: '', location: '', project_status: '', site_status: 'ACTIVE',
   description: '', tender_name: '', inquiring_entity: '',
-  completion_date: '', tagInput: '', tags: [],
+  completion_date: '', latitude: '', longitude: '', tagInput: '', tags: [],
 };
 
 export default function NewProjectPage() {
@@ -300,12 +302,14 @@ export default function NewProjectPage() {
       ...(form.tender_name      && { tender_name:      form.tender_name }),
       ...(form.inquiring_entity && { inquiring_entity: form.inquiring_entity }),
       ...(form.completion_date  && { completion_date:  form.completion_date }),
+      ...(form.latitude         && { latitude:         parseFloat(form.latitude) }),
+      ...(form.longitude        && { longitude:        parseFloat(form.longitude) }),
       ...(form.tags.length > 0  && { tags:             form.tags }),
     };
 
     try {
       await createSite(payload);
-      router.push('/projects/sites');
+      router.push('/projects/dashboard');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create project. Please try again.');
     } finally {
@@ -314,7 +318,7 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="gv-page-dashboard w-full px-6 pb-16 pt-6" style={{ maxWidth: '96rem' }}>
+    <div className="gv-page-dashboard max-w-2xl mx-auto px-4 pb-16 pt-6">
 
       <Link href="/projects/dashboard"
         className="inline-flex items-center gap-1.5 text-sm mb-6 transition-colors"
@@ -344,23 +348,14 @@ export default function NewProjectPage() {
 
         <Section title="Basic Information">
           <Field label="Site name" required>
-            <input
-              className="gv-input w-full"
-              placeholder="e.g. Nairobi Central Site"
-              value={form.name}
-              onChange={set('name')}
-              disabled={submitting}
-            />
+            <input className="gv-input" placeholder="e.g. Nairobi Central Site"
+              value={form.name} onChange={set('name')} disabled={submitting} />
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Project status" required>
-              <select
-                className="gv-input w-full"
-                value={form.project_status}
-                onChange={set('project_status')}
-                disabled={submitting}
-              >
+              <select className="gv-input" value={form.project_status}
+                onChange={set('project_status')} disabled={submitting}>
                 <option value="" disabled style={{ background: '#0d1528' }}>Select status</option>
                 {PROJECT_STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value} style={{ background: '#0d1528' }}>{o.label}</option>
@@ -368,12 +363,8 @@ export default function NewProjectPage() {
               </select>
             </Field>
             <Field label="Site status">
-              <select
-                className="gv-input w-full"
-                value={form.site_status}
-                onChange={set('site_status')}
-                disabled={submitting}
-              >
+              <select className="gv-input" value={form.site_status}
+                onChange={set('site_status')} disabled={submitting}>
                 {SITE_STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value} style={{ background: '#0d1528' }}>{o.label}</option>
                 ))}
@@ -383,13 +374,8 @@ export default function NewProjectPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Location">
-              <input
-                className="gv-input w-full"
-                placeholder="e.g. Westlands, Nairobi"
-                value={form.location}
-                onChange={set('location')}
-                disabled={submitting}
-              />
+              <input className="gv-input" placeholder="e.g. Westlands, Nairobi"
+                value={form.location} onChange={set('location')} disabled={submitting} />
             </Field>
 
             <Field label="Completion date">
@@ -406,10 +392,7 @@ export default function NewProjectPage() {
               className="gv-input resize-none w-full"
               rows={4}
               placeholder="Brief description of the site or project..."
-              value={form.description}
-              onChange={set('description')}
-              disabled={submitting}
-            />
+              value={form.description} onChange={set('description')} disabled={submitting} />
           </Field>
         </Section>
         <Section title="Entity Details">
@@ -423,14 +406,9 @@ export default function NewProjectPage() {
                 disabled={submitting}
               />
             </Field>
-            <Field label="Procuring entity">
-              <input
-                className="gv-input w-full"
-                placeholder="e.g. Ministry of Works"
-                value={form.inquiring_entity}
-                onChange={set('inquiring_entity')}
-                disabled={submitting}
-              />
+            <Field label="Longitude" hint="Decimal degrees, e.g. 36.8219">
+              <input type="number" step="any" className="gv-input" placeholder="36.8219"
+                value={form.longitude} onChange={set('longitude')} disabled={submitting} />
             </Field>
           </div>
         </Section>
@@ -438,20 +416,11 @@ export default function NewProjectPage() {
         <Section title="Tags">
           <Field label="Add tags" hint="Press Enter or click + to add a tag">
             <div className="flex gap-2">
-              <input
-                className="gv-input w-full"
-                placeholder="e.g. urban, phase-1"
-                value={form.tagInput}
-                onChange={set('tagInput')}
-                disabled={submitting}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-              />
-              <button
-                type="button"
-                onClick={addTag}
-                disabled={submitting}
-                className="gv-btn-outline px-3 py-2 flex-shrink-0"
-              >
+              <input className="gv-input" placeholder="e.g. urban, phase-1"
+                value={form.tagInput} onChange={set('tagInput')} disabled={submitting}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
+              <button type="button" onClick={addTag} disabled={submitting}
+                className="gv-btn-outline px-3 py-2 flex-shrink-0">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
@@ -459,19 +428,13 @@ export default function NewProjectPage() {
           {form.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {form.tags.map((tag) => (
-                <span
-                  key={tag}
+                <span key={tag}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
-                  style={{ background: 'var(--gv-glass-bg-strong)', border: '1px solid var(--gv-glass-border)', color: '#fff' }}
-                >
+                  style={{ background: 'var(--gv-glass-bg-strong)', border: '1px solid var(--gv-glass-border)', color: '#fff' }}>
                   {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    disabled={submitting}
+                  <button type="button" onClick={() => removeTag(tag)} disabled={submitting}
                     className="ml-0.5 transition-colors"
-                    style={{ color: 'var(--gv-text-muted)' }}
-                  >
+                    style={{ color: 'var(--gv-text-muted)' }}>
                     <X className="w-3 h-3" />
                   </button>
                 </span>
