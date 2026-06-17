@@ -8,6 +8,7 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
+import { useCachedLookup } from '@/hooks/useCachedLookup';
 import type { Site } from '@/types/store';
 
 function extractList<T>(raw: unknown): T[] {
@@ -275,8 +276,7 @@ export default function StoreActivityPage() {
   );
 
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
-
-  const { data: sitesRaw, loading: isSitesLoading } = useApi<unknown>('/sites/list');
+  const { data: sitesRaw, loading: isSitesLoading } = useCachedLookup<unknown>('/sites/list');
   const sites = useMemo(() => extractList<Site>(sitesRaw), [sitesRaw]);
 
   const usageParams = useMemo(() => {
