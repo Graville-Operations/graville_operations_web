@@ -36,23 +36,6 @@ const parseBackendDate = (dateStr: string): string => {
   }
 };
 
-/* ── shared dropdown card style matching image 2 ── */
-const dropdownCard: React.CSSProperties = {
-  position:              'absolute',
-  top:                   'calc(100% + 8px)',
-  right:                 0,
-  left:                  'auto',
-  zIndex:                9999,
-  background:            '#0d1828',
-  backdropFilter:        'blur(20px)',
-  WebkitBackdropFilter:  'blur(20px)',
-  border:                '1px solid rgba(255,255,255,0.15)',
-  borderRadius:          '0.875rem',
-  boxShadow:             '0 12px 40px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.4)',
-  padding:               '1.25rem',
-  overflow:              'visible',
-};
-
 export default function ClientInvoicesPage() {
   const router      = useRouter();
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -158,19 +141,6 @@ export default function ClientInvoicesPage() {
 
   const hasActiveFilters = !!(selectedSite || activeDateLabel);
 
-  /* ── shared date input style matching image 2 ── */
-  const dateInputStyle: React.CSSProperties = {
-    width:        '100%',
-    padding:      '0.65rem 0.875rem',
-    background:   'rgba(255,255,255,0.07)',
-    border:       '1px solid rgba(255,255,255,0.22)',
-    borderRadius: '0.5rem',
-    color:        'var(--gv-text-primary)',
-    fontSize:     '0.9rem',
-    outline:      'none',
-    colorScheme:  'dark' as never,
-  };
-
   return (
     <div className="space-y-6">
 
@@ -235,34 +205,20 @@ export default function ClientInvoicesPage() {
             </div>
 
             {siteOpen && (
-              <div style={{ ...dropdownCard, width: '15rem' }}>
-                {/* header */}
-                <p style={{ fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gv-text-subtle)', marginBottom: '0.75rem' }}>
+              <div className="gv-dropdown" style={{ width: '15rem', left: 'auto', right: 0 }}>
+                <p className="px-4 pt-3 pb-2 text-xs font-semibold uppercase tracking-widest"
+                   style={{ color: 'var(--gv-text-subtle)' }}>
                   Site
                 </p>
-                <div style={{ maxHeight: '14rem', overflowY: 'auto', margin: '0 -0.25rem' }}>
-                  {/* All Sites option */}
+                <div style={{ maxHeight: '14rem', overflowY: 'auto' }}>
                   <button
                     onClick={() => { setSelectedSite(null); setSiteOpen(false); }}
-                    style={{
-                      display:      'block',
-                      width:        '100%',
-                      textAlign:    'left',
-                      padding:      '0.55rem 0.75rem',
-                      borderRadius: '0.5rem',
-                      fontSize:     '0.875rem',
-                      background:   !selectedSite ? 'rgba(51,144,124,0.15)' : 'transparent',
-                      color:        !selectedSite ? 'var(--gv-brand)' : 'var(--gv-text-muted)',
-                      fontWeight:   !selectedSite ? 600 : 400,
-                      border:       'none',
-                      cursor:       'pointer',
-                      transition:   'background 0.15s',
-                    }}
+                    className={`gv-dropdown-item ${!selectedSite ? 'gv-dropdown-item--active' : ''}`}
                   >
                     All Sites
                   </button>
                   {sites.length === 0 ? (
-                    <p style={{ padding: '0.5rem 0.75rem', fontSize: '0.8rem', color: 'var(--gv-text-faint)' }}>
+                    <p className="px-4 py-2 text-xs" style={{ color: 'var(--gv-text-faint)' }}>
                       No sites found
                     </p>
                   ) : (
@@ -270,20 +226,7 @@ export default function ClientInvoicesPage() {
                       <button
                         key={site.id}
                         onClick={() => { setSelectedSite(site); setSiteOpen(false); }}
-                        style={{
-                          display:      'block',
-                          width:        '100%',
-                          textAlign:    'left',
-                          padding:      '0.55rem 0.75rem',
-                          borderRadius: '0.5rem',
-                          fontSize:     '0.875rem',
-                          background:   selectedSite?.id === site.id ? 'rgba(51,144,124,0.15)' : 'transparent',
-                          color:        selectedSite?.id === site.id ? 'var(--gv-brand)' : 'var(--gv-text-muted)',
-                          fontWeight:   selectedSite?.id === site.id ? 600 : 400,
-                          border:       'none',
-                          cursor:       'pointer',
-                          transition:   'background 0.15s',
-                        }}
+                        className={`gv-dropdown-item ${selectedSite?.id === site.id ? 'gv-dropdown-item--active' : ''}`}
                       >
                         {site.name}
                       </button>
@@ -320,9 +263,9 @@ export default function ClientInvoicesPage() {
             </div>
 
             {calendarOpen && (
-              <div style={{ ...dropdownCard, width: '20rem' }}>
+              <div className="gv-dropdown" style={{ width: '20rem', left: 'auto', right: 0, padding: '1.25rem', overflow: 'visible' }}>
 
-                {/* Mode toggle — pill style matching image 2 */}
+                {/* Mode toggle */}
                 <div
                   style={{
                     display:      'flex',
@@ -365,7 +308,8 @@ export default function ClientInvoicesPage() {
                       value={singleDate}
                       onChange={(e) => setSingleDate(e.target.value)}
                       max={today}
-                      style={dateInputStyle}
+                      className="gv-input"
+                      style={{ colorScheme: 'dark' as never }}
                     />
                   </div>
                 )}
@@ -382,7 +326,8 @@ export default function ClientInvoicesPage() {
                         value={dateFrom}
                         onChange={(e) => setDateFrom(e.target.value)}
                         max={dateTo || today}
-                        style={dateInputStyle}
+                        className="gv-input"
+                        style={{ colorScheme: 'dark' as never }}
                       />
                     </div>
                     <div>
@@ -395,7 +340,8 @@ export default function ClientInvoicesPage() {
                         onChange={(e) => setDateTo(e.target.value)}
                         min={dateFrom}
                         max={today}
-                        style={dateInputStyle}
+                        className="gv-input"
+                        style={{ colorScheme: 'dark' as never }}
                       />
                     </div>
                   </div>
@@ -405,37 +351,15 @@ export default function ClientInvoicesPage() {
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <button
                     onClick={clearDateFilter}
-                    style={{
-                      flex:         1,
-                      padding:      '0.6rem',
-                      borderRadius: '0.5rem',
-                      fontSize:     '0.875rem',
-                      fontWeight:   500,
-                      background:   'rgba(255,255,255,0.07)',
-                      border:       '1px solid rgba(255,255,255,0.15)',
-                      color:        'var(--gv-text-muted)',
-                      cursor:       'pointer',
-                      transition:   'background 0.15s',
-                    }}
+                    className="gv-btn-ghost flex-1"
                   >
                     Clear
                   </button>
                   <button
                     onClick={applyDateFilter}
                     disabled={dateMode === 'single' ? !singleDate : !dateFrom || !dateTo}
-                    style={{
-                      flex:         1,
-                      padding:      '0.6rem',
-                      borderRadius: '0.5rem',
-                      fontSize:     '0.875rem',
-                      fontWeight:   600,
-                      background:   'var(--gv-brand)',
-                      border:       'none',
-                      color:        '#ffffff',
-                      cursor:       'pointer',
-                      opacity:      (dateMode === 'single' ? !singleDate : !dateFrom || !dateTo) ? 0.4 : 1,
-                      transition:   'background 0.15s, opacity 0.15s',
-                    }}
+                    className="gv-btn-brand flex-1"
+                    style={{ opacity: (dateMode === 'single' ? !singleDate : !dateFrom || !dateTo) ? 0.4 : 1 }}
                   >
                     Apply
                   </button>

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createSite } from '@/lib/api/sites';
 import { CreateSitePayload, ProjectStatus, SiteStatus } from '@/types/site';
-import { ArrowLeft, Plus, X, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader2, AlertCircle, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
   { value: 'PLANNING',    label: 'Planning' },
@@ -20,6 +20,203 @@ const SITE_STATUS_OPTIONS: { value: SiteStatus; label: string }[] = [
   { value: 'INACTIVE', label: 'Inactive' },
   { value: 'CLOSED',   label: 'Closed' },
 ];
+
+const MONTH_NAMES = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
+const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function DatePicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const today = new Date();
+  const [open, setOpen]         = useState(false);
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const selected = value ? new Date(value + 'T00:00:00') : null;
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const firstDay  = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const cells: (number | null)[] = [
+    ...Array(firstDay).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const selectDay = (day: number) => {
+    const mm = String(viewMonth + 1).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    onChange(`${viewYear}-${mm}-${dd}`);
+    setOpen(false);
+  };
+
+  const isSelected = (day: number) =>
+    selected &&
+    selected.getFullYear() === viewYear &&
+    selected.getMonth()    === viewMonth &&
+    selected.getDate()     === day;
+
+  const isToday = (day: number) =>
+    today.getFullYear() === viewYear &&
+    today.getMonth()    === viewMonth &&
+    today.getDate()     === day;
+
+  const displayValue = selected
+    ? selected.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '';
+
+  return (
+    <div ref={wrapRef} className="relative w-full">
+      <div
+        className="gv-input w-full flex items-center justify-between cursor-pointer select-none"
+        style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto' }}
+        onClick={() => !disabled && setOpen(o => !o)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
+      >
+        <span style={{ color: displayValue ? '#fff' : 'var(--gv-text-subtle)' }}>
+          {displayValue || 'Pick a date'}
+        </span>
+        <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--gv-text-muted)' }} />
+      </div>
+
+      {open && (
+        <div
+          className="absolute z-50 mt-2 rounded-xl p-4 w-72"
+          style={{
+            background: 'rgba(13,21,40,0.95)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid var(--gv-glass-border)',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
+          }}
+        >
+
+          <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="p-1 rounded-lg transition-colors"
+              style={{ color: 'var(--gv-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <span className="text-sm font-semibold text-white">
+              {MONTH_NAMES[viewMonth]} {viewYear}
+            </span>
+
+            <button
+              type="button"
+              onClick={nextMonth}
+              className="p-1 rounded-lg transition-colors"
+              style={{ color: 'var(--gv-text-muted)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 mb-1">
+            {DAY_NAMES.map(d => (
+              <div key={d} className="text-center text-xs font-medium py-1"
+                style={{ color: 'var(--gv-text-subtle)' }}>
+                {d}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-y-0.5">
+            {cells.map((day, i) => {
+              if (day === null) return <div key={`e-${i}`} />;
+
+              const sel   = isSelected(day);
+              const todayFlag = isToday(day);
+
+              return (
+                <button
+                  key={`d-${day}`}
+                  type="button"
+                  onClick={() => selectDay(day)}
+                  className="flex items-center justify-center rounded-lg text-sm h-8 w-8 mx-auto transition-all"
+                  style={{
+                    background: sel
+                      ? '#33907C'
+                      : todayFlag
+                      ? 'rgba(51,144,124,0.15)'
+                      : 'transparent',
+                    color: sel
+                      ? '#fff'
+                      : todayFlag
+                      ? '#33907C'
+                      : 'var(--gv-text-muted)',
+                    fontWeight: sel || todayFlag ? 600 : 400,
+                    border: todayFlag && !sel ? '1px solid rgba(51,144,124,0.4)' : '1px solid transparent',
+                  }}
+                  onMouseEnter={e => {
+                    if (!sel) e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                  onMouseLeave={e => {
+                    if (!sel) e.currentTarget.style.background = todayFlag ? 'rgba(51,144,124,0.15)' : 'transparent';
+                  }}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+
+          {value && (
+            <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
+              <button
+                type="button"
+                onClick={() => { onChange(''); setOpen(false); }}
+                className="w-full text-xs py-1.5 rounded-lg transition-colors"
+                style={{ color: 'var(--gv-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#fca5a5')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
+              >
+                Clear date
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Field({ label, required, hint, children }: {
   label: string;
@@ -46,6 +243,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
+
 
 interface FormState {
   name: string;
@@ -148,7 +346,6 @@ export default function NewProjectPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
 
-        {/* basic info */}
         <Section title="Basic Information">
           <Field label="Site name" required>
             <input className="gv-input" placeholder="e.g. Nairobi Central Site"
@@ -180,39 +377,34 @@ export default function NewProjectPage() {
               <input className="gv-input" placeholder="e.g. Westlands, Nairobi"
                 value={form.location} onChange={set('location')} disabled={submitting} />
             </Field>
+
             <Field label="Completion date">
-              <input type="date" className="gv-input"
-                value={form.completion_date} onChange={set('completion_date')} disabled={submitting} />
+              <DatePicker
+                value={form.completion_date}
+                onChange={(v) => setForm((p) => ({ ...p, completion_date: v }))}
+                disabled={submitting}
+              />
             </Field>
           </div>
 
-          <Field label="Description">
-            <textarea className="gv-input resize-none" rows={3}
+          <Field label="Tender Name">
+            <textarea
+              className="gv-input resize-none w-full"
+              rows={4}
               placeholder="Brief description of the site or project..."
               value={form.description} onChange={set('description')} disabled={submitting} />
           </Field>
         </Section>
-
-        {/* entity details */}
         <Section title="Entity Details">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Tender name">
-              <input className="gv-input" placeholder="e.g. Tender #2024-001"
-                value={form.tender_name} onChange={set('tender_name')} disabled={submitting} />
-            </Field>
-            <Field label="Inquiring entity">
-              <input className="gv-input" placeholder="e.g. Ministry of Works"
-                value={form.inquiring_entity} onChange={set('inquiring_entity')} disabled={submitting} />
-            </Field>
-          </div>
-        </Section>
-
-        {/* coordinates */}
-        <Section title="Geo Coordinates">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Latitude" hint="Decimal degrees, e.g. -1.2921">
-              <input type="number" step="any" className="gv-input" placeholder="-1.2921"
-                value={form.latitude} onChange={set('latitude')} disabled={submitting} />
+            <Field label="Tenderer">
+              <input
+                className="gv-input w-full"
+                placeholder="e.g. Tender #2024-001"
+                value={form.tender_name}
+                onChange={set('tender_name')}
+                disabled={submitting}
+              />
             </Field>
             <Field label="Longitude" hint="Decimal degrees, e.g. 36.8219">
               <input type="number" step="any" className="gv-input" placeholder="36.8219"
@@ -221,7 +413,6 @@ export default function NewProjectPage() {
           </div>
         </Section>
 
-        {/* tags */}
         <Section title="Tags">
           <Field label="Add tags" hint="Press Enter or click + to add a tag">
             <div className="flex gap-2">
@@ -252,7 +443,6 @@ export default function NewProjectPage() {
           )}
         </Section>
 
-        {/* actions */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link href="/projects/dashboard">
             <button type="button" className="gv-btn-outline" disabled={submitting}>

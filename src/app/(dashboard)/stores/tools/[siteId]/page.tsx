@@ -3,6 +3,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Activity, AlertTriangle, ChevronLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
+import { useCachedLookup } from '@/hooks/useCachedLookup';
 import type { ToolItem, PagedResponse, Site, ToolTab } from '@/types/store';
 
 const LIMIT = 20;
@@ -18,6 +19,13 @@ const TAB_STATUS: Record<ToolTab, string | undefined> = {
   available: 'AVAILABLE',
   in_use:    'IN_USE',
   damaged:   'DAMAGED',
+};
+
+const TAB_OPTIONS: Record<ToolTab, { params: Record<string, unknown> }> = {
+  all:       { params: { limit: LIMIT, skip: 0 } },
+  available: { params: { limit: LIMIT, skip: 0, status: 'AVAILABLE' } },
+  in_use:    { params: { limit: LIMIT, skip: 0, status: 'IN_USE' } },
+  damaged:   { params: { limit: LIMIT, skip: 0, status: 'DAMAGED' } },
 };
 
 const TOOL_STATUS_COLOR: Record<string, string> = {
@@ -40,7 +48,6 @@ function extractList<T>(data: T[] | PagedResponse<T> | null | undefined): T[] {
 function TableSkeleton() {
   return (
     <div className="gv-card flex flex-col gap-0 p-0 overflow-hidden">
-     
       <div
         className="grid gap-x-2 px-4 py-2.5 border-b border-[color:var(--border)] bg-[color:var(--muted)]"
         style={{ gridTemplateColumns: '1fr 1fr 90px' }}
@@ -81,40 +88,37 @@ function TableSkeleton() {
   );
 }
 
-
 export default function ToolsPage() {
   const params       = useParams<{ siteId: string }>();
   const router       = useRouter();
   const searchParams = useSearchParams();
   const siteId       = Number(params.siteId);
 
-  const initialTab   = (searchParams.get('tab') as ToolTab | null) ?? 'all';
+  const initialTab = (searchParams.get('tab') as ToolTab | null) ?? 'all';
   const [activeTab,   setActiveTab]   = useState<ToolTab>(
     TOOL_TABS.some((t) => t.key === initialTab) ? initialTab : 'all',
   );
   const [extraItems,  setExtraItems]  = useState<Partial<Record<ToolTab, ToolItem[]>>>({});
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const { data: sitesRaw } = useApi<Site[] | { items: Site[] }>('/sites/list');
+  const { data: sitesRaw } = useCachedLookup<Site[] | { items: Site[] }>('/sites/list');
   const sites: Site[] = useMemo(
     () => sitesRaw ? (Array.isArray(sitesRaw) ? sitesRaw : (sitesRaw.items ?? [])) : [],
     [sitesRaw],
   );
   const siteName = sites.find((s) => s.id === siteId)?.name ?? 'Site';
 
-  const status = TAB_STATUS[activeTab];
-
   const { data, loading, error } = useApi<PagedResponse<ToolItem> | ToolItem[]>(
     `/store/tools/${siteId}/all`,
-    {
-      params: { limit: LIMIT, skip: 0, ...(status ? { status } : {}) },
-    },
+    TAB_OPTIONS[activeTab],
   );
 
   const firstPage = useMemo(() => extractList(data), [data]);
   const extra     = extraItems[activeTab] ?? [];
   const items     = extra.length > 0 ? [...firstPage, ...extra] : firstPage;
   const hasMore   = items.length > 0 && items.length % LIMIT === 0;
+
+  const status = TAB_STATUS[activeTab];
 
   const handleTabChange = useCallback((tab: ToolTab) => {
     setActiveTab(tab);
