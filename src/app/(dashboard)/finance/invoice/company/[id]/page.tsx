@@ -8,6 +8,7 @@ import {
   RawCompanyInvoice,
   normaliseCompanyInvoice,
 } from '@/types/company_invoices';
+import { generateInvoicePDF } from '@/lib/utils/generate-invoice-pdf';
 import { Receipt, ArrowLeft, Loader2, Download } from 'lucide-react';
 
 function Shimmer({ w, h }: { w: string; h: string }) {
@@ -60,6 +61,7 @@ export default function CompanyInvoiceDetailPage() {
         sessionStorage.removeItem(`cinv_${id}`);
       } catch (err) {
         console.error('Failed to fetch invoice:', err);
+        // Keep cached/existing data — don't wipe on network failure
       } finally {
         setDetailLoading(false);
         setLoading(false);
@@ -72,130 +74,23 @@ export default function CompanyInvoiceDetailPage() {
     if (!invoice) return;
     setDownloading(true);
     try {
-      const html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>Invoice ${invoice.invoice_number}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #1a1a2e; padding: 40px; font-size: 13px; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 36px; padding-bottom: 24px; border-bottom: 2px solid #33907c; }
-            .company-name { font-size: 22px; font-weight: 800; color: #33907c; letter-spacing: -0.5px; }
-            .company-sub  { font-size: 11px; color: #666; margin-top: 3px; }
-            .invoice-tag  { text-align: right; }
-            .invoice-tag h2 { font-size: 28px; font-weight: 800; color: #1a1a2e; letter-spacing: -1px; }
-            .invoice-tag p  { font-size: 11px; color: #888; margin-top: 2px; }
-            .meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 32px; }
-            .meta-item label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #999; display: block; margin-bottom: 4px; }
-            .meta-item p     { font-size: 13px; font-weight: 600; color: #1a1a2e; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-            thead tr { background: #f0faf8; }
-            th { padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #33907c; border-bottom: 2px solid #33907c; }
-            td { padding: 11px 14px; font-size: 12px; color: #333; border-bottom: 1px solid #eee; }
-            td.num { text-align: right; }
-            th.num { text-align: right; }
-            .total-row td { font-size: 14px; font-weight: 700; color: #33907c; border-bottom: none; background: #f0faf8; padding: 14px; }
-            .notes { margin-top: 24px; padding: 16px; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #33907c; }
-            .notes label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #999; display: block; margin-bottom: 6px; }
-            .notes p { font-size: 12px; color: #555; line-height: 1.6; }
-            .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #eee; display: flex; justify-content: space-between; font-size: 10px; color: #aaa; }
-            @page {
-              size: A4;
-              margin: 0.6in 0.5in 0.5in 0.5in;
-              @top-left   { content: none; }
-              @top-center { content: none; }
-              @top-right  { content: none; }
-              @bottom-left   { content: none; }
-              @bottom-center { content: none; }
-              @bottom-right  { content: none; }
-            }
-            @media print {
-              html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <div class="company-name">Graville Enterprises</div>
-              <div class="company-sub">Operations Management System</div>
-            </div>
-            <div class="invoice-tag">
-              <h2>INVOICE</h2>
-              <p>#${invoice.invoice_number}</p>
-            </div>
-          </div>
-          <div class="meta">
-            <div class="meta-item">
-              <label>Invoice Date</label>
-              <p>${invoice.invoice_date ?? '—'}</p>
-            </div>
-            <div class="meta-item">
-              <label>Invoiced By</label>
-              <p>${invoice.invoiced_by ?? '—'}</p>
-            </div>
-            <div class="meta-item">
-              <label>Created On</label>
-              <p>${invoice.created_at ?? '—'}</p>
-            </div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Particulars</th>
-                <th class="num">Quantity</th>
-                <th class="num">Unit Price</th>
-                <th class="num">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(invoice.items ?? []).map((item) => `
-                <tr>
-                  <td>${item.index}</td>
-                  <td>${item.particulars}</td>
-                  <td class="num">${item.quantity}</td>
-                  <td class="num">KES ${item.unit_price.toLocaleString()}</td>
-                  <td class="num">KES ${item.total_amount.toLocaleString()}</td>
-                </tr>
-              `).join('')}
-              <tr class="total-row">
-                <td colspan="4" style="text-align:right">Total Amount</td>
-                <td class="num">KES ${invoice.total.toLocaleString()}</td>
-              </tr>
-            </tbody>
-          </table>
-          ${invoice.notes ? `
-            <div class="notes">
-              <label>Notes</label>
-              <p>${invoice.notes}</p>
-            </div>
-          ` : ''}
-          <div class="footer">
-            <span>Graville Enterprises Limited</span>
-            <span>Generated ${new Date().toLocaleDateString('en-KE', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-          </div>
-        </body>
-        </html>
-      `;
-
-      const blob = new Blob([html], { type: 'text/html' });
-      const url  = URL.createObjectURL(blob);
-
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'position:fixed;width:0;height:0;border:0;left:-9999px;';
-      document.body.appendChild(iframe);
-      iframe.onload = () => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-        iframe.contentWindow!.onafterprint = () => {
-          document.body.removeChild(iframe);
-          URL.revokeObjectURL(url);
-        };
-      };
-      iframe.src = url;
+      await generateInvoicePDF({
+        invoiceNo:   invoice.invoice_number,
+        invoiceType: 'Company',
+        clientName:  invoice.invoiced_by ?? '—',
+        invoiceDate: invoice.invoice_date ?? '—',
+        createdBy:   invoice.invoiced_by  ?? '—',
+        createdAt:   invoice.created_at   ?? '—',
+        total:       invoice.total,
+        notes:       invoice.notes ?? undefined,
+        items: (invoice.items ?? []).map((item) => ({
+          index:       item.index,
+          particulars: item.particulars,
+          quantity:    item.quantity,
+          unitPrice:   item.unit_price,
+          totalAmount: item.total_amount,
+        })),
+      });
     } finally {
       setDownloading(false);
     }
