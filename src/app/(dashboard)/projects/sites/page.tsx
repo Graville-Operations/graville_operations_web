@@ -177,10 +177,10 @@ function QuickStatPill({ label, value, loading }: {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl px-2 py-3"
       style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-      <p className="text-xs mb-1 text-center font-medium" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
+      <p className="text-sm mb-1 text-center font-medium" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
       {loading
         ? <div className="h-6 w-6 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-        : <p className="text-2xl font-bold text-white leading-none">{value}</p>}
+        : <p className="text-3xl font-bold text-white leading-none">{value}</p>}
     </div>
   );
 }
@@ -194,13 +194,13 @@ function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
       className="gv-card flex flex-col gap-3 cursor-pointer active:scale-[0.98] transition-transform"
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="font-bold text-lg text-white leading-tight">{site.name}</p>
-        <span className={`text-sm font-semibold px-3 py-1 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
+        <p className="font-bold text-xl text-white leading-tight">{site.name}</p>
+        <span className={`text-base font-semibold px-3 py-1 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
           {siteMeta.label}
         </span>
       </div>
       {site.deadlineDate && (
-        <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
+        <div className="flex items-center gap-2 text-lg" style={{ color: 'var(--gv-text-muted)' }}>
           <Calendar className="w-4 h-4 flex-shrink-0" />
           <span>Deadline: {site.deadlineDate}</span>
         </div>
@@ -226,18 +226,18 @@ function ProjectCompletionGauge({ taskPct, timePct }: { taskPct: number; timePct
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(taskPct / 100) * innerCirc} ${innerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        <text x={CX} y={CY - 6}  textAnchor="middle" fontSize="22" fontWeight="700" fill="white">{taskPct}%</text>
-        <text x={CX} y={CY + 16} textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.4)">completion</text>
+        <text x={CX} y={CY - 6}  textAnchor="middle" fontSize="26" fontWeight="700" fill="white">{taskPct}%</text>
+        <text x={CX} y={CY + 16} textAnchor="middle" fontSize="13" fill="rgba(255,255,255,0.4)">completion</text>
       </svg>
       <div className="flex flex-col gap-1.5 mt-3 w-full">
-        <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+        <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
           <span className="w-3 h-3 rounded-full flex-shrink-0 bg-blue-500" />Project completion ({taskPct}%)
         </span>
-        <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+        <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
           <span className="w-3 h-3 rounded-full flex-shrink-0 bg-orange-500" />% to deadline day ({timePct}%)
         </span>
       </div>
-      <p className="text-sm font-semibold text-white mt-3 text-center">Project Completion</p>
+      <p className="text-base font-semibold text-white mt-3 text-center">Project Completion</p>
     </div>
   );
 }
@@ -278,18 +278,18 @@ function ExpenditureGauge({
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(expendPct / 100) * innerCirc} ${innerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        <text x={CX} y={CY - 6}  textAnchor="middle" fontSize="22" fontWeight="700" fill="white">{expendPct}%</text>
-        <text x={CX} y={CY + 16} textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.4)">spent</text>
+        <text x={CX} y={CY - 6}  textAnchor="middle" fontSize="26" fontWeight="700" fill="white">{expendPct}%</text>
+        <text x={CX} y={CY + 16} textAnchor="middle" fontSize="13" fill="rgba(255,255,255,0.4)">spent</text>
       </svg>
       <div className="flex flex-col gap-1.5 mt-3 w-full">
-        <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+        <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
           <span className="w-3 h-3 rounded-full flex-shrink-0 bg-blue-500" />Expenditure ({fmtKes(totalExpenditure)})
         </span>
-        <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+        <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
           <span className="w-3 h-3 rounded-full flex-shrink-0 bg-orange-500" />% to deadline day ({timePct}%)
         </span>
       </div>
-      <p className="text-sm font-semibold text-white mt-3 text-center">Expenditure</p>
+      <p className="text-base font-semibold text-white mt-3 text-center">Expenditure</p>
     </div>
   );
 }
@@ -312,7 +312,7 @@ function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownIt
           return (
             <div key={item.date} className="flex flex-col items-center gap-1 flex-1">
               {item.attendanceCount > 0 && (
-                <span className="text-[10px] font-semibold" style={{ color: 'var(--gv-text-subtle)' }}>
+                <span className="text-xs font-semibold" style={{ color: 'var(--gv-text-subtle)' }}>
                   {item.attendanceCount}
                 </span>
               )}
@@ -331,7 +331,7 @@ function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownIt
       <div className="flex justify-between gap-1">
         {breakdown.map((item) => (
           <div key={item.date} className="flex-1 flex justify-center">
-            <span className="text-[11px]" style={{ color: 'var(--gv-text-subtle)' }}>
+            <span className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
               {DAY_ABBR[item.day] ?? item.day[0]}
             </span>
           </div>
@@ -347,9 +347,9 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
   const [open, setOpen] = useState(false);
   const subtasks = task.subtaskBreakdown ?? [];
   const total    = subtasks.length;
-  const avgPct   = total > 0
-    ? Math.round(subtasks.reduce((a, s) => a + s.completionPercentage, 0) / total)
-    : 0;
+  // Task completion % = (sum of subtask completion percentages / 500) * 100
+  const totalPct = subtasks.reduce((a, s) => a + s.completionPercentage, 0);
+  const taskPct  = Math.min(100, Math.round((totalPct / 500) * 100));
 
   return (
     <div className="rounded-2xl overflow-hidden"
@@ -358,21 +358,21 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
         <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
           style={{ background: 'var(--gv-glass-bg-strong)', border: '1px solid var(--gv-glass-border)' }}>
-          <CheckCircle2 className={`w-4 h-4 ${avgPct === 100 ? 'text-teal-300' : 'text-blue-300'}`} />
+          <CheckCircle2 className={`w-4 h-4 ${taskPct === 100 ? 'text-teal-300' : 'text-blue-300'}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white">{task.taskName}</p>
+          <p className="text-base font-semibold text-white">{task.taskName}</p>
           <div className="mt-1.5 flex items-center gap-2">
             <div className="flex-1">
-              <ProgressBar pct={avgPct} color={avgPct === 100 ? '#14b8a6' : 'var(--gv-brand)'} height="h-1.5" />
+              <ProgressBar pct={taskPct} color={taskPct === 100 ? '#14b8a6' : 'var(--gv-brand)'} height="h-1.5" />
             </div>
-            <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
-              {avgPct}%
+            <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
+              {taskPct}%
             </span>
           </div>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--gv-text-subtle)' }}>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-subtle)' }}>
             {total > 0 ? `${total} subtask${total !== 1 ? 's' : ''}` : 'No subtasks'}
-            {total > 0 ? ` · ${avgPct}% avg completion` : ''}
+            {total > 0 ? ` · ${taskPct}% completion` : ''}
           </p>
         </div>
         {open
@@ -385,8 +385,8 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
             <div key={idx} className="flex flex-col gap-1.5 py-2 px-3 rounded-xl"
               style={{ background: 'var(--gv-glass-bg-strong)' }}>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-white truncate">{sub.subtaskName}</span>
-                <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
+                <span className="text-sm text-white truncate">{sub.subtaskName}</span>
+                <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
                   {sub.completionPercentage}%
                 </span>
               </div>
@@ -401,7 +401,7 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
       )}
       {open && subtasks.length === 0 && (
         <div className="px-4 pb-4 pt-2" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
-          <p className="text-xs text-center" style={{ color: 'var(--gv-text-subtle)' }}>No subtasks recorded</p>
+          <p className="text-sm text-center" style={{ color: 'var(--gv-text-subtle)' }}>No subtasks recorded</p>
         </div>
       )}
     </div>
@@ -434,18 +434,18 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
   return (
     <div className="flex items-center gap-3 py-3"
       style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
-      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
+      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white"
         style={{ background: 'rgba(51,144,124,0.2)', border: '1px solid rgba(51,144,124,0.4)' }}>
         {initials}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white capitalize">{name}</p>
-        <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>{record.phone ?? '—'}</p>
+        <p className="text-base font-semibold text-white capitalize">{name}</p>
+        <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>{record.phone ?? '—'}</p>
       </div>
       <div className="text-right flex-shrink-0 space-y-0.5">
-        <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>Check In: {checkInDate}</p>
+        <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>Check In: {checkInDate}</p>
         {record.nationalId && (
-          <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>ID: {record.nationalId}</p>
+          <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>ID: {record.nationalId}</p>
         )}
       </div>
     </div>
@@ -472,19 +472,19 @@ function AllWorkersScreen({
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
         }}>
-        <button onClick={onClose} className="flex items-center gap-2 text-sm font-semibold"
+        <button onClick={onClose} className="flex items-center gap-2 text-base font-semibold"
           style={{ color: 'var(--gv-brand)' }}>
           <ArrowLeft className="w-5 h-5" />Back
         </button>
         <div className="flex-1 text-center">
-          <p className="text-base font-bold text-white">Workers on Site</p>
-          <p className="text-xs" style={{ color: 'var(--gv-text-muted)' }}>{dateLabel}</p>
+          <p className="text-lg font-bold text-white">Workers on Site</p>
+          <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>{dateLabel}</p>
         </div>
         <span className="w-16" />
       </div>
 
       <div className="px-6 pt-5 pb-3 flex-shrink-0">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-base font-semibold"
           style={{ background: 'rgba(51,144,124,0.15)', border: '1px solid rgba(51,144,124,0.35)', color: '#33907C' }}>
           <Users className="w-4 h-4" />
           {records.length} worker{records.length !== 1 ? 's' : ''} checked in
@@ -495,7 +495,7 @@ function AllWorkersScreen({
         {records.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-20 text-center">
             <UserCheck className="w-8 h-8" style={{ color: 'var(--gv-text-subtle)' }} />
-            <p className="text-sm text-white">No check-ins for this period</p>
+            <p className="text-base text-white">No check-ins for this period</p>
           </div>
         ) : (
           <div className="gv-card" style={{ padding: '0 1rem' }}>
@@ -556,11 +556,11 @@ function DateRangePicker({ from, to, maxDate, onChange }: DateRangePickerProps) 
   return (
     <div className="relative" ref={ref}>
       <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-white">
+        <div className="flex items-center gap-2 text-base font-semibold text-white">
           <span>{label}</span>
         </div>
         <button onClick={handleOpen}
-          className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-xl"
+          className="flex items-center gap-1.5 text-base font-semibold px-3 py-1.5 rounded-xl"
           style={{ color: 'var(--gv-brand)', background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
           <CalendarRange className="w-4 h-4" />Pick Range
         </button>
@@ -583,7 +583,7 @@ function DateRangePicker({ from, to, maxDate, onChange }: DateRangePickerProps) 
               return (
                 <button key={p.label}
                   onClick={() => { setDraftFrom(p.f); setDraftTo(p.t); }}
-                  className="text-xs px-2 py-1.5 rounded-xl text-left"
+                  className="text-sm px-2 py-1.5 rounded-xl text-left"
                   style={{
                     background: active ? 'var(--gv-brand)' : 'var(--gv-glass-bg-strong)',
                     border: `1px solid ${active ? 'var(--gv-brand)' : 'var(--gv-glass-border)'}`,
@@ -596,24 +596,24 @@ function DateRangePicker({ from, to, maxDate, onChange }: DateRangePickerProps) 
           </div>
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>From</label>
+              <label className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>From</label>
               <input type="date" value={draftFrom} max={maxDate}
                 onChange={(e) => setDraftFrom(e.target.value)}
-                className="gv-input text-sm py-2 w-full cursor-pointer" style={{ colorScheme: 'dark' }} />
+                className="gv-input text-base py-2 w-full cursor-pointer" style={{ colorScheme: 'dark' }} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>To</label>
+              <label className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>To</label>
               <input type="date" value={draftTo} min={draftFrom} max={maxDate}
                 onChange={(e) => setDraftTo(e.target.value)}
-                className="gv-input text-sm py-2 w-full cursor-pointer" style={{ colorScheme: 'dark' }} />
+                className="gv-input text-base py-2 w-full cursor-pointer" style={{ colorScheme: 'dark' }} />
             </div>
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={handleCancel} className="flex-1 text-sm py-2 rounded-xl"
+            <button onClick={handleCancel} className="flex-1 text-base py-2 rounded-xl"
               style={{ background: 'var(--gv-glass-bg-strong)', border: '1px solid var(--gv-glass-border)', color: 'var(--gv-text-muted)' }}>
               Cancel
             </button>
-            <button onClick={handleApply} className="flex-1 text-sm py-2 rounded-xl font-semibold text-white"
+            <button onClick={handleApply} className="flex-1 text-base py-2 rounded-xl font-semibold text-white"
               style={{ background: 'var(--gv-brand)' }}>
               Apply
             </button>
@@ -627,6 +627,8 @@ function DateRangePicker({ from, to, maxDate, onChange }: DateRangePickerProps) 
 // ─── Download helper ──────────────────────────────────────────────────────────
 
 function downloadAttendanceCSV(records: AttendanceRecord[], dateLabel: string, siteName: string) {
+  if (records.length === 0) return;
+
   const headers = ['Name', 'Phone', 'National ID', 'Check In'];
   const rows = records.map((r) => {
     const name      = r.workerName ?? '';
@@ -645,7 +647,10 @@ function downloadAttendanceCSV(records: AttendanceRecord[], dateLabel: string, s
   const a    = document.createElement('a');
   a.href     = url;
   a.download = `attendance_${siteName.replace(/\s+/g, '_')}_${dateLabel}.csv`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
@@ -663,12 +668,10 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   // ── Analytics from /api/v1/sites/analytics/{site_id} ──
   const [analytics,       setAnalytics      ] = useState<SiteAnalytics | null>(null);
   const [loadingAnalytics,setLoadingAnalytics] = useState(true);
-  const [analyticsError,  setAnalyticsError ] = useState<string | null>(null);
 
   // ── Static site detail (header only) ──
   const [detail,       setDetail      ] = useState<SiteDetail | null>(null);
   const [loadingDetail,setLoadingDetail] = useState(true);
-  const [detailError,  setDetailError ] = useState<string | null>(null);
 
   // ── Workers on Site (attendance records, range-based) ──
   const [rangeRecords, setRangeRecords] = useState<AttendanceRecord[]>([]);
@@ -685,19 +688,17 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
 
   const loadAnalytics = useCallback(() => {
     setLoadingAnalytics(true);
-    setAnalyticsError(null);
     api.get(`/sites/analytics/${site.id}`)
       .then(({ data }) => setAnalytics(unwrapAnalytics(data)))
-      .catch(() => setAnalyticsError('Failed to load site analytics.'))
+      .catch(() => {})
       .finally(() => setLoadingAnalytics(false));
   }, [site.id]);
 
   const loadDetail = useCallback(() => {
     setLoadingDetail(true);
-    setDetailError(null);
     api.get(`/sites/${site.id}`)
       .then(({ data }) => setDetail(unwrapObject<SiteDetail>(data)))
-      .catch(() => setDetailError('Failed to load site details.'))
+      .catch(() => {})
       .finally(() => setLoadingDetail(false));
   }, [site.id]);
 
@@ -777,32 +778,16 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
             WebkitBackdropFilter: 'blur(24px)',
             boxShadow: '0 1px 0 rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.5)',
           }}>
-          <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold"
+          <button onClick={onBack} className="flex items-center gap-2 text-base font-semibold"
             style={{ color: 'var(--gv-brand)' }}>
             <ChevronLeft className="w-5 h-5" />Back to Sites
           </button>
-          <span className="text-base font-bold text-white flex-1 text-center">Site Details</span>
+          <span className="text-lg font-bold text-white flex-1 text-center">Site Details</span>
           <span className="w-28" />
         </div>
 
         <div className="mx-auto pt-20 pb-20" style={{ width: '80%' }}>
           <div className="flex flex-col gap-8">
-
-            {/* ── Error banners ── */}
-            {detailError && (
-              <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />{detailError}
-                <button onClick={loadDetail} className="ml-auto underline text-xs">Retry</button>
-              </div>
-            )}
-            {analyticsError && (
-              <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />{analyticsError}
-                <button onClick={loadAnalytics} className="ml-auto underline text-xs">Retry</button>
-              </div>
-            )}
 
             {/* ══════════════════════════════════════════════
                 SECTION 1 – Site Information (from /sites/{id})
@@ -813,8 +798,8 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
               <div className="flex items-start justify-between gap-4">
                 {loadingDetail
                   ? <div className="h-9 w-64 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                  : <h1 className="text-3xl font-bold text-white leading-tight">{detail?.name ?? site.name}</h1>}
-                <span className={`text-sm font-semibold px-4 py-1.5 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
+                  : <h1 className="text-4xl font-bold text-white leading-tight">{detail?.name ?? site.name}</h1>}
+                <span className={`text-base font-semibold px-4 py-1.5 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
                   {siteMeta.label}
                 </span>
               </div>
@@ -828,17 +813,17 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
               ) : detail && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {detail.location && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <MapPin className="w-4 h-4 flex-shrink-0" /><span>{detail.location}</span>
                     </div>
                   )}
                   {detail.description && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <FileText className="w-4 h-4 flex-shrink-0" /><span>{detail.description}</span>
                     </div>
                   )}
                   {(detail.createdAt || detail.completionDate) && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <Calendar className="w-4 h-4 flex-shrink-0" />
                       <span>
                         {detail.createdAt ? `Started ${detail.createdAt}` : ''}
@@ -847,12 +832,12 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                     </div>
                   )}
                   {detail.tendererName && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <Briefcase className="w-4 h-4 flex-shrink-0" /><span>Tenderer: {detail.tendererName}</span>
                     </div>
                   )}
                   {detail.inquiringEntity && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <Building2 className="w-4 h-4 flex-shrink-0" /><span>Procuring entity: {detail.inquiringEntity}</span>
                     </div>
                   )}
@@ -862,7 +847,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 <p className="gv-label">Estimated Value</p>
                 {loadingDetail && !analytics
                   ? <div className="h-8 w-40 rounded animate-pulse mt-1" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                  : <p className="text-3xl font-bold text-white">{fmtKes(estimatedValue)}</p>}
+                  : <p className="text-4xl font-bold text-white">{fmtKes(estimatedValue)}</p>}
               </div>
             </div>
 
@@ -870,35 +855,35 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 SECTION 2 – Project Overview (from analytics)
                 ══════════════════════════════════════════════ */}
             <section>
-              <p className="text-xl font-semibold text-white mb-4">Project Overview</p>
+              <p className="text-2xl font-semibold text-white mb-4">Project Overview</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="gv-card flex flex-col gap-1">
                   <p className="gv-label">Total Workers</p>
                   {loadingAnalytics
                     ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{totalWorkers}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Overall headcount</p>
+                    : <p className="text-5xl font-bold text-white">{totalWorkers}</p>}
+                  <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Overall headcount</p>
                 </div>
                 <div className="gv-card flex flex-col gap-1">
                   <p className="gv-label">Completion Rate</p>
                   {loadingAnalytics
                     ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{projectCompletion}%</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Based on subtasks from DB</p>
+                    : <p className="text-5xl font-bold text-white">{projectCompletion}%</p>}
+                  <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Based on subtasks from DB</p>
                 </div>
                 <div className="gv-card flex flex-col gap-1">
                   <p className="gv-label">Tasks Completed</p>
                   {loadingAnalytics
                     ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{completedTasks}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{completedTasks} of {taskBreakdown.length} tasks</p>
+                    : <p className="text-5xl font-bold text-white">{completedTasks}</p>}
+                  <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{completedTasks} of {taskBreakdown.length} tasks</p>
                 </div>
                 <div className="gv-card flex flex-col gap-1">
                   <p className="gv-label">Estimated Value</p>
                   {loadingAnalytics && !detail
                     ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-xl font-bold text-white leading-tight">{fmtKes(estimatedValue)}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Total budget</p>
+                    : <p className="text-2xl font-bold text-white leading-tight">{fmtKes(estimatedValue)}</p>}
+                  <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Total budget</p>
                 </div>
               </div>
             </section>
@@ -907,7 +892,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 SECTION 3 – Financials (from analytics)
                 ══════════════════════════════════════════════ */}
             <section>
-              <p className="text-xl font-semibold text-white mb-4">Financials</p>
+              <p className="text-2xl font-semibold text-white mb-4">Financials</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
                   { icon: DollarSign, label: 'Estimated Value',    value: fmtKes(estimatedValue),  sub: 'Total project budget',              loading: loadingAnalytics && !detail },
@@ -922,8 +907,8 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                       <p className="gv-label">{card.label}</p>
                       {card.loading
                         ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                        : <p className="text-xl font-bold text-white">{card.value}</p>}
-                      <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{card.sub}</p>
+                        : <p className="text-2xl font-bold text-white">{card.value}</p>}
+                      <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{card.sub}</p>
                     </div>
                   </div>
                 ))}
@@ -936,12 +921,12 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 Right: Expenditure % + time elapsed
                 ══════════════════════════════════════════════ */}
             <section>
-              <p className="text-xl font-semibold text-white mb-4">Visual Metrics</p>
+              <p className="text-2xl font-semibold text-white mb-4">Visual Metrics</p>
               <div className="gv-card">
                 {loadingAnalytics ? (
                   <div className="flex items-center justify-center py-16 gap-3">
                     <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    <span className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>Loading metrics…</span>
+                    <span className="text-base" style={{ color: 'var(--gv-text-muted)' }}>Loading metrics…</span>
                   </div>
                 ) : (
                   <div className="flex items-start">
@@ -963,46 +948,52 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
 
             {/* ══════════════════════════════════════════════
                 SECTION 5 – Attendance (from analytics)
+                Left: Today / Previous cards stacked
+                Right: Weekly bar chart
                 ══════════════════════════════════════════════ */}
             <section>
-              <p className="text-xl font-semibold text-white mb-4">Attendance</p>
+              <p className="text-2xl font-semibold text-white mb-4">Attendance</p>
 
-              {/* Today / Previous cards */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="gv-card flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--gv-brand)' }}>
-                    <Calendar className="w-3.5 h-3.5" />Today
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Today / Previous cards — left column */}
+                <div className="flex flex-col gap-4">
+                  <div className="gv-card flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: 'var(--gv-brand)' }}>
+                      <Calendar className="w-3.5 h-3.5" />Today
+                    </div>
+                    {loadingAnalytics
+                      ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
+                      : <p className="text-5xl font-bold text-white">{todayAttendance}</p>}
+                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Check-ins today</p>
                   </div>
-                  {loadingAnalytics
-                    ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{todayAttendance}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Check-ins today</p>
-                </div>
-                <div className="gv-card flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--gv-text-muted)' }}>
-                    <RefreshCw className="w-3.5 h-3.5" />Previous
+                  <div className="gv-card flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: 'var(--gv-text-muted)' }}>
+                      <RefreshCw className="w-3.5 h-3.5" />Previous
+                    </div>
+                    {loadingAnalytics
+                      ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
+                      : <p className="text-5xl font-bold text-white">{previousAttendance}</p>}
+                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Yesterday's check-ins</p>
                   </div>
-                  {loadingAnalytics
-                    ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{previousAttendance}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Yesterday's check-ins</p>
                 </div>
-              </div>
 
-              {/* Weekly bar chart */}
-              <div className="gv-card">
-                <p className="text-sm font-semibold text-white mb-4">Daily Attendance</p>
-                {loadingAnalytics ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                  </div>
-                ) : attendanceBreakdown.length > 0 ? (
-                  <WeeklyAttendanceChart breakdown={attendanceBreakdown} />
-                ) : (
-                  <p className="text-xs text-center py-6" style={{ color: 'var(--gv-text-subtle)' }}>
-                    No attendance data available
-                  </p>
-                )}
+                {/* Weekly bar chart — right column */}
+                <div className="gv-card md:col-span-2 flex flex-col">
+                  <p className="text-base font-semibold text-white mb-4">Daily Attendance</p>
+                  {loadingAnalytics ? (
+                    <div className="flex items-center justify-center py-10 flex-1">
+                      <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
+                    </div>
+                  ) : attendanceBreakdown.length > 0 ? (
+                    <div className="mt-auto">
+                      <WeeklyAttendanceChart breakdown={attendanceBreakdown} />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-center py-6 flex-1 flex items-center justify-center" style={{ color: 'var(--gv-text-subtle)' }}>
+                      No attendance data available
+                    </p>
+                  )}
+                </div>
               </div>
             </section>
 
@@ -1014,7 +1005,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
               {/* Task Breakdown (analytics) */}
               <section>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xl font-semibold text-white">Task Breakdown</p>
+                  <p className="text-2xl font-semibold text-white">Task Breakdown</p>
                 </div>
                 {loadingAnalytics ? (
                   <div className="flex items-center justify-center py-16">
@@ -1023,8 +1014,8 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 ) : taskBreakdown.length === 0 ? (
                   <div className="gv-card flex flex-col items-center gap-3 py-16 text-center">
                     <ClipboardList className="w-8 h-8" style={{ color: 'var(--gv-text-subtle)' }} />
-                    <p className="text-sm text-white">No tasks yet</p>
-                    <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>Tasks assigned to this site will appear here</p>
+                    <p className="text-base text-white">No tasks yet</p>
+                    <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>Tasks assigned to this site will appear here</p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -1038,8 +1029,9 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
               {/* Workers on Site (attendance/summary — unchanged) */}
               <section>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xl font-semibold text-white">Workers on Site</p>
+                  <p className="text-2xl font-semibold text-white">Workers on Site</p>
                   <button
+                    type="button"
                     onClick={() => downloadAttendanceCSV(rangeRecords, rangeDateLabel, site.name)}
                     disabled={rangeRecords.length === 0}
                     className="w-8 h-8 rounded-xl flex items-center justify-center transition-opacity"
@@ -1065,22 +1057,22 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 {/* Summary cards */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="gv-card flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--gv-brand)' }}>
+                    <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: 'var(--gv-brand)' }}>
                       <Users className="w-3.5 h-3.5" />Present
                     </div>
                     {loadingRange
                       ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                      : <p className="text-4xl font-bold text-white">{rangeRecords.length}</p>}
-                    <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{rangeDateLabel}</p>
+                      : <p className="text-5xl font-bold text-white">{rangeRecords.length}</p>}
+                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{rangeDateLabel}</p>
                   </div>
                   <div className="gv-card flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: '#f87171' }}>
+                    <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: '#f87171' }}>
                       <TrendingUp className="w-3.5 h-3.5" />Payouts
                     </div>
                     {loadingRange
                       ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                      : <p className="text-2xl font-bold text-white">{fmtKes(rangePayouts)}</p>}
-                    <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}></p>
+                      : <p className="text-3xl font-bold text-white">{fmtKes(rangePayouts)}</p>}
+                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}></p>
                   </div>
                 </div>
 
@@ -1092,8 +1084,8 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 ) : rangeRecords.length === 0 ? (
                   <div className="gv-card flex flex-col items-center gap-3 py-16 text-center">
                     <UserCheck className="w-8 h-8" style={{ color: 'var(--gv-text-subtle)' }} />
-                    <p className="text-sm text-white">No check-ins for {rangeDateLabel}</p>
-                    <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>Try a different date range</p>
+                    <p className="text-base text-white">No check-ins for {rangeDateLabel}</p>
+                    <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>Try a different date range</p>
                   </div>
                 ) : (
                   <>
@@ -1103,7 +1095,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                     {hasMore && (
                       <button
                         onClick={() => setShowAllWorkers(true)}
-                        className="mt-3 w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                        className="mt-3 w-full py-3 rounded-2xl text-base font-semibold flex items-center justify-center gap-2 transition-all"
                         style={{
                           background: 'var(--gv-glass-bg)',
                           border: '1px solid var(--gv-glass-border)',
@@ -1203,8 +1195,8 @@ export default function ConstructionSitesPage() {
   return (
     <div className="gv-page-dashboard flex flex-col gap-0 overflow-y-auto pb-10">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-white">Construction Sites</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+        <h1 className="text-3xl font-bold text-white">Construction Sites</h1>
+        <p className="text-base mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
           Overview of all active and completed projects
         </p>
       </div>
@@ -1241,7 +1233,7 @@ export default function ConstructionSitesPage() {
             return (
               <button key={f.value}
                 onClick={() => setProjectFilter(f.value as ProjectStatus | 'ALL')}
-                className="text-sm font-medium px-4 py-1.5 rounded-full whitespace-nowrap shrink-0 transition-all"
+                className="text-base font-medium px-4 py-1.5 rounded-full whitespace-nowrap shrink-0 transition-all"
                 style={active
                   ? { background: 'white', color: '#0b1120' }
                   : { background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}>
@@ -1253,10 +1245,10 @@ export default function ConstructionSitesPage() {
       </div>
 
       {sitesError && (
-        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-base"
           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" />{sitesError}
-          <button onClick={load} className="ml-auto underline text-xs">Retry</button>
+          <button onClick={load} className="ml-auto underline text-sm">Retry</button>
         </div>
       )}
 
@@ -1272,10 +1264,10 @@ export default function ConstructionSitesPage() {
           <div className="gv-icon-box w-14 h-14 mb-4" style={{ opacity: 0.4 }}>
             <Building2 className="w-7 h-7" style={{ color: 'var(--gv-brand)' }} />
           </div>
-          <p className="text-sm font-medium text-white">
+          <p className="text-base font-medium text-white">
             {sites.length === 0 ? 'No sites yet' : 'No results found'}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>
+          <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>
             {sites.length === 0 ? 'Create your first project to get started' : 'Try adjusting your filters'}
           </p>
         </div>

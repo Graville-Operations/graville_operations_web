@@ -4,9 +4,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import {
   Building2, Users, ClipboardList, ShoppingCart,
-  Shield, UserCheck, AlertCircle, Loader2, RefreshCw,
+  Shield, UserCheck, Loader2, RefreshCw,
   ChevronLeft, ChevronRight as ChevronRightIcon, Calendar,
-  Wrench, Package, TrendingUp, FileText,
 } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
@@ -48,7 +47,12 @@ interface DashboardMetrics {
   };
   orders: {
     totalOrders: number;
-    orderBreakdown: Array<{ site?: string; item?: string; quantity?: number; unit?: string }>;
+    orderBreakdown: Array<{
+      site?: string; site_name?: string;
+      item?: string; item_name?: string; material_name?: string; material?: string;
+      quantity?: number;
+      unit?: string;
+    }>;
   };
 }
 
@@ -120,12 +124,12 @@ function KpiCard({ label, value, sub, icon: Icon, loading }: {
       style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
       <div className="flex items-center gap-1.5">
         <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--gv-text-muted)' }} />
-        <p className="text-xs" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
+        <p className="text-base" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
       </div>
       {loading
         ? <div className="h-8 w-16 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-        : <p className="text-3xl font-bold text-white leading-none">{value}</p>}
-      {sub && <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>{sub}</p>}
+        : <p className="text-4xl font-bold text-white leading-none">{value}</p>}
+      {sub && <p className="text-base" style={{ color: 'var(--gv-text-subtle)' }}>{sub}</p>}
     </div>
   );
 }
@@ -134,7 +138,7 @@ function KpiCard({ label, value, sub, icon: Icon, loading }: {
    Section title
 ───────────────────────────────────────────── */
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-lg font-bold text-white mb-3">{children}</p>;
+  return <p className="text-2xl font-bold text-white mb-3">{children}</p>;
 }
 
 /* ─────────────────────────────────────────────
@@ -148,8 +152,8 @@ function StatusCard({ label, value, color, loading }: {
       style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', minHeight: 80 }}>
       {loading
         ? <div className="h-7 w-8 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-        : <p className="text-2xl font-bold" style={{ color }}>{value}</p>}
-      <p className="text-xs text-center" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
+        : <p className="text-4xl font-bold" style={{ color }}>{value}</p>}
+      <p className="text-base text-center" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
     </div>
   );
 }
@@ -250,20 +254,20 @@ function CalendarPicker({
           style={{ background: 'rgba(255,255,255,0.07)' }}>
           <ChevronLeft className="w-4 h-4 text-white" />
         </button>
-        <span className="text-sm font-semibold text-white">{MONTH_NAMES[viewMonth]} {viewYear}</span>
+        <span className="text-lg font-semibold text-white">{MONTH_NAMES[viewMonth]} {viewYear}</span>
         <button onClick={nextMonth} className="w-7 h-7 flex items-center justify-center rounded-lg"
           style={{ background: 'rgba(255,255,255,0.07)' }}>
           <ChevronRightIcon className="w-4 h-4 text-white" />
         </button>
       </div>
 
-      <p className="text-[11px] mb-2 text-center" style={{ color: 'var(--gv-text-muted)' }}>
+      <p className="text-base mb-2 text-center" style={{ color: 'var(--gv-text-muted)' }}>
         {selecting === 'from' ? 'Select start date' : 'Select end date'}
       </p>
 
       <div className="grid grid-cols-7 mb-1">
         {DAY_NAMES.map(d => (
-          <div key={d} className="text-center text-[10px] font-medium py-1"
+          <div key={d} className="text-center text-base font-medium py-1"
             style={{ color: 'rgba(255,255,255,0.3)' }}>{d}</div>
         ))}
       </div>
@@ -293,7 +297,7 @@ function CalendarPicker({
                     background: selected ? '#3b82f6' : 'transparent',
                     border: isTodayDate && !selected ? '1px solid rgba(59,130,246,0.5)' : 'none',
                   }}>
-                  <span className="text-xs font-medium"
+                  <span className="text-base font-medium"
                     style={{ color: selected ? '#fff' : isTodayDate ? '#7cb3f8' : 'rgba(255,255,255,0.8)' }}>
                     {date.getDate()}
                   </span>
@@ -306,11 +310,11 @@ function CalendarPicker({
 
       <div className="flex items-center justify-between mt-3 pt-3"
         style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="text-[11px]" style={{ color: 'var(--gv-text-muted)' }}>
+        <div className="text-base" style={{ color: 'var(--gv-text-muted)' }}>
           {dateFrom && <span>From: <span className="text-white">{dateFrom}</span></span>}
           {dateTo   && <span className="ml-2">To: <span className="text-white">{dateTo}</span></span>}
         </div>
-        <button onClick={onClose} className="text-[11px] px-3 py-1 rounded-lg"
+        <button onClick={onClose} className="text-base px-3 py-1 rounded-lg"
           style={{ background: '#3b82f6', color: '#fff' }}>Done</button>
       </div>
     </div>
@@ -399,7 +403,7 @@ function AttendanceBarChart({
             <g key={tick}>
               <line x1={PL} x2={W - PR} y1={y} y2={y} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
               <text x={2} y={y} textAnchor="start" dominantBaseline="central"
-                fontSize="10" fontWeight="500" fill="rgba(255,255,255,0.45)" fontFamily="inherit">{tick}</text>
+                fontSize="12" fontWeight="500" fill="rgba(255,255,255,0.45)" fontFamily="inherit">{tick}</text>
             </g>
           );
         })}
@@ -420,7 +424,7 @@ function AttendanceBarChart({
               {open && <rect x={x - 4} y={PT} width={barW + 8} height={cH} fill="rgba(255,255,255,0.06)" rx="3" />}
               {b.present > 0 && <rect x={x} y={pY} width={barW} height={pH} rx="2" fill="#3b82f6" opacity={open ? 1 : 0.85} />}
               <text x={cx} y={H - 6} textAnchor="middle"
-                fontSize={isMonth ? 10 : 13}
+                fontSize={isMonth ? 12 : 15}
                 fontWeight={open ? '700' : '400'}
                 fill={open ? '#fff' : 'rgba(255,255,255,0.55)'}
                 fontFamily="inherit">{b.label}</text>
@@ -438,7 +442,7 @@ function AttendanceBarChart({
 export default function ProjectsDashboardPage() {
   const [metrics, setMetrics]         = useState<DashboardMetrics | null>(null);
   const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string | null>(null);
+  const [error, setError]             = useState<string | null>(null); // kept for future use
 
   const [attendanceTab, setAttendanceTab] = useState<'Today' | 'Week' | 'Month' | 'Custom'>('Today');
   const [dateFrom, setDateFrom]           = useState('');
@@ -463,7 +467,7 @@ export default function ProjectsDashboardPage() {
     setLoading(true); setError(null);
     fetchDashboardMetrics()
       .then(setMetrics)
-      .catch(() => setError('Failed to load dashboard data.'))
+      .catch((err) => console.warn('[Dashboard] fetch error:', err))
       .finally(() => setLoading(false));
   }, []);
 
@@ -588,7 +592,7 @@ export default function ProjectsDashboardPage() {
 
       {/* ── Header ── */}
       <div className="px-4 pt-6 pb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Projects Dashboard</h1>
+        <h1 className="text-4xl font-bold text-white">Projects Dashboard</h1>
         <button onClick={load} className="w-8 h-8 rounded-xl flex items-center justify-center"
           style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
           {loading
@@ -597,13 +601,6 @@ export default function ProjectsDashboardPage() {
         </button>
       </div>
 
-      {error && (
-        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-          style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', color: '#fde68a' }}>
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
-          <button onClick={load} className="ml-auto underline text-xs">Retry</button>
-        </div>
-      )}
 
       {/* ── Overview KPIs ── */}
       <div className="px-4 pb-5">
@@ -623,198 +620,208 @@ export default function ProjectsDashboardPage() {
         </div>
       </div>
 
-      {/* ── Expenditure ── */}
-      <div className="px-4 pb-5">
-        <SectionTitle>Expenditure</SectionTitle>
-        <div className="rounded-2xl overflow-hidden"
-          style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-          {[
-            { label: 'Supplier',      value: m?.expenditure?.supplier      ?? 0 },
-            { label: 'Subcontractor', value: m?.expenditure?.subcontractor ?? 0 },
-            { label: 'Total',         value: m?.expenditure?.total         ?? 0, bold: true },
-          ].map((row, i, arr) => (
-            <div key={row.label} className="flex items-center justify-between px-4 py-3"
-              style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}>
-              <p className="text-sm" style={{ color: row.bold ? 'rgba(255,255,255,0.7)' : 'var(--gv-text-muted)' }}>
-                {row.label}
-              </p>
-              {loading
-                ? <div className="h-4 w-16 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                : <p className={`text-sm ${row.bold ? 'font-bold text-white' : 'font-medium'}`}
-                    style={{ color: row.bold ? '#fff' : 'rgba(255,255,255,0.85)' }}>
-                    {fmtKsh(row.value)}
-                  </p>}
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ── Row 1: Attendance (left) | Project Status (right) ── */}
+      <div className="px-4 pb-5 grid grid-cols-2 gap-3 items-start">
 
-      {/* ── Attendance ── */}
-      <div className="px-4 pb-5">
-        <SectionTitle>Attendance</SectionTitle>
-        <div ref={attendanceCardRef} className="flex flex-col gap-3">
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {(['Today', 'Week', 'Month', 'Custom'] as const).map((t) => {
-              const active = attendanceTab === t;
-              return (
-                <button key={t}
-                  onClick={() => { setAttendanceTab(t); if (t === 'Custom') setShowCalendar(true); }}
-                  className="text-sm font-medium px-3 py-1.5 rounded-full whitespace-nowrap flex-shrink-0 transition-all"
-                  style={active
-                    ? { background: 'var(--gv-brand)', color: '#fff' }
-                    : { background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}>
-                  {t === 'Custom' && (dateFrom || dateTo) ? customLabel : t}
+        {/* Attendance */}
+        <div className="flex flex-col gap-3 min-w-0">
+          <SectionTitle>Attendance</SectionTitle>
+          <div ref={attendanceCardRef} className="flex flex-col gap-3">
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              {(['Today', 'Week', 'Month', 'Custom'] as const).map((t) => {
+                const active = attendanceTab === t;
+                return (
+                  <button key={t}
+                    onClick={() => { setAttendanceTab(t); if (t === 'Custom') setShowCalendar(true); }}
+                    className="text-base font-medium px-2.5 py-1.5 rounded-full whitespace-nowrap flex-shrink-0 transition-all"
+                    style={active
+                      ? { background: 'var(--gv-brand)', color: '#fff' }
+                      : { background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}>
+                    {t === 'Custom' && (dateFrom || dateTo) ? customLabel : t}
+                  </button>
+                );
+              })}
+            </div>
+
+            {attendanceTab === 'Custom' && (
+              <div className="relative" ref={calendarRef}>
+                <button
+                  onClick={() => setShowCalendar(v => !v)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-base"
+                  style={{
+                    background: 'var(--gv-glass-bg)',
+                    border: '1px solid var(--gv-glass-border)',
+                    color: dateFrom ? '#fff' : 'var(--gv-text-muted)',
+                  }}>
+                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--gv-brand)' }} />
+                  <span className="truncate">
+                    {dateFrom && dateTo ? `${dateFrom} → ${dateTo}` : dateFrom ? `From ${dateFrom}` : 'Select range'}
+                  </span>
+                  <ChevronRightIcon className="w-3.5 h-3.5 ml-auto opacity-40 flex-shrink-0" />
                 </button>
-              );
-            })}
-          </div>
-
-          {attendanceTab === 'Custom' && (
-            <div className="relative" ref={calendarRef}>
-              <button
-                onClick={() => setShowCalendar(v => !v)}
-                className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
-                style={{
-                  background: 'var(--gv-glass-bg)',
-                  border: '1px solid var(--gv-glass-border)',
-                  color: dateFrom ? '#fff' : 'var(--gv-text-muted)',
-                }}>
-                <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--gv-brand)' }} />
-                {dateFrom && dateTo
-                  ? `${dateFrom}  →  ${dateTo}`
-                  : dateFrom ? `From ${dateFrom} — pick end date`
-                  : 'Select date range'}
-                <ChevronRightIcon className="w-4 h-4 ml-auto opacity-40" />
-              </button>
-              {showCalendar && (
-                <CalendarPicker
-                  dateFrom={dateFrom} dateTo={dateTo}
-                  onSelect={(from, to) => { setDateFrom(from); setDateTo(to); }}
-                  onClose={() => setShowCalendar(false)}
-                  constrainWidth
-                  anchorRef={attendanceCardRef as React.RefObject<HTMLElement>}
-                />
-              )}
-            </div>
-          )}
-
-          {barsError && <p className="text-xs px-1" style={{ color: '#fca5a5' }}>{barsError}</p>}
-
-          <div ref={chartCardRef} className="rounded-2xl overflow-hidden flex flex-col"
-            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', position: 'relative' }}>
-            <div className="flex items-center justify-end px-3 pt-2">
-              <button onClick={loadBars} className="opacity-50 hover:opacity-100 transition-opacity">
-                <RefreshCw className="w-3 h-3 text-white" />
-              </button>
-            </div>
-            <div className="w-full">
-              <AttendanceBarChart bars={bars} loading={loadingBars} tab={attendanceTab}
-                activeBarIdx={activeBarIdx} onBarClick={handleBarClick} />
-            </div>
-            <div className="flex justify-end px-3 pb-3">
-              <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
-                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 inline-block" style={{ background: '#3b82f6' }} />
-                Present (all sites)
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Project Status ── */}
-      <div className="px-4 pb-5">
-        <SectionTitle>Project Status</SectionTitle>
-        <div className="grid grid-cols-3 gap-3">
-          {PROJECT_STATUS_CONFIG.map(({ key, label, color }) => (
-            <StatusCard key={key} label={label} color={color}
-              value={m?.projectStatus?.[key] ?? 0} loading={loading} />
-          ))}
-        </div>
-      </div>
-
-      {/* ── Permits ── */}
-      <div className="px-4 pb-5">
-        <SectionTitle>Permits</SectionTitle>
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: 'Pending',  value: m?.permits?.pending  ?? 0, color: '#eab308' },
-            { label: 'Approved', value: m?.permits?.approved ?? 0, color: '#22c55e' },
-            { label: 'Rejected', value: m?.permits?.rejected ?? 0, color: '#f87171' },
-          ].map(({ label, value, color }) => (
-            <StatusCard key={label} label={label} value={value} color={color} loading={loading} />
-          ))}
-        </div>
-      </div>
-
-      {/* ── Store & Materials ── */}
-      <div className="px-4 pb-5">
-        <SectionTitle>Store & Materials</SectionTitle>
-        <div className="rounded-2xl overflow-hidden"
-          style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-          {[
-            { label: 'Total Materials',     value: m?.materials?.totalMaterials     ?? 0 },
-            { label: 'Total Tools',         value: m?.materials?.totalTools         ?? 0 },
-            { label: 'Tools On Hire',       value: m?.materials?.toolsOnHire        ?? 0 },
-            { label: 'Tools In Repair',     value: m?.materials?.toolsInRepair      ?? 0 },
-            { label: 'Sites With Low Stocks', value: m?.materials?.sitesWithLowStocks ?? 0 },
-          ].map((row, i, arr) => (
-            <div key={row.label} className="flex items-center justify-between px-4 py-3"
-              style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}>
-              <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>{row.label}</p>
-              {loading
-                ? <div className="h-4 w-6 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                : <p className="text-sm font-semibold text-white">{row.value}</p>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Orders ── */}
-      <div className="px-4 pb-5">
-        <div className="flex items-center gap-2 mb-3">
-          <SectionTitle>Orders</SectionTitle>
-          {!loading && m && (
-            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: 'var(--gv-brand)', marginTop: -2 }}>
-              {m?.orders?.totalOrders ?? 0}
-            </span>
-          )}
-        </div>
-        {loading ? (
-          <div className="rounded-2xl p-4" style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-            <div className="h-4 w-32 rounded animate-pulse mb-2" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-            <div className="h-3 w-24 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-          </div>
-        ) : m?.orders?.orderBreakdown && m?.orders?.orderBreakdown.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            {m?.orders?.orderBreakdown.map((order, i) => (
-              <div key={i} className="rounded-2xl p-4"
-                style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-                {order.site && (
-                  <p className="text-sm font-semibold text-white mb-1">{order.site}</p>
+                {showCalendar && (
+                  <CalendarPicker
+                    dateFrom={dateFrom} dateTo={dateTo}
+                    onSelect={(from, to) => { setDateFrom(from); setDateTo(to); }}
+                    onClose={() => setShowCalendar(false)}
+                    constrainWidth
+                    anchorRef={attendanceCardRef as React.RefObject<HTMLElement>}
+                  />
                 )}
-                {order.item && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>{order.item}</p>
-                    {order.quantity != null && (
-                      <p className="text-sm font-medium text-white">
-                        {order.quantity} {order.unit ?? ''}
-                      </p>
-                    )}
-                  </div>
-                )}
+              </div>
+            )}
+
+            {barsError && <p className="text-base px-1" style={{ color: '#fca5a5' }}>{barsError}</p>}
+
+            <div ref={chartCardRef} className="rounded-2xl overflow-hidden flex flex-col"
+              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', position: 'relative' }}>
+              <div className="flex items-center justify-end px-3 pt-2">
+                <button onClick={loadBars} className="opacity-50 hover:opacity-100 transition-opacity">
+                  <RefreshCw className="w-3 h-3 text-white" />
+                </button>
+              </div>
+              <div className="w-full">
+                <AttendanceBarChart bars={bars} loading={loadingBars} tab={attendanceTab}
+                  activeBarIdx={activeBarIdx} onBarClick={handleBarClick} />
+              </div>
+              <div className="flex justify-end px-3 pb-3">
+                <span className="flex items-center gap-1 text-base" style={{ color: 'var(--gv-text-subtle)' }}>
+                  <span className="w-2 h-2 rounded-sm flex-shrink-0 inline-block" style={{ background: '#3b82f6' }} />
+                  Present
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Project Status */}
+        <div className="flex flex-col gap-3 min-w-0">
+          <SectionTitle>Project Status</SectionTitle>
+          <div className="grid grid-cols-2 gap-2">
+            {PROJECT_STATUS_CONFIG.map(({ key, label, color }) => (
+              <StatusCard key={key} label={label} color={color}
+                value={m?.projectStatus?.[key] ?? 0} loading={loading} />
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Row 2: Expenditure (left) | Permits (right) ── */}
+      <div className="px-4 pb-5 grid grid-cols-2 gap-3 items-start">
+
+        {/* Expenditure */}
+        <div className="flex flex-col gap-3 min-w-0">
+          <SectionTitle>Expenditure</SectionTitle>
+          <div className="flex flex-col gap-2">
+            {[
+              { label: 'Supplier',      value: m?.expenditure?.supplier      ?? 0, color: '#a78bfa' },
+              { label: 'Subcontractor', value: m?.expenditure?.subcontractor ?? 0, color: '#3b82f6' },
+              { label: 'Total',         value: m?.expenditure?.total         ?? 0, color: '#22c55e' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="flex items-center justify-between rounded-2xl px-4 py-5"
+                style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', minHeight: 80 }}>
+                <p className="text-lg" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
+                {loading
+                  ? <div className="h-4 w-16 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
+                  : <p className="text-xl font-bold" style={{ color }}>{fmtKsh(value)}</p>}
               </div>
             ))}
           </div>
-        ) : (
-          <div className="rounded-2xl p-5 flex items-center justify-center"
-            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-            <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>No orders yet</p>
+        </div>
+
+        {/* Permits */}
+        <div className="flex flex-col gap-3 min-w-0">
+          <SectionTitle>Permits</SectionTitle>
+          <div className="flex flex-col gap-2">
+            {[
+              { label: 'Pending',  value: m?.permits?.pending  ?? 0, color: '#eab308' },
+              { label: 'Approved', value: m?.permits?.approved ?? 0, color: '#22c55e' },
+              { label: 'Rejected', value: m?.permits?.rejected ?? 0, color: '#f87171' },
+            ].map(({ label, value, color }) => (
+              <StatusCard key={label} label={label} value={value} color={color} loading={loading} />
+            ))}
           </div>
-        )}
+        </div>
+
       </div>
 
-      {/* ── Week bar tooltip overlay ── */}
+      {/* ── Row 3: Store & Materials (left) | Orders (right) ── */}
+      <div className="px-4 pb-5 grid grid-cols-2 gap-3 items-start">
+
+        {/* Store & Materials */}
+        <div className="flex flex-col gap-3 min-w-0">
+          <SectionTitle>Store & Materials</SectionTitle>
+          <div className="rounded-2xl overflow-hidden"
+            style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+            {[
+              { label: 'Materials',  value: m?.materials?.totalMaterials     ?? 0 },
+              { label: 'Tools',      value: m?.materials?.totalTools         ?? 0 },
+              { label: 'On Hire',    value: m?.materials?.toolsOnHire        ?? 0 },
+              { label: 'In Repair',  value: m?.materials?.toolsInRepair      ?? 0 },
+              { label: 'Low Stocks', value: m?.materials?.sitesWithLowStocks ?? 0 },
+            ].map((row, i, arr) => (
+              <div key={row.label} className="flex items-center justify-between px-3 py-3"
+                style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}>
+                <p className="text-base" style={{ color: 'var(--gv-text-muted)' }}>{row.label}</p>
+                {loading
+                  ? <div className="h-3 w-5 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
+                  : <p className="text-base font-semibold text-white">{row.value}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Orders */}
+        <div className="flex flex-col gap-3 min-w-0">
+          <div className="flex items-center gap-2">
+            <SectionTitle>Orders</SectionTitle>
+            {!loading && m && (
+              <span className="w-5 h-5 rounded-full flex items-center justify-center text-base font-bold text-white flex-shrink-0"
+                style={{ background: 'var(--gv-brand)', marginTop: -2 }}>
+                {m?.orders?.totalOrders ?? 0}
+              </span>
+            )}
+          </div>
+          {loading ? (
+            <div className="rounded-2xl p-4" style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+              <div className="h-4 w-24 rounded animate-pulse mb-2" style={{ background: 'var(--gv-glass-bg-strong)' }} />
+              <div className="h-3 w-16 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
+            </div>
+          ) : m?.orders?.orderBreakdown && m?.orders?.orderBreakdown.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {m?.orders?.orderBreakdown.map((order, i) => {
+                const siteName = order.site ?? order.site_name ?? '';
+                const itemName = order.item ?? order.item_name ?? order.material_name ?? order.material ?? '';
+                return (
+                  <div key={i} className="rounded-2xl p-3"
+                    style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+                    {siteName && (
+                      <p className="text-base font-semibold text-white mb-1 truncate">{siteName}</p>
+                    )}
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-base truncate" style={{ color: 'var(--gv-text-muted)' }}>{itemName || '—'}</p>
+                      {order.quantity != null && (
+                        <p className="text-base font-medium text-white flex-shrink-0">
+                          {order.quantity} {order.unit ?? ''}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-2xl p-5 flex items-center justify-center"
+              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+              <p className="text-base" style={{ color: 'var(--gv-text-muted)' }}>No orders yet</p>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+            {/* ── Week bar tooltip overlay ── */}
       {attendanceTab === 'Week' && activeBar && overlayPos && (
         <div className="fixed z-50"
           style={{ top: overlayPos.top - 8, left: overlayPos.left, transform: 'translate(-50%, -100%)', pointerEvents: 'auto' }}
@@ -822,16 +829,16 @@ export default function ProjectsDashboardPage() {
           <div className="rounded-2xl p-4 shadow-2xl"
             style={{ minWidth: 200, background: 'rgba(14,16,26,0.98)', border: '1px solid rgba(255,255,255,0.18)', backdropFilter: 'blur(24px)' }}>
             <button onClick={() => { setActiveBarIdx(null); setOverlayPos(null); }}
-              className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-full text-xs"
+              className="absolute top-2.5 right-2.5 w-6 h-6 flex items-center justify-center rounded-full text-base"
               style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>✕</button>
-            <p className="text-sm font-bold text-white leading-tight pr-6">{activeBar.fullLabel}</p>
-            <p className="text-xs mt-0.5 mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>{activeBar.dateDisplay}</p>
+            <p className="text-lg font-bold text-white leading-tight pr-6">{activeBar.fullLabel}</p>
+            <p className="text-base mt-0.5 mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>{activeBar.dateDisplay}</p>
             <div className="flex items-center justify-between gap-6">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-sm inline-block flex-shrink-0" style={{ background: '#3b82f6' }} />
-                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>Present</span>
+                <span className="text-lg" style={{ color: 'rgba(255,255,255,0.65)' }}>Present</span>
               </div>
-              <span className="text-xl font-bold text-white">{activeBar.present}</span>
+              <span className="text-3xl font-bold text-white">{activeBar.present}</span>
             </div>
           </div>
         </div>
