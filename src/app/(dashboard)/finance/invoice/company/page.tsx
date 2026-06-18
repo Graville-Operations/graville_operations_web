@@ -13,6 +13,31 @@ import { Search, Plus, Receipt, Calendar, X, ChevronDown } from 'lucide-react';
 
 type FilterMode = 'single' | 'range';
 
+function ShimmerRow() {
+  return (
+    <tr>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className="h-3 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)', width: i === 0 ? '80px' : i === 3 ? '60px' : '100px' }} />
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+function ShimmerCard() {
+  return (
+    <div className="gv-card space-y-3" style={{ padding: '14px 16px' }}>
+      <div className="flex justify-between">
+        <div className="h-3.5 w-24 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} />
+        <div className="h-3.5 w-16 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} />
+      </div>
+      <div className="h-3 w-32 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} />
+      <div className="h-3 w-20 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} />
+    </div>
+  );
+}
+
 export default function CompanyInvoicesPage() {
   const router = useRouter();
   const today  = new Date().toISOString().split('T')[0];
@@ -91,11 +116,15 @@ export default function CompanyInvoicesPage() {
     setShowDatePicker(false);
   };
 
-  const Spinner = () => (
-    <div className="flex items-center justify-center h-48">
-      <div className="w-6 h-6 border-2 border-[#33907c] border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+  const openDetail = (inv: CompanyInvoice) => {
+    sessionStorage.setItem(`cinv_${inv.id}`, JSON.stringify({
+      invoice_number: inv.invoice_number,
+      invoiced_by:    inv.invoiced_by,
+      invoice_date:   inv.invoice_date,
+      total:          inv.total,
+    }));
+    router.push(`/finance/invoice/company/${inv.id}`);
+  };
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center h-48">
@@ -180,19 +209,25 @@ export default function CompanyInvoicesPage() {
                     <div>
                       <p className="gv-eyebrow text-[10px] mb-1.5">Date</p>
                       <input type="date" value={singleDate} max={today}
-                        onChange={(e) => setSingleDate(e.target.value)} className="gv-input w-full text-sm" />
+                        onChange={(e) => setSingleDate(e.target.value)}
+                        className="gv-input w-full text-sm"
+                        style={{ colorScheme: 'dark' }} />
                     </div>
                   ) : (
                     <>
                       <div>
                         <p className="gv-eyebrow text-[10px] mb-1.5">From</p>
                         <input type="date" value={fromDate} max={today}
-                          onChange={(e) => setFromDate(e.target.value)} className="gv-input w-full text-sm" />
+                          onChange={(e) => setFromDate(e.target.value)}
+                          className="gv-input w-full text-sm"
+                          style={{ colorScheme: 'dark' }} />
                       </div>
                       <div>
                         <p className="gv-eyebrow text-[10px] mb-1.5">To</p>
                         <input type="date" value={toDate} max={today}
-                          onChange={(e) => setToDate(e.target.value)} className="gv-input w-full text-sm" />
+                          onChange={(e) => setToDate(e.target.value)}
+                          className="gv-input w-full text-sm"
+                          style={{ colorScheme: 'dark' }} />
                       </div>
                     </>
                   )}
@@ -222,50 +257,56 @@ export default function CompanyInvoicesPage() {
 
       {/* ── Desktop table ── */}
       <div className="gv-card !p-0 overflow-hidden hidden md:block">
-        {isLoading ? <Spinner /> : filtered.length === 0 ? <EmptyState /> : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
-                  {['Invoice No', 'Invoiced By', 'Invoice Date', 'Total'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#33907c' }}>{h}</th>
-                  ))}
+        <table className="w-full">
+          <thead>
+            <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
+              {['Invoice No', 'Invoiced By', 'Invoice Date', 'Total'].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#33907c' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => <ShimmerRow key={i} />)
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={4}><EmptyState /></td></tr>
+            ) : (
+              filtered.map((inv, idx) => (
+                <tr
+                  key={inv.id}
+                  onClick={() => openDetail(inv)}
+                  className="cursor-pointer"
+                  style={{
+                    borderBottom: idx < filtered.length - 1 ? '1px solid var(--gv-glass-border)' : 'none',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>{inv.invoice_number}</td>
+                  <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.invoiced_by ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.invoice_date ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
+                    KES {inv.total.toLocaleString()}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((inv, idx) => (
-                  <tr
-                    key={inv.id}
-                    onClick={() => router.push(`/finance/invoice/company/${inv.id}`)}
-                    className="cursor-pointer"
-                    style={{
-                      borderBottom: idx < filtered.length - 1 ? '1px solid var(--gv-glass-border)' : 'none',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>{inv.invoice_number}</td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.invoiced_by ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{inv.invoice_date ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
-                      KES {inv.total.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* ── Mobile cards ── */}
       <div className="space-y-2 md:hidden">
-        {isLoading ? <Spinner /> : filtered.length === 0 ? <EmptyState /> : (
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)
+        ) : filtered.length === 0 ? (
+          <EmptyState />
+        ) : (
           filtered.map((inv) => (
             <div
               key={inv.id}
-              onClick={() => router.push(`/finance/invoice/company/${inv.id}`)}
+              onClick={() => openDetail(inv)}
               className="gv-card cursor-pointer active:scale-[0.99] transition-transform"
               style={{ padding: '14px 16px' }}
             >
