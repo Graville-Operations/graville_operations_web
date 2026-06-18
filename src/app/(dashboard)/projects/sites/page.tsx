@@ -16,8 +16,6 @@ import {
   Download, PiggyBank, Receipt, X, MapPin, CalendarRange, ArrowLeft,
 } from 'lucide-react';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface RawSite {
   id: number;
   name: string;
@@ -83,8 +81,6 @@ interface SiteAnalytics {
   attendanceBreakdown: AttendanceBreakdownItem[];
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function unwrapItems<T>(raw: unknown): T[] {
   if (Array.isArray(raw)) return raw as T[];
   if (raw && typeof raw === 'object') {
@@ -129,8 +125,6 @@ function unwrapAnalytics(raw: unknown): SiteAnalytics | null {
   return raw as SiteAnalytics;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string; bg: string }> = {
   ACTIVE:   { label: 'Active',   color: 'text-green-300', bg: 'bg-green-500/20 border border-green-500/40'  },
   INACTIVE: { label: 'Inactive', color: 'text-gray-300',  bg: 'bg-gray-500/20 border border-gray-500/40'   },
@@ -156,8 +150,6 @@ function normProjectStatus(s: unknown): ProjectStatus {
     default:            return 'PLANNING';
   }
 }
-
-// ─── Small shared components ──────────────────────────────────────────────────
 
 function ProgressBar({ pct, color = 'var(--gv-brand)', height = 'h-2' }: {
   pct: number; color?: string; height?: string;
@@ -209,8 +201,6 @@ function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
   );
 }
 
-// ─── Dual Gauge: Project Completion + Time Elapsed ────────────────────────────
-
 function ProjectCompletionGauge({ taskPct, timePct }: { taskPct: number; timePct: number }) {
   const CX = 110, CY = 110, R_outer = 88, R_inner = 64, SW = 13;
   const outerCirc = 2 * Math.PI * R_outer;
@@ -242,8 +232,6 @@ function ProjectCompletionGauge({ taskPct, timePct }: { taskPct: number; timePct
   );
 }
 
-// ─── Expenditure Gauge ────────────────────────────────────────────────────────
-
 function ExpenditureGauge({
   totalExpenditure,
   estimatedValue,
@@ -257,7 +245,6 @@ function ExpenditureGauge({
   const outerCirc = 2 * Math.PI * R_outer;
   const innerCirc = 2 * Math.PI * R_inner;
 
-  // Expenditure as % of estimated value (capped at 100)
   const expendPct = estimatedValue > 0
     ? Math.min(100, Math.round((totalExpenditure / estimatedValue) * 100))
     : 0;
@@ -293,8 +280,6 @@ function ExpenditureGauge({
     </div>
   );
 }
-
-// ─── Weekly Attendance Bar Chart ──────────────────────────────────────────────
 
 function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownItem[] }) {
   const maxCount = Math.max(...breakdown.map((d) => d.attendanceCount), 1);
@@ -341,13 +326,10 @@ function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownIt
   );
 }
 
-// ─── Task Accordion (analytics-driven) ───────────────────────────────────────
-
 function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
   const [open, setOpen] = useState(false);
   const subtasks = task.subtaskBreakdown ?? [];
   const total    = subtasks.length;
-  // Task completion % = (sum of subtask completion percentages / 500) * 100
   const totalPct = subtasks.reduce((a, s) => a + s.completionPercentage, 0);
   const taskPct  = Math.min(100, Math.round((totalPct / 500) * 100));
 
@@ -408,8 +390,6 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
   );
 }
 
-// ─── Attendance Row ───────────────────────────────────────────────────────────
-
 function safeFormat(value: unknown, fmt: string): string | null {
   if (!value) return null;
   try {
@@ -451,8 +431,6 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
     </div>
   );
 }
-
-// ─── All Workers Full Screen ──────────────────────────────────────────────────
 
 function AllWorkersScreen({
   records,
@@ -506,8 +484,6 @@ function AllWorkersScreen({
     </div>
   );
 }
-
-// ─── Date Range Picker ────────────────────────────────────────────────────────
 
 interface DateRangePickerProps {
   from: string;
@@ -624,8 +600,6 @@ function DateRangePicker({ from, to, maxDate, onChange }: DateRangePickerProps) 
   );
 }
 
-// ─── Download helper ──────────────────────────────────────────────────────────
-
 function downloadAttendanceCSV(records: AttendanceRecord[], dateLabel: string, siteName: string) {
   if (records.length === 0) return;
 
@@ -654,26 +628,20 @@ function downloadAttendanceCSV(records: AttendanceRecord[], dateLabel: string, s
   URL.revokeObjectURL(url);
 }
 
-// ─── Site Detail View ─────────────────────────────────────────────────────────
-
 function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void }) {
 
-  // Hide sidebar while in detail view
   useEffect(() => {
     const sidebar = document.querySelector('aside') as HTMLElement | null;
     if (sidebar) sidebar.style.display = 'none';
     return () => { if (sidebar) sidebar.style.display = ''; };
   }, []);
 
-  // ── Analytics from /api/v1/sites/analytics/{site_id} ──
   const [analytics,       setAnalytics      ] = useState<SiteAnalytics | null>(null);
   const [loadingAnalytics,setLoadingAnalytics] = useState(true);
 
-  // ── Static site detail (header only) ──
   const [detail,       setDetail      ] = useState<SiteDetail | null>(null);
   const [loadingDetail,setLoadingDetail] = useState(true);
 
-  // ── Workers on Site (attendance records, range-based) ──
   const [rangeRecords, setRangeRecords] = useState<AttendanceRecord[]>([]);
   const [rangePayouts, setRangePayouts] = useState<number>(0);
   const [loadingRange, setLoadingRange] = useState(true);
@@ -683,8 +651,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [rangeFrom, setRangeFrom] = useState(todayStr);
   const [rangeTo,   setRangeTo  ] = useState(todayStr);
-
-  // ── Loaders ──
 
   const loadAnalytics = useCallback(() => {
     setLoadingAnalytics(true);
@@ -789,10 +755,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
         <div className="mx-auto pt-20 pb-20" style={{ width: '80%' }}>
           <div className="flex flex-col gap-8">
 
-            {/* ══════════════════════════════════════════════
-                SECTION 1 – Site Information (from /sites/{id})
-                Always uses detail endpoint, not analytics
-                ══════════════════════════════════════════════ */}
             <div className="gv-card flex flex-col gap-5"
               style={{ background: 'linear-gradient(135deg,rgba(30,42,58,0.95) 0%,rgba(20,32,46,0.95) 100%)' }}>
               <div className="flex items-start justify-between gap-4">
@@ -851,9 +813,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
               </div>
             </div>
 
-            {/* ══════════════════════════════════════════════
-                SECTION 2 – Project Overview (from analytics)
-                ══════════════════════════════════════════════ */}
             <section>
               <p className="text-2xl font-semibold text-white mb-4">Project Overview</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -887,10 +846,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 </div>
               </div>
             </section>
-
-            {/* ══════════════════════════════════════════════
-                SECTION 3 – Financials (from analytics)
-                ══════════════════════════════════════════════ */}
             <section>
               <p className="text-2xl font-semibold text-white mb-4">Financials</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -915,11 +870,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
               </div>
             </section>
 
-            {/* ══════════════════════════════════════════════
-                SECTION 4 – Visual Metrics (from analytics)
-                Left:  Project Completion % + time elapsed
-                Right: Expenditure % + time elapsed
-                ══════════════════════════════════════════════ */}
             <section>
               <p className="text-2xl font-semibold text-white mb-4">Visual Metrics</p>
               <div className="gv-card">
@@ -945,12 +895,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 )}
               </div>
             </section>
-
-            {/* ══════════════════════════════════════════════
-                SECTION 5 – Attendance (from analytics)
-                Left: Today / Previous cards stacked
-                Right: Weekly bar chart
-                ══════════════════════════════════════════════ */}
             <section>
               <p className="text-2xl font-semibold text-white mb-4">Attendance</p>
 
@@ -976,8 +920,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                     <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Yesterday's check-ins</p>
                   </div>
                 </div>
-
-                {/* Weekly bar chart — right column */}
                 <div className="gv-card md:col-span-2 flex flex-col">
                   <p className="text-base font-semibold text-white mb-4">Daily Attendance</p>
                   {loadingAnalytics ? (
@@ -997,12 +939,8 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
               </div>
             </section>
 
-            {/* ══════════════════════════════════════════════
-                SECTION 6 – Task Breakdown + Workers on Site
-                ══════════════════════════════════════════════ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-              {/* Task Breakdown (analytics) */}
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-2xl font-semibold text-white">Task Breakdown</p>
@@ -1025,8 +963,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                   </div>
                 )}
               </section>
-
-              {/* Workers on Site (attendance/summary — unchanged) */}
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-2xl font-semibold text-white">Workers on Site</p>
@@ -1054,7 +990,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                   onChange={(f, t) => { setRangeFrom(f); setRangeTo(t); }}
                 />
 
-                {/* Summary cards */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="gv-card flex flex-col gap-1">
                     <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: 'var(--gv-brand)' }}>
@@ -1076,7 +1011,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                   </div>
                 </div>
 
-                {/* Attendance records */}
                 {loadingRange ? (
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="w-7 h-7 animate-spin" style={{ color: 'var(--gv-brand)' }} />
@@ -1125,8 +1059,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
     </>
   );
 }
-
-// ─── ConstructionSitesPage ────────────────────────────────────────────────────
 
 const LS_KEY = 'gv_selected_site';
 

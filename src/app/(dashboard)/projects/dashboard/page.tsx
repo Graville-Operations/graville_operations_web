@@ -7,10 +7,6 @@ import {
   Shield, UserCheck, Loader2, RefreshCw,
   ChevronLeft, ChevronRight as ChevronRightIcon, Calendar,
 } from 'lucide-react';
-
-/* ─────────────────────────────────────────────
-   Types
-───────────────────────────────────────────── */
 interface DashboardMetrics {
   sites: number;
   workers: number;
@@ -61,9 +57,6 @@ interface AttendanceDay {
   present_count: number;
 }
 
-/* ─────────────────────────────────────────────
-   Helpers
-───────────────────────────────────────────── */
 function toISO(d: Date) {
   const y   = d.getFullYear();
   const m   = String(d.getMonth() + 1).padStart(2, '0');
@@ -112,9 +105,6 @@ async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   return d as DashboardMetrics;
 }
 
-/* ─────────────────────────────────────────────
-   KPI Card
-───────────────────────────────────────────── */
 function KpiCard({ label, value, sub, icon: Icon, loading }: {
   label: string; value: React.ReactNode; sub?: string;
   icon: React.ElementType; loading?: boolean;
@@ -134,16 +124,10 @@ function KpiCard({ label, value, sub, icon: Icon, loading }: {
   );
 }
 
-/* ─────────────────────────────────────────────
-   Section title
-───────────────────────────────────────────── */
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <p className="text-2xl font-bold text-white mb-3">{children}</p>;
 }
 
-/* ─────────────────────────────────────────────
-   Status Card (for Project Status grid)
-───────────────────────────────────────────── */
 function StatusCard({ label, value, color, loading }: {
   label: string; value: number; color: string; loading?: boolean;
 }) {
@@ -158,9 +142,6 @@ function StatusCard({ label, value, color, loading }: {
   );
 }
 
-/* ─────────────────────────────────────────────
-   Calendar Picker
-───────────────────────────────────────────── */
 function CalendarPicker({
   dateFrom, dateTo, onSelect, onClose, constrainWidth, anchorRef,
 }: {
@@ -321,9 +302,6 @@ function CalendarPicker({
   );
 }
 
-/* ─────────────────────────────────────────────
-   Attendance Bar Chart
-───────────────────────────────────────────── */
 interface Bar {
   label: string;
   fullLabel: string;
@@ -436,9 +414,6 @@ function AttendanceBarChart({
   );
 }
 
-/* ─────────────────────────────────────────────
-   Main Page
-───────────────────────────────────────────── */
 export default function ProjectsDashboardPage() {
   const [metrics, setMetrics]         = useState<DashboardMetrics | null>(null);
   const [loading, setLoading]         = useState(true);
@@ -462,7 +437,6 @@ export default function ProjectsDashboardPage() {
   const DAY_NAMES  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const DAY_FULL   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-  /* Load dashboard metrics */
   const load = useCallback(() => {
     setLoading(true); setError(null);
     fetchDashboardMetrics()
@@ -473,7 +447,6 @@ export default function ProjectsDashboardPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  /* Attendance date range */
   function buildDateRange(tab: typeof attendanceTab): { from: string; to: string } | null {
     const now = new Date();
     if (tab === 'Today') { const iso = toISO(now); return { from: iso, to: iso }; }
@@ -574,7 +547,6 @@ export default function ProjectsDashboardPage() {
     }
   }
 
-  /* Derived values */
   const m = metrics;
   const customLabel = dateFrom && dateTo ? `${dateFrom} – ${dateTo}` : 'Pick dates';
   const activeBar   = activeBarIdx !== null ? bars[activeBarIdx] : null;
@@ -590,7 +562,6 @@ export default function ProjectsDashboardPage() {
   return (
     <div className="gv-page-dashboard flex flex-col gap-0 overflow-y-auto pb-10">
 
-      {/* ── Header ── */}
       <div className="px-4 pt-6 pb-4 flex items-center justify-between">
         <h1 className="text-4xl font-bold text-white">Projects Dashboard</h1>
         <button onClick={load} className="w-8 h-8 rounded-xl flex items-center justify-center"
@@ -601,8 +572,6 @@ export default function ProjectsDashboardPage() {
         </button>
       </div>
 
-
-      {/* ── Overview KPIs ── */}
       <div className="px-4 pb-5">
         <SectionTitle>Overview</SectionTitle>
         <div className="grid grid-cols-2 gap-3">
@@ -620,10 +589,8 @@ export default function ProjectsDashboardPage() {
         </div>
       </div>
 
-      {/* ── Row 1: Attendance (left) | Project Status (right) ── */}
       <div className="px-4 pb-5 grid grid-cols-2 gap-3 items-start">
 
-        {/* Attendance */}
         <div className="flex flex-col gap-3 min-w-0">
           <SectionTitle>Attendance</SectionTitle>
           <div ref={attendanceCardRef} className="flex flex-col gap-3">
@@ -694,7 +661,6 @@ export default function ProjectsDashboardPage() {
           </div>
         </div>
 
-        {/* Project Status */}
         <div className="flex flex-col gap-3 min-w-0">
           <SectionTitle>Project Status</SectionTitle>
           <div className="grid grid-cols-2 gap-2">
@@ -706,11 +672,8 @@ export default function ProjectsDashboardPage() {
         </div>
 
       </div>
-
-      {/* ── Row 2: Expenditure (left) | Permits (right) ── */}
       <div className="px-4 pb-5 grid grid-cols-2 gap-3 items-start">
 
-        {/* Expenditure */}
         <div className="flex flex-col gap-3 min-w-0">
           <SectionTitle>Expenditure</SectionTitle>
           <div className="flex flex-col gap-2">
@@ -730,7 +693,6 @@ export default function ProjectsDashboardPage() {
           </div>
         </div>
 
-        {/* Permits */}
         <div className="flex flex-col gap-3 min-w-0">
           <SectionTitle>Permits</SectionTitle>
           <div className="flex flex-col gap-2">
@@ -745,11 +707,8 @@ export default function ProjectsDashboardPage() {
         </div>
 
       </div>
-
-      {/* ── Row 3: Store & Materials (left) | Orders (right) ── */}
       <div className="px-4 pb-5 grid grid-cols-2 gap-3 items-start">
 
-        {/* Store & Materials */}
         <div className="flex flex-col gap-3 min-w-0">
           <SectionTitle>Store & Materials</SectionTitle>
           <div className="rounded-2xl overflow-hidden"
@@ -821,7 +780,6 @@ export default function ProjectsDashboardPage() {
 
       </div>
 
-            {/* ── Week bar tooltip overlay ── */}
       {attendanceTab === 'Week' && activeBar && overlayPos && (
         <div className="fixed z-50"
           style={{ top: overlayPos.top - 8, left: overlayPos.left, transform: 'translate(-50%, -100%)', pointerEvents: 'auto' }}
