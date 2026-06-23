@@ -3,21 +3,26 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import api from "@/lib/api";
-import {
-  type Menu,
-  type User,
-  type Department,
-  getCachedDepartment,
-  getCachedMenus,
-  setCachedMenus,
-  getCachedUsers,
-  setCachedUsers,
-  getDeptCache,
-  setDeptCache,
-} from "@/lib/departments-cache";
 
+interface Menu {
+  id: number;
+  name: string;
+  title: string;
+  link?: string;
+}
 
-interface DeptDetail { id: number; name: string; description?: string; }
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface DeptDetail {
+  id: number;
+  name: string;
+  description?: string;
+}
 
 
 function extractArray(data: unknown): any[] {
@@ -58,7 +63,6 @@ function toMenu(m: any): Menu {
   };
 }
 
-
 function toUser(u: any): User {
   const src = u?.user ?? u?.member ?? u;
   return {
@@ -74,8 +78,7 @@ function toUser(u: any): User {
 }
 
 function parseMenus(raw: unknown): Menu[] {
-  const arr = extractArray(raw);
-  return arr.map(toMenu).filter(m => m.id > 0);
+  return extractArray(raw).map(toMenu).filter(m => m.id > 0);
 }
 
 function parseUsers(raw: unknown, tag = ""): User[] {
@@ -84,16 +87,9 @@ function parseUsers(raw: unknown, tag = ""): User[] {
     console.log(`[parseUsers${tag ? " " + tag : ""}] raw sample:`, JSON.stringify(arr[0]).slice(0, 300));
     console.log(`[parseUsers${tag ? " " + tag : ""}] → array len:`, arr.length);
   }
-  return arr.map(toUser).filter(u => u.id > 0);
+  return arr.map(toUser).filter(u => u.id > 0 || u.email);
 }
 
-
-function syncDeptListCounts(deptId: number, counts: Partial<Pick<Department, "menusCount" | "usersCount">>) {
-  const cache = getDeptCache();
-  if (!cache) return;
-  const updated = cache.map(d => (d.id === deptId ? { ...d, ...counts } : d));
-  setDeptCache(updated);
-}
 
 function Toast({ message, type }: { message: string; type: "success" | "error" }) {
   return (
@@ -103,7 +99,6 @@ function Toast({ message, type }: { message: string; type: "success" | "error" }
     >{message}</div>
   );
 }
-
 
 const BackIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -185,7 +180,6 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-
 function EmptyState({ icon, label, action }: { icon: React.ReactNode; label: string; action?: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 gap-3">
@@ -199,7 +193,6 @@ function EmptyState({ icon, label, action }: { icon: React.ReactNode; label: str
   );
 }
 
-// ─── Selectable list item ─────────────────────────────────────────────────────
 function SelectRow({ isSelected, onClick, children }: {
   isSelected: boolean; onClick: () => void; children: React.ReactNode;
 }) {
@@ -222,7 +215,7 @@ function SelectRow({ isSelected, onClick, children }: {
 
 function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToast }: {
   deptId: number; currentMenuIds: Set<number>;
-  onClose: () => void; onAssigned: (menus: Menu[]) => void;
+  onClose: () => void; onAssigned: () => void;
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
   const [allMenus, setAllMenus] = useState<Menu[]>([]);
@@ -266,10 +259,9 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
     if (selected.size === 0) return;
     setSaving(true);
     try {
-      const ids = [...selected];
-      await api.post(`/departments/${deptId}/menus`, { menu_ids: ids });
-      onAssigned(allMenus.filter(m => selected.has(m.id)));
+      await api.post(`/departments/${deptId}/menus`, { menu_ids: [...selected] });
       showToast(`${selected.size} menu${selected.size > 1 ? "s" : ""} assigned`, "success");
+      onAssigned();
       onClose();
     } catch (err: any) {
       const detail = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.response?.data;
@@ -336,9 +328,9 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
 }
 
 
-function AssignUserModal({ deptId, currentUserIds, onClose, onAssigned, showToast }: {
-  deptId: number; currentUserIds: Set<number>;
-  onClose: () => void; onAssigned: (users: User[]) => void;
+function AssignUserModal({ deptId, currentUserEmails, onClose, onAssigned, showToast }: {
+  deptId: number; currentUserEmails: Set<string>;
+  onClose: () => void; onAssigned: () => void;
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -373,12 +365,12 @@ function AssignUserModal({ deptId, currentUserIds, onClose, onAssigned, showToas
   }, []);
 
   const available = useMemo(() =>
-    allUsers.filter(u => !currentUserIds.has(u.id))
+    allUsers.filter(u => !currentUserEmails.has(u.email.toLowerCase()))
       .filter(u =>
         u.name.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase()) ||
         u.role.toLowerCase().includes(search.toLowerCase())),
-    [allUsers, search, currentUserIds]);
+    [allUsers, search, currentUserEmails]);
 
   const toggle = (id: number) =>
     setSelected(p => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
@@ -387,10 +379,9 @@ function AssignUserModal({ deptId, currentUserIds, onClose, onAssigned, showToas
     if (selected.size === 0) return;
     setSaving(true);
     try {
-      const ids = [...selected];
-      await api.post(`/departments/${deptId}/assign-users`, { user_ids: ids });
-      onAssigned(allUsers.filter(u => selected.has(u.id)));
+      await api.post(`/departments/${deptId}/assign-users`, { user_ids: [...selected] });
       showToast(`${selected.size} user${selected.size > 1 ? "s" : ""} assigned`, "success");
+      onAssigned();
       onClose();
     } catch (err: any) {
       const detail = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.response?.data;
@@ -421,7 +412,7 @@ function AssignUserModal({ deptId, currentUserIds, onClose, onAssigned, showToas
           </div>
         ) : available.length === 0 ? (
           <p className="text-white/30 text-sm text-center py-10">
-            {allUsers.filter(u => !currentUserIds.has(u.id)).length === 0 ? "All users already assigned." : "No users match."}
+            {allUsers.filter(u => !currentUserEmails.has(u.email.toLowerCase())).length === 0 ? "All users already assigned." : "No users match."}
           </p>
         ) : (
           <>
@@ -473,21 +464,15 @@ export default function DepartmentDetailPage() {
   const params = useParams();
   const deptId = Number(params?.id);
 
-  const [dept, setDept] = useState<DeptDetail | null>(() => {
-    const cached = getCachedDepartment(deptId);
-    if (cached) return { id: cached.id, name: cached.name, description: cached.description };
-    const fromList = getDeptCache()?.find(d => d.id === deptId);
-    return fromList ? { id: fromList.id, name: fromList.name, description: fromList.description } : null;
-  });
-
- 
+  const [dept, setDept] = useState<DeptDetail | null>(null);
   const [menus, setMenus] = useState<Menu[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [deptLoading, setDeptLoading]   = useState(true);
   const [menusLoading, setMenusLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(true);
 
   const [removingMenuId, setRemovingMenuId] = useState<number | null>(null);
-  const [removingUserId, setRemovingUserId] = useState<number | null>(null);
+  const [removingUserEmail, setRemovingUserEmail] = useState<string | null>(null);
   const [showAssignMenu, setShowAssignMenu] = useState(false);
   const [showAssignUser, setShowAssignUser] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -497,77 +482,84 @@ export default function DepartmentDetailPage() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  
-  const load = useCallback(async (silent = false) => {
+  // Fetch department detail
+  const loadDept = useCallback(async () => {
     if (!deptId) return;
-    if (!silent) {
-      setMenusLoading(true);
-      setUsersLoading(true);
+    setDeptLoading(true);
+    try {
+      const { data } = await api.get(`/departments/${deptId}`);
+      const d = (data?.data ?? data) as any;
+      setDept({ id: d.id, name: d.name, description: d.description });
+    } catch (err: any) {
+      console.warn("[loadDept] failed:", err?.response?.status, err?.response?.data);
+      // Non-fatal: header will just show a skeleton
+    } finally {
+      setDeptLoading(false);
     }
+  }, [deptId]);
 
-    
-    const menusReq = api.get(`/departments/${deptId}/menus`).catch(e => {
-      console.warn("[load] dept menus failed:", e?.response?.status, e?.response?.data);
-      return null;
-    });
-   
-    const membersReq = api.get(`/departments/${deptId}/members`).catch(e => {
-      console.warn("[load] members failed:", e?.response?.status, e?.response?.data);
-      return null;
-    });
-
-    menusReq.then(res => {
-      if (!res) { setMenusLoading(false); return; }
-      console.log("[menus] full raw response:", JSON.stringify(res.data));
-      const parsed = parseMenus(res.data);
+  // Fetch menus
+  const loadMenus = useCallback(async () => {
+    if (!deptId) return;
+    setMenusLoading(true);
+    try {
+      const { data } = await api.get(`/departments/${deptId}/menus`);
+      console.log("[menus] raw response:", JSON.stringify(data));
+      const parsed = parseMenus(data);
       console.log("[menus] parsed:", JSON.stringify(parsed));
       setMenus(parsed);
-      setCachedMenus(deptId, parsed);
-      syncDeptListCounts(deptId, { menusCount: parsed.length });
+    } catch (err: any) {
+      console.warn("[loadMenus] failed:", err?.response?.status, err?.response?.data);
+      showToast("Failed to load menus", "error");
+    } finally {
       setMenusLoading(false);
-    });
+    }
+  }, [deptId, showToast]);
 
-    membersReq.then(res => {
-      if (!res) { setUsersLoading(false); return; }
-      // Always log so we can diagnose
-      console.log("[members] full raw response:", JSON.stringify(res.data));
-      const arr = extractArray(res.data);
+  // Fetch members
+  const loadUsers = useCallback(async () => {
+    if (!deptId) return;
+    setUsersLoading(true);
+    try {
+      const { data } = await api.get(`/departments/${deptId}/members`);
+      console.log("[members] raw response:", JSON.stringify(data));
+      const arr = extractArray(data);
       console.log("[members] extractArray result:", JSON.stringify(arr));
       if (arr[0]) console.log("[members] first item keys:", Object.keys(arr[0]), "value:", JSON.stringify(arr[0]));
-      const resolved = parseUsers(res.data, "/members");
-      console.log("[members] parsed users:", JSON.stringify(resolved));
-      setUsers(resolved);
-      setCachedUsers(deptId, resolved);
-      syncDeptListCounts(deptId, { usersCount: resolved.length });
+      const parsed = parseUsers(data, "/members");
+      console.log("[members] parsed users:", JSON.stringify(parsed));
+      setUsers(parsed);
+    } catch (err: any) {
+      console.warn("[loadUsers] failed:", err?.response?.status, err?.response?.data);
+      showToast("Failed to load members", "error");
+    } finally {
       setUsersLoading(false);
-    });
-  }, [deptId]);
+    }
+  }, [deptId, showToast]);
+
+  // Full reload
+  const load = useCallback(() => {
+    loadDept();
+    loadMenus();
+    loadUsers();
+  }, [loadDept, loadMenus, loadUsers]);
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Remove menu — optimistic update then re-fetch to confirm
+  // ── Remove menu
   const removeMenu = async (menu: Menu) => {
     setRemovingMenuId(menu.id);
     try {
       await api.delete(`/departments/${deptId}/menus`, {
         data: { menu_ids: [menu.id] },
       });
-      // Optimistic: remove immediately from UI
-      setMenus(prev => {
-        const updated = prev.filter(m => m.id !== menu.id);
-        setCachedMenus(deptId, updated);
-        syncDeptListCounts(deptId, { menusCount: updated.length });
-        return updated;
-      });
       showToast(`"${menu.title || menu.name}" removed`, "success");
-     
-      load(true);
+      await loadMenus();
     } catch (err: any) {
       console.error("[removeMenu] failed:", err?.response?.status, err?.response?.data);
       const detail = err?.response?.data?.detail ?? err?.response?.data?.message;
       showToast(typeof detail === "string" ? detail : "Failed to remove menu", "error");
-      
-      load(true);
+      await loadMenus();
     } finally {
       setRemovingMenuId(null);
     }
@@ -575,10 +567,10 @@ export default function DepartmentDetailPage() {
 
   // ── Remove user
   const removeUser = async (user: User) => {
-    setRemovingUserId(user.id);
+    setRemovingUserEmail(user.email);
     const attempts: Array<() => Promise<unknown>> = [
       () => api.delete(`/departments/${deptId}/members`, { data: { user_ids: [user.id] } }),
-      () => api.delete(`/departments/${deptId}/users`, { data: { user_ids: [user.id] } }),
+      () => api.delete(`/departments/${deptId}/users`,   { data: { user_ids: [user.id] } }),
       () => api.post(`/departments/${deptId}/members/remove`, { user_ids: [user.id] }),
     ];
 
@@ -586,15 +578,9 @@ export default function DepartmentDetailPage() {
     for (const attempt of attempts) {
       try {
         await attempt();
-        setUsers(prev => {
-          const updated = prev.filter(u => u.id !== user.id);
-          setCachedUsers(deptId, updated);
-          syncDeptListCounts(deptId, { usersCount: updated.length });
-          return updated;
-        });
         showToast(`"${user.name}" removed`, "success");
-        setRemovingUserId(null);
-        load(true);
+        await loadUsers();
+        setRemovingUserEmail(null);
         return;
       } catch (err: any) {
         lastErr = err;
@@ -606,36 +592,15 @@ export default function DepartmentDetailPage() {
     console.error("[removeUser] all attempts failed:", lastErr?.response?.status, lastErr?.response?.data);
     const detail = lastErr?.response?.data?.detail ?? lastErr?.response?.data?.message;
     showToast(typeof detail === "string" ? detail : "Failed to remove user — endpoint needs confirming", "error");
-    load(true);
-    setRemovingUserId(null);
+    await loadUsers();
+    setRemovingUserEmail(null);
   };
 
   const assignedMenuIds = useMemo(() => new Set(menus.map(m => m.id)), [menus]);
-  const assignedUserIds = useMemo(() => new Set(users.map(u => u.id)), [users]);
-
-  const handleMenusAssigned = useCallback((newMenus: Menu[]) => {
-    setMenus(prev => {
-      const existing = new Set(prev.map(m => m.id));
-      const updated = [...prev, ...newMenus.filter(m => !existing.has(m.id))];
-      setCachedMenus(deptId, updated);
-      syncDeptListCounts(deptId, { menusCount: updated.length });
-      return updated;
-    });
-   
-    load(true);
-  }, [deptId, load]);
-
-  const handleUsersAssigned = useCallback((newUsers: User[]) => {
-    setUsers(prev => {
-      const existing = new Set(prev.map(u => u.id));
-      const updated = [...prev, ...newUsers.filter(u => !existing.has(u.id))];
-      setCachedUsers(deptId, updated);
-      syncDeptListCounts(deptId, { usersCount: updated.length });
-      return updated;
-    });
-    // Re-fetch to get full user objects from the server
-    load(true);
-  }, [deptId, load]);
+  const assignedUserEmails = useMemo(
+    () => new Set(users.map(u => u.email.toLowerCase()).filter(Boolean)),
+    [users],
+  );
 
   return (
     <div className="space-y-6">
@@ -649,14 +614,18 @@ export default function DepartmentDetailPage() {
           </button>
           <div>
             <p className="gv-eyebrow mb-0.5">Departments</p>
-            {dept
-              ? <h1 className="text-white text-2xl font-bold leading-tight">{dept.name}</h1>
-              : <div className="h-7 w-48 rounded-lg bg-white/5 animate-pulse" />}
+            {deptLoading ? (
+              <div className="h-7 w-48 rounded-lg bg-white/5 animate-pulse" />
+            ) : dept ? (
+              <h1 className="text-white text-2xl font-bold leading-tight">{dept.name}</h1>
+            ) : (
+              <h1 className="text-white text-2xl font-bold leading-tight">Department #{deptId}</h1>
+            )}
             {dept?.description && <p className="text-white/40 text-sm mt-1">{dept.description}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 pt-1">
-          <button type="button" onClick={() => load(false)}
+          <button type="button" onClick={load}
             className="gv-btn-outline w-9 h-9 flex items-center justify-center p-0" title="Refresh">
             <RefreshIcon />
           </button>
@@ -754,10 +723,10 @@ export default function DepartmentDetailPage() {
                     <PlusIcon /> Assign a user
                   </button>
                 } />
-            ) : users.map(user => {
+            ) : users.map((user, idx) => {
               const inits = user.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
               return (
-                <div key={user.id}
+                <div key={user.email || idx}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                   style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
@@ -769,10 +738,10 @@ export default function DepartmentDetailPage() {
                     <p className="text-white/40 text-xs truncate">{user.role || user.email}</p>
                   </div>
                   <button type="button" onClick={() => removeUser(user)}
-                    disabled={removingUserId === user.id}
+                    disabled={removingUserEmail === user.email}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 shrink-0"
                     style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}>
-                    {removingUserId === user.id ? <SpinnerIcon size={11} /> : <MinusIcon />}
+                    {removingUserEmail === user.email ? <SpinnerIcon size={11} /> : <MinusIcon />}
                     Remove
                   </button>
                 </div>
@@ -785,12 +754,22 @@ export default function DepartmentDetailPage() {
       {toast && <Toast message={toast.message} type={toast.type} />}
 
       {showAssignMenu && (
-        <AssignMenuModal deptId={deptId} currentMenuIds={assignedMenuIds}
-          onClose={() => setShowAssignMenu(false)} onAssigned={handleMenusAssigned} showToast={showToast} />
+        <AssignMenuModal
+          deptId={deptId}
+          currentMenuIds={assignedMenuIds}
+          onClose={() => setShowAssignMenu(false)}
+          onAssigned={loadMenus}
+          showToast={showToast}
+        />
       )}
       {showAssignUser && (
-        <AssignUserModal deptId={deptId} currentUserIds={assignedUserIds}
-          onClose={() => setShowAssignUser(false)} onAssigned={handleUsersAssigned} showToast={showToast} />
+        <AssignUserModal
+          deptId={deptId}
+          currentUserEmails={assignedUserEmails}
+          onClose={() => setShowAssignUser(false)}
+          onAssigned={loadUsers}
+          showToast={showToast}
+        />
       )}
     </div>
   );

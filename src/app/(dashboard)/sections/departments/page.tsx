@@ -3,20 +3,22 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-
-import {
-  type Department,
-  getDeptCache,
-  setDeptCache,
-  bustDeptCache,
-} from "@/lib/departments-cache";
+import { typography } from "@/components/custom/typography";
 
 interface RawDepartment {
   id: number;
   name: string;
   description?: string;
-  menus: number;   // count from API
-  users: number;   // count from API
+  menus: number;
+  users: number;
+}
+
+interface Department {
+  id: number;
+  name: string;
+  description: string;
+  menusCount: number;
+  usersCount: number;
 }
 
 export function parseList(data: unknown): any[] {
@@ -38,15 +40,14 @@ export function parseList(data: unknown): any[] {
 function Toast({ message, type }: { message: string; type: "success" | "error" }) {
   return (
     <div
-      className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white
-        text-sm font-semibold z-[60] shadow-xl pointer-events-none
+      className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white z-[60] shadow-xl pointer-events-none
         ${type === "success" ? "bg-[#33907c]" : "bg-red-600"}`}
+      style={typography.label.sm}
     >
       {message}
     </div>
   );
 }
-
 
 const SearchIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-white/40 shrink-0">
@@ -117,6 +118,7 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
         className="w-full max-w-lg bg-[#0d1528] border border-white/10 rounded-2xl flex flex-col overflow-hidden"
         style={{ animation: "fadeUp 0.22s ease" }}
       >
+        {/* Modal Header */}
         <div className="flex items-center justify-between px-7 py-5 border-b border-white/10">
           <div className="flex items-center gap-4">
             <div
@@ -130,17 +132,26 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
               <BuildingIcon />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg leading-tight">New Department</h2>
-              <p className="text-white/40 text-sm mt-0.5">Fill in the details below to get started</p>
+              {/* title.md → 24px bold */}
+              <h2 style={{ ...typography.title.md, color: "#fff" }}>
+                New Department
+              </h2>
+              {/* body.sm → 14px, muted */}
+              <p style={{ ...typography.body.sm, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
+                Fill in the details below to get started
+              </p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="text-white/30 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5">
             <CloseIcon />
           </button>
         </div>
+
+        {/* Modal Body */}
         <div className="px-7 py-6 space-y-5">
           <div className="space-y-2">
-            <label className="text-white/60 text-xs font-semibold uppercase tracking-wider">
+            {/* label.xs → 12px uppercase */}
+            <label style={{ ...typography.label.xs, color: "rgba(255,255,255,0.6)" }}>
               Department Name <span className="text-red-400">*</span>
             </label>
             <input
@@ -148,39 +159,46 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleSubmit()}
               placeholder="e.g. Finance, Operations, Engineering…"
-              className="w-full gv-input px-4 py-3 text-sm text-white placeholder:text-white/25 outline-none"
+              className="w-full gv-input px-4 py-3 outline-none"
+              style={{ ...typography.body.sm, color: "#fff" }}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-white/60 text-xs font-semibold uppercase tracking-wider">
+            {/* label.xs → 12px uppercase */}
+            <label style={{ ...typography.label.xs, color: "rgba(255,255,255,0.6)" }}>
               Description
-              <span className="text-white/30 font-normal normal-case tracking-normal ml-2">— optional</span>
+              <span style={{ ...typography.body.sm, color: "rgba(255,255,255,0.3)", marginLeft: 8, textTransform: "none", letterSpacing: "normal" }}>
+                — optional
+              </span>
             </label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="What does this department do?"
               rows={4}
-              className="w-full gv-input px-4 py-3 text-sm text-white placeholder:text-white/25 outline-none resize-none"
+              className="w-full gv-input px-4 py-3 outline-none resize-none"
+              style={{ ...typography.body.sm, color: "#fff" }}
             />
           </div>
           {error && (
             <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl bg-red-500/10 border border-red-500/25">
               <span className="text-red-400 text-base leading-none mt-0.5">⚠</span>
-              <p className="text-red-400 text-sm">{error}</p>
+              <p style={{ ...typography.body.sm, color: "rgb(248 113 113)" }}>{error}</p>
             </div>
           )}
         </div>
+
+        {/* Modal Footer */}
         <div className="px-7 pb-7 flex gap-3">
-          <button type="button" onClick={onClose} className="gv-btn-outline flex-1 justify-center text-sm py-3" disabled={isSubmitting}>
+          <button type="button" onClick={onClose} className="gv-btn-outline flex-1 justify-center py-3" style={typography.label.sm} disabled={isSubmitting}>
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || !name.trim()}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-40"
-            style={{ background: "var(--gv-brand)", color: "#fff" }}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all disabled:opacity-40"
+            style={{ ...typography.label.sm, background: "var(--gv-brand)", color: "#fff" }}
           >
             {isSubmitting ? <SpinnerIcon /> : <PlusIcon />}
             {isSubmitting ? "Creating…" : "Create Department"}
@@ -197,12 +215,7 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
   );
 }
 
-function DepartmentCard({
-  dept, onClick,
-}: {
-  dept: Department;
-  onClick: () => void;
-}) {
+function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => void }) {
   return (
     <div
       role="button"
@@ -220,7 +233,6 @@ function DepartmentCard({
         (e.currentTarget as HTMLDivElement).style.boxShadow = "";
       }}
     >
-      {/* Top section */}
       <div className="px-4 pt-4 pb-3 flex-1">
         <div className="flex items-start gap-3">
           <div
@@ -230,8 +242,18 @@ function DepartmentCard({
             <BuildingIcon />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-white font-bold text-sm leading-tight truncate">{dept.name}</p>
-            <p className="text-white/45 text-xs mt-1 line-clamp-2 leading-relaxed">
+            {/* title.md variant but smaller — use subtitle.sm for card names */}
+            <p
+              className="truncate"
+              style={{ ...typography.subtitle.sm, color: "#fff", lineHeight: 1.3 }}
+            >
+              {dept.name}
+            </p>
+            {/* body.sm → 14px for description */}
+            <p
+              className="line-clamp-2"
+              style={{ ...typography.body.sm, color: "rgba(255,255,255,0.45)", marginTop: 4 }}
+            >
               {dept.description || "No description provided."}
             </p>
           </div>
@@ -240,29 +262,31 @@ function DepartmentCard({
 
       <div className="mx-4 h-px bg-white/[0.06]" />
 
-      {/* Count chips */}
       <div className="px-4 py-3 pb-4 flex items-center gap-3">
+        {/* Menus badge */}
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-xl flex-1 justify-center"
           style={{ background: "color-mix(in srgb, var(--gv-brand) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--gv-brand) 28%, transparent)" }}
         >
           <span style={{ color: "var(--gv-brand)" }}><MenusIcon /></span>
-          <span className="font-bold text-sm" style={{ color: "var(--gv-brand)" }}>{dept.menusCount}</span>
-          <span className="text-white/40 text-xs">Menus</span>
+          {/* mono.md for counts */}
+          <span style={{ ...typography.mono.md, color: "var(--gv-brand)", fontWeight: 700 }}>{dept.menusCount}</span>
+          {/* label.xs for badge text */}
+          <span style={{ ...typography.label.xs, color: "rgba(255,255,255,0.4)", textTransform: "none", letterSpacing: "normal" }}>Menus</span>
         </div>
+        {/* Users badge */}
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-xl flex-1 justify-center"
           style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
         >
           <span className="text-white/40"><UsersIcon /></span>
-          <span className="font-bold text-sm text-white/80">{dept.usersCount}</span>
-          <span className="text-white/40 text-xs">Users</span>
+          <span style={{ ...typography.mono.md, color: "rgba(255,255,255,0.8)", fontWeight: 700 }}>{dept.usersCount}</span>
+          <span style={{ ...typography.label.xs, color: "rgba(255,255,255,0.4)", textTransform: "none", letterSpacing: "normal" }}>Users</span>
         </div>
       </div>
     </div>
   );
 }
-
 
 function SkeletonCard() {
   return (
@@ -290,9 +314,8 @@ function SkeletonCard() {
 export default function DepartmentsPage() {
   const router = useRouter();
 
-  // ── Hydrate instantly from cache (memory or localStorage) ──────────────────
-  const [departments, setDepartments] = useState<Department[]>(() => getDeptCache() ?? []);
-  const [isLoading, setIsLoading] = useState(() => getDeptCache() === null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -302,32 +325,14 @@ export default function DepartmentsPage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const fetchDepartments = useCallback(async (force = false) => {
-    const cached = getDeptCache();
-    if (!force && cached) {
-      setDepartments(cached);
-      setIsLoading(false);
-      return;
-    }
-
-
-    if (cached) setDepartments(cached);
-    setIsLoading(!cached);
-
+  const fetchDepartments = useCallback(async () => {
+    setIsLoading(true);
     try {
       const { data } = await api.get("/departments/list");
       const raw = parseList(data);
 
       if (raw.length === 0) {
         console.warn("[Departments] parseList returned [] for response:", data);
-        // Don't wipe out a previously cached non-empty list on an empty
-        // response — likely a transient/auth issue rather than "no depts".
-        if (!cached || cached.length === 0) {
-          setDepartments([]);
-          setDeptCache([]);
-        }
-        setIsLoading(false);
-        return;
       }
 
       const mapped: Department[] = raw.map((d: RawDepartment) => ({
@@ -338,23 +343,18 @@ export default function DepartmentsPage() {
         usersCount: typeof d.users === "number" ? d.users : 0,
       }));
 
-      setDeptCache(mapped);
       setDepartments(mapped);
     } catch (err: any) {
       const status = err?.response?.status;
       const detail = err?.response?.data?.detail ?? err?.response?.data?.message;
-      const message = typeof detail === "string"
-        ? detail
-        : status
-        ? `Failed to load departments (${status})`
-        : "Failed to load departments — showing cached data";
+      const message =
+        typeof detail === "string"
+          ? detail
+          : status
+          ? `Failed to load departments (${status})`
+          : "Failed to load departments";
       console.error("[Departments] list fetch failed:", status, err?.response?.data ?? err?.message);
-     
-      if (cached) {
-        showToast(message, "error");
-      } else {
-        showToast(message, "error");
-      }
+      showToast(message, "error");
     } finally {
       setIsLoading(false);
     }
@@ -379,14 +379,16 @@ export default function DepartmentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="gv-eyebrow mb-1">Sections</p>
-          <h1 className="text-white text-2xl font-bold">Departments</h1>
+          {/* eyebrow → label.xs */}
+          <p className="gv-eyebrow mb-1" style={typography.label.xs}>Sections</p>
+          {/* page title → title.lg (30px bold) */}
+          <h1 style={{ ...typography.title.lg, color: "#fff" }}>Departments</h1>
         </div>
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold"
-          style={{ background: "var(--gv-brand)", color: "#fff" }}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl"
+          style={{ ...typography.label.sm, background: "var(--gv-brand)", color: "#fff" }}
         >
           <PlusIcon /> Add Department
         </button>
@@ -399,7 +401,8 @@ export default function DepartmentsPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search departments…"
-          className="flex-1 bg-transparent outline-none text-white text-sm placeholder:text-white/30"
+          className="flex-1 bg-transparent outline-none placeholder:text-white/30"
+          style={{ ...typography.body.sm, color: "#fff" }}
         />
         {search && (
           <button type="button" onClick={() => setSearch("")} className="text-white/30 hover:text-white transition-colors">
@@ -408,7 +411,8 @@ export default function DepartmentsPage() {
         )}
       </div>
 
-      <p className="gv-eyebrow">
+      {/* Section label */}
+      <p className="gv-eyebrow" style={typography.label.xs}>
         All Departments {!isLoading && `(${filtered.length})`}
       </p>
 
@@ -420,15 +424,16 @@ export default function DepartmentsPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-4xl mb-3">🏢</p>
-          <p className="text-white/40 text-sm">
+          <p style={{ ...typography.body.sm, color: "rgba(255,255,255,0.4)" }}>
             {search ? "No departments match your search." : "No departments found."}
           </p>
           {!search && (
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold mx-auto"
+              className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl mx-auto"
               style={{
+                ...typography.label.sm,
                 background: "color-mix(in srgb, var(--gv-brand) 13%, transparent)",
                 border: "1px solid color-mix(in srgb, var(--gv-brand) 27%, transparent)",
                 color: "var(--gv-brand)",
@@ -457,8 +462,7 @@ export default function DepartmentsPage() {
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             showToast("Department created successfully!", "success");
-            bustDeptCache();
-            fetchDepartments(true);
+            fetchDepartments();
           }}
         />
       )}
