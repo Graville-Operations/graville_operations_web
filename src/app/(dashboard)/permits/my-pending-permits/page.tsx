@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, FileText, Search, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
 import {
@@ -8,21 +8,17 @@ import {
   STATUS_STYLES, APPROVAL_STYLES,
 } from "@/types/permits";
 
-interface RawApproval {
-  id:          number;
-  permit_id:   number;
-  approver:    string;  
-  step_order:  number;
-  status:      string;
-  comment:     string | null;
-  actioned_at: string | null;
-  created_at:  string;
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
+// PermitApproval, PermitDetail and PendingApprovalItem all come from @/types/permits
+type PermitDetailWithRaw = PermitDetail;
 
-interface PermitDetailWithRaw extends Omit<PermitDetail, "approvals"> {
-  approvals: RawApproval[];
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Safe date formatter.
+ * The backend's FormattedDateTime may return a pre-formatted string like "12 Jun 2025"
+ * that new Date() can't parse. We try ISO first; if it fails we use the string as-is.
+ */
 function fmtDate(val: string | null | undefined): string {
   if (!val) return "—";
   const d = new Date(val);
@@ -48,6 +44,55 @@ function Spinner() {
   );
 }
 
+/** A shimmering skeleton block — uses the global @keyframes shimmer sweep */
+function Shimmer({ className = "", style = {} }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-md ${className}`}
+      style={{ background: "rgba(255,255,255,0.06)", ...style }}>
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)",
+          transform: "translateX(-100%)",
+          animation: "shimmer 1.5s infinite",
+        }}
+      />
+    </div>
+  );
+}
+
+/** Skeleton row matching the desktop pending approvals table columns */
+function SkeletonRow() {
+  return (
+    <tr style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
+      <td className="px-4 py-3"><Shimmer className="h-4 w-32" /></td>
+      <td className="px-4 py-3"><Shimmer className="h-4 w-20" /></td>
+      <td className="px-4 py-3"><Shimmer className="h-4 w-20" /></td>
+      <td className="px-4 py-3"><Shimmer className="h-5 w-16 rounded-full" /></td>
+      <td className="px-4 py-3"><Shimmer className="h-4 w-24" /></td>
+    </tr>
+  );
+}
+
+/** Skeleton card matching the mobile pending approvals card layout */
+function SkeletonCard() {
+  return (
+    <div className="gv-card" style={{ padding: "14px 16px" }}>
+      <div className="flex items-center justify-between mb-2">
+        <Shimmer className="h-4 w-28" />
+        <Shimmer className="h-5 w-16 rounded-full" />
+      </div>
+      <Shimmer className="h-3 w-20 mb-3" />
+      <div className="flex items-center justify-between pt-2.5" style={{ borderTop: "1px solid var(--gv-glass-border)" }}>
+        <Shimmer className="h-3 w-16" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Reject confirm modal (reason required) ───────────────────────────────────
+
 function RejectConfirmModal({ onConfirm, onCancel, loading, comment, setComment }: {
   onConfirm:  () => void;
   onCancel:   () => void;
@@ -56,9 +101,9 @@ function RejectConfirmModal({ onConfirm, onCancel, loading, comment, setComment 
   setComment: (v: string) => void;
 }) {
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-60 p-4"
+    <div className="fixed inset-0 flex items-center justify-center z-[60] p-4"
       style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-6 space-y-4"
+      <div className="w-full max-w-sm rounded-2xl space-y-4 p-6"
         style={{ background: "#0d1528", border: "1px solid rgba(248,113,113,0.3)" }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
@@ -83,8 +128,7 @@ function RejectConfirmModal({ onConfirm, onCancel, loading, comment, setComment 
         </div>
         <div className="flex gap-3">
           <button onClick={onCancel} disabled={loading}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "var(--gv-glass-bg)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}>
+            className="gv-btn-outline flex-1 py-2.5 rounded-xl text-sm">
             Cancel
           </button>
           <button onClick={onConfirm} disabled={loading || !comment.trim()}
@@ -99,6 +143,9 @@ function RejectConfirmModal({ onConfirm, onCancel, loading, comment, setComment 
     </div>
   );
 }
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function PendingApprovalsPage() {
   const [approvals,    setApprovals]    = useState<PendingApprovalItem[]>([]);
   const [permitCache,  setPermitCache]  = useState<Record<number, PermitDetailWithRaw>>({});
@@ -110,7 +157,7 @@ export default function PendingApprovalsPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectComment,   setRejectComment]   = useState("");
 
-  // eslint-disable-next-line react-hooks/immutability
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchPending(); }, []);
 
   const fetchPending = async () => {
@@ -195,7 +242,21 @@ export default function PendingApprovalsPage() {
 
       {/* Table — desktop — Step column removed */}
       <div className="gv-card p-0! overflow-hidden hidden md:block">
-        {isLoading ? <Spinner /> : filtered.length === 0 ? (
+        {isLoading ? (
+          <table className="w-full">
+            <thead>
+              <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
+                {["Title", "Category", "Site", "Status", "Date"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: "#33907c" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
+            </tbody>
+          </table>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48">
             <FileText size={40} style={{ color: "var(--gv-text-faint)" }} className="mb-3" />
             <p className="text-sm" style={{ color: "var(--gv-text-subtle)" }}>
@@ -239,7 +300,11 @@ export default function PendingApprovalsPage() {
 
       {/* Cards — mobile */}
       <div className="space-y-2 md:hidden">
-        {isLoading ? <Spinner /> : filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center h-32">
             <p className="text-sm" style={{ color: "var(--gv-text-subtle)" }}>No pending permits</p>
           </div>
@@ -273,6 +338,8 @@ export default function PendingApprovalsPage() {
           onConfirm={() => takeAction("REJECTED", rejectComment)}
         />
       )}
+
+      {/* ─── Detail modal ──────────────────────────────────────────────────── */}
       {selected && (
         <div className="fixed inset-0 flex items-end md:items-center justify-center z-50 p-0 md:p-4"
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
@@ -283,6 +350,8 @@ export default function PendingApprovalsPage() {
             <div className="flex justify-center pt-3 pb-1 md:hidden">
               <div className="w-10 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }} />
             </div>
+
+            {/* Header */}
             <div className="flex items-center justify-between px-5 py-3.5"
               style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
               <div className="flex items-center gap-2.5">
@@ -303,6 +372,8 @@ export default function PendingApprovalsPage() {
             </div>
 
             <div className="p-5 space-y-4">
+
+              {/* Meta grid — Current Step removed */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                 {[
                   { label: "Requested By", value: selected.requester ?? "—" },
@@ -319,7 +390,7 @@ export default function PendingApprovalsPage() {
 
               {selected.description && (
                 <div className="rounded-xl px-4 py-3"
-                  style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}>
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--gv-glass-border)" }}>
                   <p className="gv-eyebrow text-[10px] mb-1">Description</p>
                   <p className="text-xs leading-relaxed" style={{ color: "var(--gv-text-muted)" }}>{selected.description}</p>
                 </div>
@@ -370,14 +441,15 @@ export default function PendingApprovalsPage() {
 
               {/* Inline error */}
               {actionError && (
-                <div className="rounded-xl px-4 py-3 text-sm font-medium"
-                  style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
+                <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
                   {actionError}
                 </div>
               )}
+
+              {/* Approve + Reject — always visible, no comment textarea */}
               <div className="rounded-xl p-4 space-y-3"
-                style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}>
-                <p className="text-xs font-semibold" style={{ color: "var(--gv-text-primary)" }}>Take Action</p>
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--gv-glass-border)" }}>
+                <p className="gv-eyebrow" style={{ letterSpacing: "0.15em" }}>Take Action</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => takeAction("APPROVED")}

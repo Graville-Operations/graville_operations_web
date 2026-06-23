@@ -1,4 +1,3 @@
-
 export type InvoiceType = 'Client' | 'Company' | 'Supplier' | 'Contractor';
 
 export interface InvoicePDFItem {
@@ -19,6 +18,13 @@ export interface InvoicePDFData {
   createdAt:   string;
   total:       number;
   items:       InvoicePDFItem[];
+  // Optional extra metadata — only rendered when supplied (e.g. Supplier invoices)
+  lpoNumber?:      string;
+  deliveryNumber?: string;
+  site?:           string;
+  status?:         string;
+  amountPaid?:     number;
+  balanceDue?:     number;
 }
 
 type RGB = [number, number, number];
@@ -34,6 +40,9 @@ const C: Record<string, RGB> = {
   white:      [255, 255, 255],
   black:      [0,     0,   0],
 };
+
+const toTitleCase = (s: string) =>
+  s.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
   const { default: jsPDF } = await import('jspdf');
@@ -76,17 +85,17 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
     font('bold', 20);
     txt('GRAVILLE ENTERPRISES', ML, 36);
 
+    color(C.brand);
+    font('bold', 13);
+    txt(`${data.invoiceType} Invoice`, ML, 52);
+
+    color(C.muted);
+    font('normal', 9.5);
+    txt(data.invoiceNo ?? '', ML, 65);
+
     color(C.muted);
     font('normal', 9);
-    txt('Operations Management System', ML, 50);
-
-    color(C.ink);
-    font('bold', 22);
-    txt(`${data.invoiceType.toUpperCase()} INVOICE`, MR, 32, { align: 'right' });
-
-    color(C.muted);
-    font('normal', 10);
-    txt(data.invoiceNo ?? '', MR, 48, { align: 'right' });
+    txt('Operations Management System', ML, 78);
 
     stroke(C.brand);
     hline(ML, 90, MR, 1.5);
@@ -111,7 +120,35 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
   drawPageHeader();
   let y = 108;
 
-  const META_H = 90;
+  // ── Meta card — horizontal grid, 4 fields per row ──
+  const billToLabel =
+    data.invoiceType === 'Supplier'   ? 'Supplier'   :
+    data.invoiceType === 'Contractor' ? 'Contractor' :
+    data.invoiceType === 'Company'    ? 'Company'    : 'Bill To';
+
+  const createdByLabel = data.invoiceType === 'Supplier' ? 'Requested By' : 'Created By';
+
+  const metaRows: { label: string; value: string }[] = [
+    { label: billToLabel,    value: data.clientName || '—' },
+    { label: 'Invoice Date', value: data.invoiceDate || '—' },
+    { label: createdByLabel, value: data.createdBy   || '—' },
+    { label: 'Created At',   value: (data.createdAt  || '—').split('T')[0] },
+  ];
+  if (data.lpoNumber)      metaRows.push({ label: 'LPO Number',   value: data.lpoNumber });
+  if (data.deliveryNumber) metaRows.push({ label: 'Delivery No.', value: data.deliveryNumber });
+  if (data.site)           metaRows.push({ label: 'Site',         value: data.site });
+  if (data.status)         metaRows.push({ label: 'Status',       value: toTitleCase(data.status) });
+
+  const META_PAD    = 12;
+  const META_COLS   = 4;
+  const colW        = CW / META_COLS;
+  const cols        = Array.from({ length: META_COLS }, (_, c) => ML + colW * c);
+  const FIELD_TOP    = 18;
+  const FIELD_ROW_H  = 28;
+  const numFieldRows = Math.ceil(metaRows.length / META_COLS);
+  const dividerY      = FIELD_TOP + (numFieldRows - 1) * FIELD_ROW_H + 28;
+  const META_H         = dividerY + 44;
+
   fill(C.brandLight);
   doc.roundedRect(ML, y, CW, META_H, 5, 5, 'F');
   stroke(C.brandBorder);
@@ -121,39 +158,31 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
   fill(C.brand);
   doc.roundedRect(ML, y, 4, META_H, 2, 2, 'F');
 
-  const colW = CW / 4;
-  const cols = [ML, ML + colW, ML + colW * 2, ML + colW * 3];
-  const PAD  = 12;
-
   const metaField = (label: string, value: string, cx: number, cy: number) => {
     color(C.brand);
     font('normal', 7);
-    txt(label.toUpperCase(), cx + PAD, cy);
+    txt(label, cx + META_PAD, cy);
     color(C.ink);
     font('bold', 9.5);
-    txt(value || '—', cx + PAD, cy + 13, { maxWidth: colW - PAD - 4 });
+    txt(value || '—', cx + META_PAD, cy + 13, { maxWidth: colW - META_PAD - 4 });
   };
 
-  const billToLabel =
-    data.invoiceType === 'Supplier'   ? 'Supplier'   :
-    data.invoiceType === 'Contractor' ? 'Contractor' :
-    data.invoiceType === 'Company'    ? 'Company'    : 'Bill To';
-
-  metaField(billToLabel,    data.clientName,                          cols[0], y + 18);
-  metaField('Invoice Date', data.invoiceDate ?? '—',                  cols[1], y + 18);
-  metaField('Created By',   data.createdBy   ?? '—',                  cols[2], y + 18);
-  metaField('Created At',   (data.createdAt  ?? '—').split('T')[0],   cols[3], y + 18);
+  metaRows.forEach((row, i) => {
+    const r = Math.floor(i / META_COLS);
+    const c = i % META_COLS;
+    metaField(row.label, row.value, cols[c], y + FIELD_TOP + r * FIELD_ROW_H);
+  });
 
   stroke(C.brandBorder);
   doc.setLineWidth(0.4);
-  hline(ML + 8, y + 46, MR - 8, 0.4);
+  hline(ML + 8, y + dividerY, MR - 8, 0.4);
 
   color(C.brand);
   font('normal', 7);
-  txt('AMOUNT DUE (KES)', cols[0] + PAD, y + 60);
+  txt('Amount Due (KES)', cols[0] + META_PAD, y + dividerY + 14);
   color(C.brand);
   font('bold', 14);
-  txt(`KES ${(data.total ?? 0).toLocaleString()}`, cols[0] + PAD, y + 75);
+  txt(`KES ${(data.total ?? 0).toLocaleString()}`, cols[0] + META_PAD, y + dividerY + 29);
 
   y += META_H + 20;
   const TW = {
@@ -199,10 +228,10 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
     font('bold', 8);
     const hY = ty + 18;
     txt('#',                TX.idx    + 2, hY);
-    txt('PARTICULARS',      TX.desc   + 4, hY);
-    txt('QTY',              TX.qty    + 4, hY);
-    txt('UNIT PRICE (KES)', TX.up     + 4, hY);
-    txt('TOTAL (KES)',      TX.total,      hY, { align: 'right' });
+    txt('Particulars',      TX.desc   + 4, hY);
+    txt('Qty',              TX.qty    + 4, hY);
+    txt('Unit Price (KES)', TX.up     + 4, hY);
+    txt('Total (KES)',      TX.total,      hY, { align: 'right' });
   };
 
   drawTableHead(y);
@@ -265,11 +294,33 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
   const gtY = y + 22;
   color(C.muted);
   font('normal', 9);
-  txt('GRAND TOTAL', TX.up + 4, gtY);
+  txt('Grand Total', TX.up + 4, gtY);
   color(C.brand);
   font('bold', 13);
   txt(`KES ${(data.total ?? 0).toLocaleString()}`, TX.total, gtY, { align: 'right' });
   y += 34;
+
+  // ── Amount paid / balance due — only rendered when supplied ──
+  if (data.amountPaid != null || data.balanceDue != null) {
+    const extraRows: { label: string; value: number; emphasize?: boolean }[] = [];
+    if (data.amountPaid != null) extraRows.push({ label: 'Amount Paid', value: data.amountPaid });
+    if (data.balanceDue != null) extraRows.push({ label: 'Balance Due', value: data.balanceDue, emphasize: true });
+
+    extraRows.forEach((row) => {
+      stroke(C.hairline);
+      doc.setLineWidth(0.4);
+      hline(ML, y, MR, 0.4);
+      const ry = y + 15;
+      color(C.muted);
+      font('normal', 9);
+      txt(row.label, TX.up + 4, ry);
+      color(row.emphasize ? C.brand : C.ink);
+      font(row.emphasize ? 'bold' : 'normal', 10);
+      txt(`KES ${row.value.toLocaleString()}`, TX.total, ry, { align: 'right' });
+      y += 22;
+    });
+  }
+
   if (data.notes) {
     const PAD_V = 10;
     const PAD_H = 12;
@@ -288,7 +339,7 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
 
     color(C.subtle);
     font('normal', 7.5);
-    txt('NOTES', ML + PAD_H, y + PAD_V + 8);
+    txt('Notes', ML + PAD_H, y + PAD_V + 8);
 
     color(C.muted);
     font('normal', 9);
