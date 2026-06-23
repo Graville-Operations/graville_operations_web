@@ -40,7 +40,7 @@ export const letterSpacing = {
 export const typography = {
 
   title: {
-    /** 36px — Hero / page-level heading */
+
     xl: {
       fontFamily: FONT_SANS,
       fontSize: fontSize['3xl'],
@@ -49,7 +49,7 @@ export const typography = {
       letterSpacing: letterSpacing.tight,
     } satisfies CSSProperties,
 
-    /** 30px — Card or section heading */
+  
     lg: {
       fontFamily: FONT_SANS,
       fontSize: fontSize['2xl'],
@@ -58,7 +58,7 @@ export const typography = {
       letterSpacing: letterSpacing.tight,
     } satisfies CSSProperties,
 
-    /** 24px — Panel / widget heading */
+    
     md: {
       fontFamily: FONT_SANS,
       fontSize: fontSize.xl,
@@ -70,7 +70,7 @@ export const typography = {
 
  
   subtitle: {
-    /** 20px — Below a hero title */
+    
     lg: {
       fontFamily: FONT_SANS,
       fontSize: fontSize.lg,
@@ -79,7 +79,6 @@ export const typography = {
       letterSpacing: letterSpacing.normal,
     } satisfies CSSProperties,
 
-    /** 18px — Below a section heading */
     md: {
       fontFamily: FONT_SANS,
       fontSize: fontSize.md,
@@ -88,7 +87,6 @@ export const typography = {
       letterSpacing: letterSpacing.normal,
     } satisfies CSSProperties,
 
-    /** 16px — Below a card heading */
     sm: {
       fontFamily: FONT_SANS,
       fontSize: fontSize.base,
@@ -100,7 +98,7 @@ export const typography = {
 
  
   label: {
-    /** 12px — Table column headers, section eyebrows */
+   
     xs: {
       fontFamily: FONT_SANS,
       fontSize: fontSize.xs,
@@ -110,7 +108,7 @@ export const typography = {
       textTransform: 'uppercase' as const,
     } satisfies CSSProperties,
 
-    /** 14px — Form field labels, sidebar nav */
+    
     sm: {
       fontFamily: FONT_SANS,
       fontSize: fontSize.sm,
@@ -120,7 +118,7 @@ export const typography = {
       textTransform: 'uppercase' as const,
     } satisfies CSSProperties,
 
-    /** 16px — Prominent labels, active nav items */
+  
     md: {
       fontFamily: FONT_SANS,
       fontSize: fontSize.base,
@@ -132,7 +130,7 @@ export const typography = {
 
 
   body: {
-    /** 14px — Secondary content, helper text, timestamps */
+  
     sm: {
       fontFamily: FONT_SANS,
       fontSize: fontSize.sm,
@@ -150,7 +148,6 @@ export const typography = {
       letterSpacing: letterSpacing.normal,
     } satisfies CSSProperties,
 
-    /** 18px — Comfortable reading, detail pages */
     lg: {
       fontFamily: FONT_SANS,
       fontSize: fontSize.md,
