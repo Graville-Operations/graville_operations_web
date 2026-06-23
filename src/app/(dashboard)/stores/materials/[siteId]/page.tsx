@@ -3,6 +3,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Package, AlertTriangle, ChevronLeft, Loader2 } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
+import { useCachedLookup } from '@/hooks/useCachedLookup';
 import type { MaterialItem, PagedResponse, Site } from '@/types/store';
 
 const LIMIT = 20;
@@ -146,7 +147,7 @@ export default function MaterialsPage() {
   const [skip,        setSkip]        = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const { data: sitesRaw } = useApi<Site[] | { items: Site[] }>('/sites/list');
+  const { data: sitesRaw } = useCachedLookup<Site[] | { items: Site[] }>('/sites/list');
   const sites: Site[] = useMemo(
     () => sitesRaw ? (Array.isArray(sitesRaw) ? sitesRaw : (sitesRaw.items ?? [])) : [],
     [sitesRaw],
