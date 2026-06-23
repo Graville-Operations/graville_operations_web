@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   X, FileText, Plus, Search, ChevronDown, Check,
   Send, Pencil, Tag, Trash2, AlertTriangle,
@@ -9,27 +9,19 @@ import {
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { getRole } from "@/lib/auth";
-import { PermitListItem, PermitDetail, PermitCategory, STATUS_STYLES, APPROVAL_STYLES } from "@/types/permits";
+import {
+  PermitListItem, PermitDetail, PermitCategory,
+  STATUS_STYLES, APPROVAL_STYLES,
+} from "@/types/permits";
 
 // ─── Local types ──────────────────────────────────────────────────────────────
 
 interface ApiUser { id: number; firstName: string; lastName: string; }
 interface SelectedApprover { userId: number; name: string; stepOrder: number; }
 
-interface RawApproval {
-  id:          number;
-  permit_id:   number;
-  approver:    string;   // "First Last" — from backend mapper
-  step_order:  number;
-  status:      string;
-  comment:     string | null;
-  actioned_at: string | null;
-  created_at:  string;
-}
-
-interface PermitDetailWithRaw extends Omit<PermitDetail, "approvals"> {
-  approvals: RawApproval[];
-}
+// PermitApproval and PermitDetail are imported from @/types/permits
+// PermitDetail.approvals already types approver as string from the backend mapper
+type PermitDetailWithRaw = PermitDetail;
 
 const MANAGER_ROLES  = ["DIRECTOR", "DEPARTMENT_MANAGER"];
 const FIELD_OPERATOR = "FIELD_OPERATOR";
@@ -83,22 +75,70 @@ function Spinner() {
   );
 }
 
-// ─── Stat card ────────────────────────────────────────────────────────────────
-
-function StatCard({ label, count, hoverBg }: { label: string; count: number; hoverBg: string }) {
-  const [hovered, setHovered] = useState(false);
+/** A shimmering skeleton block — uses the global @keyframes shimmer sweep */
+function Shimmer({ className = "", style = {} }: { className?: string; style?: React.CSSProperties }) {
   return (
     <div
-      className="gv-card gv-stat-card cursor-default transition-all duration-200"
-      style={{
-        transform:  hovered ? "translateY(-3px)" : "translateY(0)",
-        background: hovered ? hoverBg : undefined,
-        boxShadow:  hovered ? "0 8px 24px rgba(0,0,0,0.3)" : undefined,
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}>
+      className={`relative overflow-hidden rounded-md ${className}`}
+      style={{ background: "rgba(255,255,255,0.06)", ...style }}>
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)",
+          transform: "translateX(-100%)",
+          animation: "shimmer 1.5s infinite",
+        }}
+      />
+    </div>
+  );
+}
+
+/** Skeleton row matching the desktop permits table columns */
+function SkeletonRow() {
+  return (
+    <tr style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
+      <td className="px-4 py-3"><Shimmer className="h-4 w-32" /></td>
+      <td className="px-4 py-3"><Shimmer className="h-4 w-20" /></td>
+      <td className="px-4 py-3"><Shimmer className="h-5 w-16 rounded-full" /></td>
+      <td className="px-4 py-3"><Shimmer className="h-4 w-24" /></td>
+      <td className="px-4 py-3"><Shimmer className="h-4 w-16" /></td>
+    </tr>
+  );
+}
+
+/** Skeleton card matching the mobile permit card layout */
+function SkeletonCard() {
+  return (
+    <div className="gv-card" style={{ padding: "14px 16px" }}>
+      <div className="flex items-center justify-between mb-2">
+        <Shimmer className="h-4 w-28" />
+        <Shimmer className="h-5 w-16 rounded-full" />
+      </div>
+      <Shimmer className="h-3 w-20 mb-3" />
+      <div className="flex items-center justify-between pt-2.5" style={{ borderTop: "1px solid var(--gv-glass-border)" }}>
+        <Shimmer className="h-3 w-16" />
+      </div>
+    </div>
+  );
+}
+
+/** Skeleton stat card matching StatCard layout */
+function SkeletonStatCard() {
+  return (
+    <div className="gv-card gv-stat-card">
+      <Shimmer className="h-9 w-12 mb-2" />
+      <Shimmer className="h-3 w-14" />
+    </div>
+  );
+}
+
+// ─── Stat card ────────────────────────────────────────────────────────────────
+
+function StatCard({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="gv-card gv-stat-card">
       <p className="text-4xl font-bold text-white leading-none" style={{ letterSpacing: "-0.02em" }}>{count}</p>
-      <p className="text-xs mt-2" style={{ color: "var(--gv-text-muted)" }}>{label}</p>
+      <p className="gv-eyebrow mt-2">{label}</p>
     </div>
   );
 }
@@ -111,7 +151,7 @@ function DeleteConfirmModal({ categoryName, onConfirm, onCancel, deleting }: {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[70] p-4"
       style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-6 space-y-4"
+      <div className="w-full max-w-sm rounded-2xl space-y-4 p-6"
         style={{ background: "#0d1528", border: "1px solid rgba(248,113,113,0.3)" }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
@@ -183,8 +223,7 @@ function CategoryFormModal({ editTarget, onClose, onSaved }: {
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-md rounded-2xl overflow-hidden"
         style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)" }}>
-        <div className="flex items-center justify-between px-6 py-4"
-          style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--gv-glass-border)" }}>
           <div className="flex items-center gap-3">
             <div className="gv-icon-box"><Tag size={16} className="text-[#33907c]" /></div>
             <h3 className="font-bold text-base" style={{ color: "var(--gv-text-primary)" }}>
@@ -197,8 +236,7 @@ function CategoryFormModal({ editTarget, onClose, onSaved }: {
         </div>
         <div className="p-6 space-y-4">
           {formError && (
-            <div className="rounded-xl px-3 py-2 text-xs font-medium"
-              style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
+            <div className="rounded-xl px-3 py-2 text-xs font-medium" style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
               {formError}
             </div>
           )}
@@ -216,8 +254,7 @@ function CategoryFormModal({ editTarget, onClose, onSaved }: {
               value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
           </div>
           <div className="flex gap-3 pt-1">
-            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(255,255,255,0.05)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}>
+            <button onClick={onClose} className="gv-btn-outline flex-1 py-2.5 rounded-xl text-sm">
               Cancel
             </button>
             <button onClick={handleSave} disabled={saving}
@@ -304,7 +341,27 @@ function CategoriesTab() {
         </button>
       </div>
       <div className="gv-card p-0! overflow-hidden">
-        {loading ? <Spinner /> : categories.length === 0 ? (
+        {loading ? (
+          <table className="w-full">
+            <thead>
+              <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
+                {["Name", "Description", "Actions"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: "#33907c" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
+                  <td className="px-4 py-3"><Shimmer className="h-4 w-28" /></td>
+                  <td className="px-4 py-3"><Shimmer className="h-4 w-40" /></td>
+                  <td className="px-4 py-3"><Shimmer className="h-4 w-12" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : categories.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48">
             <FileText size={40} style={{ color: "var(--gv-text-faint)" }} className="mb-3" />
             <p className="text-sm mb-3" style={{ color: "var(--gv-text-subtle)" }}>No categories yet.</p>
@@ -422,7 +479,7 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
     return (
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4"
         style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}>
-        <div className="w-full max-w-sm rounded-2xl p-8 flex flex-col items-center text-center space-y-4"
+        <div className="w-full max-w-sm rounded-2xl flex flex-col items-center text-center space-y-4 p-8"
           style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)" }}>
           <div className="w-14 h-14 rounded-full flex items-center justify-center"
             style={{ background: "rgba(51,144,124,0.2)", border: "2px solid #33907c" }}>
@@ -449,8 +506,7 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
         <div className="flex justify-center pt-3 pb-1 md:hidden">
           <div className="w-10 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.15)" }} />
         </div>
-        <div className="flex items-center justify-between px-6 py-4"
-          style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--gv-glass-border)" }}>
           <div className="flex items-center gap-3">
             <div className="gv-icon-box"><Pencil size={16} className="text-[#33907c]" /></div>
             <div>
@@ -469,8 +525,7 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
 
         <div className="p-6 space-y-4">
           {error && (
-            <div className="rounded-xl px-4 py-3 text-sm font-medium"
-              style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
+            <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.25)" }}>
               {error}
             </div>
           )}
@@ -552,15 +607,13 @@ function DraftEditModal({ permit, categories, users, onClose, onSubmitted }: {
             )}
           </div>
 
-          <div className="rounded-xl px-4 py-3 text-xs"
-            style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24" }}>
+          <div className="rounded-xl px-4 py-3 text-xs" style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24" }}>
             Once submitted, the permit will be sent to approvers and cannot be edited.
           </div>
 
           <div className="flex gap-3 pt-1">
             {/* ✅ Cancel → only onClose, permit stays Draft in the list */}
-            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "var(--gv-glass-bg)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}>
+            <button onClick={onClose} className="gv-btn-outline flex-1 py-2.5 rounded-xl text-sm">
               Cancel
             </button>
             <button onClick={handleSubmit} disabled={submitting}
@@ -629,7 +682,7 @@ function PermitDetailModal({ selected, onClose }: {
 
           {selected.description && (
             <div className="rounded-xl px-4 py-3"
-              style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)" }}>
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--gv-glass-border)" }}>
               <p className="gv-eyebrow text-[10px] mb-1">Description</p>
               <p className="text-xs leading-relaxed" style={{ color: "var(--gv-text-muted)" }}>{selected.description}</p>
             </div>
@@ -686,10 +739,10 @@ function PermitDetailModal({ selected, onClose }: {
 const STATUS_TABS = ["All", "Draft", "Pending", "In Review", "Approved", "Rejected"] as const;
 
 const STAT_DEFS = [
-  { label: "Total",    hoverBg: "rgba(255,255,255,0.08)" },
-  { label: "Pending",  hoverBg: "rgba(96,165,250,0.15)"  },
-  { label: "Approved", hoverBg: "rgba(51,144,124,0.20)"  },
-  { label: "Rejected", hoverBg: "rgba(248,113,113,0.15)" },
+  { label: "Total" },
+  { label: "Pending" },
+  { label: "Approved" },
+  { label: "Rejected" },
 ];
 
 // ─── Main dashboard ───────────────────────────────────────────────────────────
@@ -726,22 +779,33 @@ export default function PermitsDashboard() {
         setCategories(rawCats.map(normaliseCategory));
         const up = usersRes.data?.data ?? usersRes.data;
         setUsers(Array.isArray(up) ? up : up?.items ?? []);
-
-        // Pre-fetch all permit details in background so tapping opens instantly
-        const cache: Record<number, PermitDetailWithRaw> = {};
-        await Promise.all(
-          list.map(async (p) => {
-            try {
-              const res = await api.get(`/permits/get/${p.id}`);
-              if (res.data?.data) cache[p.id] = res.data.data as PermitDetailWithRaw;
-            } catch { /* skip silently */ }
-          })
-        );
-        setDetailCache(cache);
       } catch (err) { console.error(err); }
-      finally { setIsLoading(false); }
+      finally {
+        // ✅ Show the list immediately — don't wait for detail pre-fetches
+        setIsLoading(false);
+      }
     })();
   }, []);
+
+  // Pre-fetch permit details in the background after the list renders
+  // This runs without blocking the UI — tapping a row will open instantly once cached
+  useEffect(() => {
+    if (permits.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const cache: Record<number, PermitDetailWithRaw> = {};
+      await Promise.all(
+        permits.map(async (p) => {
+          try {
+            const res = await api.get(`/permits/get/${p.id}`);
+            if (res.data?.data) cache[p.id] = res.data.data as PermitDetailWithRaw;
+          } catch { /* skip silently */ }
+        })
+      );
+      if (!cancelled) setDetailCache(cache);
+    })();
+    return () => { cancelled = true; };
+  }, [permits]);
 
   /** Only called after a successful submit — refreshes the list so Draft → Pending */
   const refresh = async () => {
@@ -822,13 +886,13 @@ export default function PermitsDashboard() {
       {activeTab === "permits" && (
         <>
           {/* Stat cards */}
-          {!isLoading && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {STAT_DEFS.map((s, i) => (
-                <StatCard key={s.label} label={s.label} count={statCounts[i]} hoverBg={s.hoverBg} />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {isLoading
+              ? Array.from({ length: 4 }).map((_, i) => <SkeletonStatCard key={i} />)
+              : STAT_DEFS.map((s, i) => (
+                  <StatCard key={s.label} label={s.label} count={statCounts[i]} />
+                ))}
+          </div>
 
           <div className="gv-card p-3!">
             <div className="relative">
@@ -844,10 +908,12 @@ export default function PermitsDashboard() {
               const isActive = activeStatus === tab;
               return (
                 <button key={tab} onClick={() => setActiveStatus(tab)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                  style={isActive
-                    ? { background: "#33907c", color: "white" }
-                    : { background: "var(--gv-glass-bg)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}>
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer"
+                  style={{
+                    background: isActive ? "rgba(51,144,124,0.15)" : "var(--gv-glass-bg)",
+                    color:      isActive ? "#33907c" : "var(--gv-text-muted)",
+                    border:     `1px solid ${isActive ? "rgba(51,144,124,0.5)" : "var(--gv-glass-border)"}`,
+                  }}>
                   {tab}
                   <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold"
                     style={{ background: isActive ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)" }}>
@@ -860,7 +926,21 @@ export default function PermitsDashboard() {
 
           {/* Table — desktop: Step column removed */}
           <div className="gv-card p-0! overflow-hidden hidden md:block">
-            {isLoading ? <Spinner /> : filtered.length === 0 ? (
+            {isLoading ? (
+              <table className="w-full">
+                <thead>
+                  <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
+                    {["Title", "Category", "Status", "Date", ""].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                        style={{ color: "#33907c" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
+                </tbody>
+              </table>
+            ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 gap-3">
                 <FileText size={40} style={{ color: "var(--gv-text-faint)" }} />
                 <p className="text-sm" style={{ color: "var(--gv-text-subtle)" }}>
@@ -911,7 +991,11 @@ export default function PermitsDashboard() {
 
           {/* Cards — mobile: Step removed */}
           <div className="space-y-2 md:hidden">
-            {isLoading ? <Spinner /> : filtered.length === 0 ? (
+            {isLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 gap-3">
                 <p className="text-sm" style={{ color: "var(--gv-text-subtle)" }}>
                   {activeStatus === "All" ? "No permits yet" : `No ${activeStatus} permits`}
@@ -954,7 +1038,7 @@ export default function PermitsDashboard() {
           permit={draftEdit}
           categories={categories}
           users={users}
-          onClose={() => setDraftEdit(null)}       
+          onClose={() => setDraftEdit(null)}        
           onSubmitted={refresh}                     
         />
       )}

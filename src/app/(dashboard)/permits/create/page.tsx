@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Check, ArrowRight, Send, ArrowLeft } from "lucide-react";
 import api from "@/lib/api";
@@ -29,10 +29,32 @@ function unwrapArray<T>(response: unknown): T[] {
   return [];
 }
 
+/**
+ * Auto-resizes a textarea to fit its content.
+ * Call on every onChange and once on mount via a ref callback.
+ */
 function autoResize(el: HTMLTextAreaElement | null) {
   if (!el) return;
   el.style.height = "auto";
   el.style.height = `${el.scrollHeight}px`;
+}
+
+/** A shimmering skeleton block — uses the global @keyframes shimmer sweep */
+function Shimmer({ className = "", style = {} }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-md ${className}`}
+      style={{ background: "rgba(255,255,255,0.06)", ...style }}>
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)",
+          transform: "translateX(-100%)",
+          animation: "shimmer 1.5s infinite",
+        }}
+      />
+    </div>
+  );
 }
 
 /** Safely format any date string — returns "—" instead of "Invalid Date" */
@@ -164,6 +186,8 @@ export default function CreatePermitPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+
+      {/* Header */}
       <div className="flex items-center gap-3">
         <button
           onClick={() => step === "confirm" ? setStep("form") : router.back()}
@@ -191,6 +215,8 @@ export default function CreatePermitPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Form step ──────────────────────────────────────────────────── */}
       {step === "form" && (
         <div className="gv-card space-y-6 p-8 md:p-10">
           {error && (
@@ -227,31 +253,37 @@ export default function CreatePermitPage() {
 
           <div>
             <label className="gv-eyebrow mb-1 block">Category *</label>
-            <select value={form.categoryId}
-              onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
-              className="gv-input w-full text-sm py-3"
-              style={{ background: "var(--gv-glass-bg)", color: form.categoryId ? "white" : "var(--gv-text-faint)" }}>
-              <option value="" style={{ background: "#0d1528" }}>
-                {categories.length === 0 ? "Loading categories…" : "Select category"}
-              </option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id} style={{ background: "#0d1528", color: "#fff" }}>{c.name}</option>
-              ))}
-            </select>
+            {categories.length === 0 ? (
+              <Shimmer className="h-[46px] w-full" />
+            ) : (
+              <select value={form.categoryId}
+                onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
+                className="gv-input w-full text-sm py-3"
+                style={{ background: "var(--gv-glass-bg)", color: form.categoryId ? "white" : "var(--gv-text-faint)" }}>
+                <option value="" style={{ background: "#0d1528" }}>Select category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id} style={{ background: "#0d1528", color: "#fff" }}>{c.name}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div ref={approverRef} className="relative">
             <label className="gv-eyebrow mb-1 block">Approvers *</label>
-            <button type="button" onClick={() => setApproverOpen((p) => !p)}
-              className="gv-input w-full text-sm py-3 flex items-center justify-between"
-              style={{ color: selectedApprovers.length ? "white" : "var(--gv-text-faint)" }}>
-              <span className="truncate">
-                {selectedApprovers.length === 0
-                  ? users.length === 0 ? "Loading users…" : "Select approvers"
-                  : selectedApprovers.map((a) => a.name).join(", ")}
-              </span>
-              <ChevronDown size={15} className={`ml-2 shrink-0 transition-transform ${approverOpen ? "rotate-180" : ""}`} />
-            </button>
+            {users.length === 0 ? (
+              <Shimmer className="h-[46px] w-full" />
+            ) : (
+              <button type="button" onClick={() => setApproverOpen((p) => !p)}
+                className="gv-input w-full text-sm py-3 flex items-center justify-between"
+                style={{ color: selectedApprovers.length ? "white" : "var(--gv-text-faint)" }}>
+                <span className="truncate">
+                  {selectedApprovers.length === 0
+                    ? "Select approvers"
+                    : selectedApprovers.map((a) => a.name).join(", ")}
+                </span>
+                <ChevronDown size={15} className={`ml-2 shrink-0 transition-transform ${approverOpen ? "rotate-180" : ""}`} />
+              </button>
+            )}
             {approverOpen && (
               <div className="absolute z-20 w-full rounded-xl shadow-xl flex flex-col"
                 style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)", bottom: "calc(100% + 4px)" }}>
@@ -295,6 +327,8 @@ export default function CreatePermitPage() {
           </button>
         </div>
       )}
+
+      {/* ─── Confirm step ───────────────────────────────────────────────── */}
       {step === "confirm" && createdPermit && (
         <div className="space-y-4">
           {error && (
