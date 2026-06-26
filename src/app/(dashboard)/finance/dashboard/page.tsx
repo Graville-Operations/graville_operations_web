@@ -243,6 +243,7 @@ export default function FinanceDashboardPage() {
     });
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadSiteStats(); }, [loadSiteStats]);
 
   const retryAll = () => {
