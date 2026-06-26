@@ -61,8 +61,8 @@ interface AttendanceDay {
    Helpers
 ───────────────────────────────────────────── */
 function toISO(d: Date) {
-  const y   = d.getFullYear();
-  const m   = String(d.getMonth() + 1).padStart(2, '0');
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
@@ -81,13 +81,13 @@ function normaliseAnalyticsResponse(raw: unknown): AttendanceDay[] {
   else if (Array.isArray(raw)) arr = raw as unknown[];
   return arr
     .map((row: any) => ({
-      date: String(row.date ?? row.attendance_date ?? ''),
+      date: String(row.date ?? row.attendance_date ?? row.day ?? ''),
       present_count: Number(
         row.attendance_count ?? row.present_count ?? row.present ??
         row.count ?? row.workers_present ?? row.total_present ?? row.total ?? 0,
       ),
     }))
-    .filter(r => r.date !== '' && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
+    .filter(r => r.date !== '');
 }
 
 async function fetchAttendanceAnalytics(startDate: string, endDate: string): Promise<AttendanceDay[]> {
@@ -97,20 +97,11 @@ async function fetchAttendanceAnalytics(startDate: string, endDate: string): Pro
     });
     return normaliseAnalyticsResponse(res.data);
   } catch (err) {
-    console.warn('[Attendance/analytics] fetch error:', err);
+    console.warn(`[Attendance] fetch error:`, err);
     return [];
   }
 }
 
-async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
-  const res = await api.get('/sites/dashboard-metrics');
-  const d = (res.data as any)?.data ?? res.data;
-  return d as DashboardMetrics;
-}
-
-/* ─────────────────────────────────────────────
-   KPI Card
-───────────────────────────────────────────── */
 function KpiCard({ label, value, sub, icon: Icon, loading }: {
   label: string; value: React.ReactNode; sub?: string;
   icon: React.ElementType; loading?: boolean;
@@ -158,13 +149,11 @@ function StatusCard({ label, value, color, loading }: {
    Calendar Picker
 ───────────────────────────────────────────── */
 function CalendarPicker({
-  dateFrom, dateTo, onSelect, onClose, constrainWidth, anchorRef,
+  dateFrom, dateTo, onSelect, onClose,
 }: {
   dateFrom: string; dateTo: string;
   onSelect: (from: string, to: string) => void;
   onClose: () => void;
-  constrainWidth?: boolean;
-  anchorRef?: React.RefObject<HTMLElement>;
 }) {
   const today = new Date();
   const [viewYear, setViewYear]   = useState(today.getFullYear());
@@ -178,17 +167,17 @@ function CalendarPicker({
   const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAY_NAMES   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 
-  const [maxW, setMaxW] = useState<number | undefined>(undefined);
-  useEffect(() => {
-    if (constrainWidth && anchorRef?.current) {
-      setMaxW(anchorRef.current.getBoundingClientRect().width);
-    }
-  }, [constrainWidth, anchorRef]);
+  // const [maxW, setMaxW] = useState<number | undefined>(undefined);
+  // useEffect(() => {
+  //   if (constrainWidth && anchorRef?.current) {
+  //     setMaxW(anchorRef.current.getBoundingClientRect().width);
+  //   }
+  // }, [constrainWidth, anchorRef]);
 
   function getDaysInMonth(year: number, month: number) {
-    const firstDay = new Date(year, month, 1);
-    const startDow = (firstDay.getDay() + 6) % 7;
-    const daysInMo = new Date(year, month + 1, 0).getDate();
+    const firstDay  = new Date(year, month, 1);
+    const startDow  = (firstDay.getDay() + 6) % 7;
+    const daysInMo  = new Date(year, month + 1, 0).getDate();
     const days: (Date | null)[] = [];
     for (let i = 0; i < startDow; i++) days.push(null);
     for (let d = 1; d <= daysInMo; d++) days.push(new Date(year, month, d));
@@ -234,17 +223,11 @@ function CalendarPicker({
   while (weeks[weeks.length - 1]?.length < 7) weeks[weeks.length - 1].push(null);
 
   return (
-    <div
-      className="absolute z-50 rounded-2xl shadow-2xl p-4 select-none"
+    <div className="absolute z-50 rounded-2xl shadow-2xl p-4 select-none"
       style={{
-        background: 'rgba(18,20,30,0.98)',
-        border: '1px solid rgba(255,255,255,0.15)',
-        backdropFilter: 'blur(20px)',
-        top: '100%', left: 0, marginTop: 8,
-        minWidth: 280,
-        ...(maxW ? { width: maxW } : {}),
-      }}
-    >
+        background: 'rgba(18,20,30,0.98)', border: '1px solid rgba(255,255,255,0.15)',
+        backdropFilter: 'blur(20px)', top: '100%', left: 0, marginTop: 8, minWidth: 280,
+      }}>
       <div className="flex items-center justify-between mb-3">
         <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg"
           style={{ background: 'rgba(255,255,255,0.07)' }}>
@@ -272,12 +255,12 @@ function CalendarPicker({
         <div key={wi} className="grid grid-cols-7">
           {week.map((date, di) => {
             if (!date) return <div key={di} />;
-            const selected    = isSelected(date);
-            const inR         = inRange(date);
-            const iso         = toISO(date);
-            const isFrom      = iso === dateFrom;
-            const isTo        = iso === dateTo;
-            const isTodayDate = iso === toISO(today);
+            const selected     = isSelected(date);
+            const inR          = inRange(date);
+            const iso          = toISO(date);
+            const isFrom       = iso === dateFrom;
+            const isTo         = iso === dateTo;
+            const isTodayDate  = iso === toISO(today);
             return (
               <div key={di} className="flex items-center justify-center"
                 style={{
@@ -321,13 +304,12 @@ function CalendarPicker({
    Attendance Bar Chart
 ───────────────────────────────────────────── */
 interface Bar {
-  label: string;
-  fullLabel: string;
-  date: string;
-  dateDisplay: string;
+  label: string;       // short x-axis label  e.g. "Mon", "1"
+  fullLabel: string;   // full day name        e.g. "Monday"
+  date: string;        // ISO date             e.g. "2025-06-02"
+  dateDisplay: string; // human date           e.g. "02 Jun 2025"
   present: number;
 }
-
 function AttendanceBarChart({
   bars, loading, tab, activeBarIdx, onBarClick,
 }: {
@@ -379,6 +361,7 @@ function AttendanceBarChart({
   const isWeek  = tab === 'Week';
   const isMonth = tab === 'Month';
   const gap  = cW / count;
+  // Thinner bars for month (31 bars) than week (7 bars)
   const barW = Math.max(3, Math.floor(gap) - (count > 20 ? 1 : count > 7 ? 4 : 10));
 
   if (loading) {
@@ -430,6 +413,10 @@ function AttendanceBarChart({
       </svg>
     </div>
   );
+}
+async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
+  const { data } = await api.get('/sites/dashboard/metrics');
+  return (data?.data ?? data) as DashboardMetrics;
 }
 
 /* ─────────────────────────────────────────────
@@ -517,7 +504,7 @@ export default function ProjectsDashboardPage() {
           : String(cur.getDate());
       result.push({
         label,
-        fullLabel:   DAY_FULL[dow],
+        fullLabel:   tab === 'Today' ? 'Today' : DAY_FULL[dow],
         date:        iso,
         dateDisplay: cur.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         present:     lookup[iso] ?? 0,
@@ -540,9 +527,13 @@ export default function ProjectsDashboardPage() {
     } finally {
       setLoadingBars(false);
     }
-  }, [attendanceTab, dateFrom, dateTo]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attendanceTab, dateFrom, dateTo,]);
 
-  useEffect(() => { setActiveBarIdx(null); loadBars(); }, [loadBars]);
+  useEffect(() => {
+    setActiveBarIdx(null);
+    loadBars();
+  }, [loadBars]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -561,12 +552,18 @@ export default function ProjectsDashboardPage() {
 
   function handleBarClick(idx: number | null) {
     if (idx === null) { setActiveBarIdx(null); setOverlayPos(null); return; }
+
     setActiveBarIdx(idx);
+
+    // Position the overlay above the chart card
     if (chartCardRef.current) {
       const rect     = chartCardRef.current.getBoundingClientRect();
       const count    = bars.length || 1;
+      // fraction of card width where bar centre sits
       const fraction = (idx + 0.5) / count;
-      setOverlayPos({ top: rect.top, left: rect.left + fraction * rect.width });
+      const left     = rect.left + fraction * rect.width;
+      const top      = rect.top;      // overlay will sit above this
+      setOverlayPos({ top, left });
     }
   }
 
@@ -686,7 +683,7 @@ export default function ProjectsDashboardPage() {
                   : 'Select date range'}
                 <ChevronRightIcon className="w-4 h-4 ml-auto opacity-40" />
               </button>
-              {showCalendar && (
+              {/* {showCalendar && (
                 <CalendarPicker
                   dateFrom={dateFrom} dateTo={dateTo}
                   onSelect={(from, to) => { setDateFrom(from); setDateTo(to); }}
@@ -694,7 +691,7 @@ export default function ProjectsDashboardPage() {
                   constrainWidth
                   anchorRef={attendanceCardRef as React.RefObject<HTMLElement>}
                 />
-              )}
+              )} */}
             </div>
           )}
 

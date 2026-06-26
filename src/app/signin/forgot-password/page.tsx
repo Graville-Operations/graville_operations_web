@@ -19,6 +19,7 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const router = useRouter();
+  const { loadFromStorage } = useAuthStore();
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();

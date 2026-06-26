@@ -208,7 +208,6 @@ export default function ClientInvoiceDetailPage() {
     );
   }
 
-  // ── Loaded ──
   return (
     <div className="space-y-6">
 
