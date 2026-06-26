@@ -1,289 +1,295 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/api";
+import { cacheGet, cacheSet } from "@/lib/persistent-cache";
+import { getTaskHandoff } from "@/lib/task-handoff";
+import { getSite } from "@/lib/sites-cache";
+import { withRetry } from "@/lib/retry";
+import type { Task, SubTask } from "@/lib/types";
 import {
-  ArrowLeft,
-  Plus,
-  CalendarRange,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  Users,
-  Layers,
-  BarChart3,
+  ArrowLeft, Plus, CalendarRange, CheckCircle2, Clock,
+  AlertCircle, Layers, ChevronRight, Loader2, Users, WifiOff, RefreshCw,
 } from "lucide-react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Task {
-  id: number;
-  name: string;
-  description?: string;
-  start_date?: string;
-  end_date?: string;
-  status: "pending" | "in_progress" | "completed";
-}
 
-interface Subtask {
-  id: number;
-  name: string;
-  description?: string;
-  status: "pending" | "in_progress" | "completed";
-  completion_percentage?: number;
-  worker_count?: number;
-  workers?: { id: number; name: string }[];
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; className: string; dotClass: string }
-> = {
+const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   completed: {
     label: "Completed",
+    icon: <CheckCircle2 size={12} />,
     className: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-    dotClass: "bg-emerald-400",
   },
   in_progress: {
     label: "In Progress",
+    icon: <AlertCircle size={12} />,
     className: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
-    dotClass: "bg-blue-400",
   },
   pending: {
     label: "Pending",
-    className: "bg-slate-500/20 text-slate-400 border border-slate-500/30",
-    dotClass: "bg-slate-400",
+    icon: <Clock size={12} />,
+    className: "bg-white/5 text-[var(--gv-text-muted)] border border-[var(--gv-glass-border)]",
   },
 };
 
 function parseList<T>(data: unknown): T[] {
   if (!data) return [];
-  const arr =
-    (data as Record<string, unknown>)?.items ??
-    (data as Record<string, unknown>)?.data ??
-    (data as Record<string, unknown>)?.subtasks ??
-    data;
+  const d = data as Record<string, unknown>;
+  const arr = d?.items ?? d?.data ?? d?.subtasks ?? data;
   return Array.isArray(arr) ? arr : [];
 }
 
 function formatDate(iso?: string): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+    day: "numeric", month: "short", year: "numeric",
   });
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+
 
 export default function TaskDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const taskId = Number(params?.id);
+  const params       = useParams();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const taskId        = Number(params?.id);
+  const siteIdParam   = searchParams.get("site_id");
+  const siteId        = siteIdParam ? Number(siteIdParam) : null;
 
-  const [task, setTask] = useState<Task | null>(null);
-  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
-  const [loadingTask, setLoadingTask] = useState(true);
-  const [loadingSubtasks, setLoadingSubtasks] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  if (!Number.isFinite(taskId)) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center text-sm text-white/40">
-        Invalid task
-      </div>
-    );
-  }
+  const [task, setTask]               = useState<Task | null>(null);
+  const [taskMissing, setTaskMissing]  = useState(false);
+  const [subtasks, setSubtasks]        = useState<SubTask[]>([]);
+  const [loadingSubs, setLoadingSubs]  = useState(true);
+  const [subsError, setSubsError]      = useState<string | null>(null);
+  const [offline, setOffline]          = useState(false);
+  const [retryInfo, setRetryInfo]      = useState<{ attempt: number; max: number } | null>(null);
 
-  // ── Phase 1: task details ──────────────────────────────────────────────────
-  const loadTask = useCallback(async (cancelled: { v: boolean }) => {
-    try {
-      const res = await api.get(`/tasks/${taskId}`);
-      if (cancelled.v) return;
-      const t = res.data?.data ?? res.data;
-      setTask(t);
-    } catch {
-      if (!cancelled.v) setError("Failed to load task");
-    } finally {
-      if (!cancelled.v) setLoadingTask(false);
+  useEffect(() => {
+    if (!Number.isFinite(taskId)) return;
+    const handed = getTaskHandoff(taskId);
+    if (handed) {
+      setTask(handed);
+    } else {
+      setTaskMissing(true);
     }
   }, [taskId]);
 
-  // ── Phase 2: subtasks ──────────────────────────────────────────────────────
-  const loadSubtasks = useCallback(async (cancelled: { v: boolean }) => {
+ 
+  // Auto-retries 3 times
+  const loadSubtasks = useCallback(async () => {
+    const cacheKey = `subtasks:${taskId}`;
+
+    const cached = cacheGet<SubTask[]>(cacheKey);
+    if (cached) {
+      setSubtasks(cached);
+      setLoadingSubs(false);
+    }
+
+    setSubsError(null);
+    setRetryInfo(null);
+
     try {
-      const res = await api.get(`/tasks/${taskId}/subtasks`);
-      if (cancelled.v) return;
-      setSubtasks(parseList<Subtask>(res.data?.data ?? res.data));
+      const list = await withRetry(
+        async () => {
+          const res = await api.get(`/tasks/sub-task/list/${taskId}`);
+          return parseList<SubTask>(res.data?.data ?? res.data);
+        },
+        {
+          retries: 3,
+          delayMs: 5000,
+          onRetry: (attempt, max) => setRetryInfo({ attempt, max }),
+        }
+      );
+      cacheSet(cacheKey, list);
+      setSubtasks(list);
+      setOffline(false);
     } catch {
-      // non-fatal
+      if (cached) {
+        setOffline(true);
+      } else {
+        setSubsError("Failed to load subtasks.");
+      }
     } finally {
-      if (!cancelled.v) setLoadingSubtasks(false);
+      setLoadingSubs(false);
+      setRetryInfo(null);
     }
   }, [taskId]);
 
   useEffect(() => {
-    const cancelled = { v: false };
-    loadTask(cancelled);
-    loadSubtasks(cancelled);
-    return () => { cancelled.v = true; };
-  }, [loadTask, loadSubtasks]);
+    if (!Number.isFinite(taskId)) return;
+    loadSubtasks();
+  }, [taskId, loadSubtasks]);
 
-  // ── Derived ────────────────────────────────────────────────────────────────
-  const status = STATUS_CONFIG[task?.status ?? "pending"] ?? STATUS_CONFIG.pending;
+  
+  const resolvedSiteId = task?.site_id ?? siteId ?? undefined;
+  const site = resolvedSiteId !== undefined ? getSite(resolvedSiteId) : undefined;
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  function goToCreateSubtask() {
+    const sid = resolvedSiteId;
+    router.push(
+      sid !== undefined
+        ? `/quality/dashboard/tasks/${taskId}/subtasks/create?site_id=${sid}`
+        : `/quality/dashboard/tasks/${taskId}/subtasks/create`
+    );
+  }
+
+  if (!Number.isFinite(taskId)) {
+    return (
+      <div className="gv-page-dashboard flex items-center justify-center text-sm text-[var(--gv-text-subtle)]">
+        Invalid task.
+      </div>
+    );
+  }
+
+ 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
-      {/* Header */}
-      <div className="sticky top-0 z-20 border-b border-white/5 bg-[#0a0a0f]/80 backdrop-blur-md">
-        <div className="mx-auto max-w-6xl px-6 py-4 flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="p-2 rounded-xl hover:bg-white/8 transition-colors text-white/50 hover:text-white"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <div className="flex-1 min-w-0">
-            {loadingTask ? (
-              <div className="h-5 w-40 rounded-lg bg-white/10 animate-pulse" />
-            ) : (
-              <h1 className="text-xl font-bold tracking-tight truncate">
-                {task?.name ?? "Task"}
-              </h1>
-            )}
-          </div>
+    <div className="gv-page-dashboard">
+      <div className="gv-nav sticky top-0 z-20 px-4 sm:px-6 flex items-center gap-3 flex-wrap">
+        <button onClick={() => router.back()} className="gv-btn-outline p-2 w-9 h-9 rounded-xl flex-shrink-0">
+          <ArrowLeft size={18} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg sm:text-xl font-bold text-[var(--gv-text-primary)] tracking-tight truncate">
+            {task?.name ?? (taskMissing ? "Task" : "Loading…")}
+          </h1>
+          {site && <p className="gv-eyebrow mt-0.5">{site.name}</p>}
         </div>
+        <button
+          onClick={goToCreateSubtask}
+          className="gv-btn-brand gap-2 text-sm w-full sm:w-auto justify-center"
+        >
+          <Plus size={16} /> Add Subtask
+        </button>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 py-6 space-y-6">
-        {error && (
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-400 flex items-center gap-3">
-            <AlertCircle size={16} /> {error}
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 py-6 space-y-6">
+
+        {offline && (
+          <div className="gv-card flex items-center gap-3 text-sm text-amber-400 border-amber-500/20 bg-amber-500/10 p-3">
+            <WifiOff size={15} className="flex-shrink-0" />
+            You&apos;re offline — showing cached subtasks.
           </div>
         )}
 
-        {/* Task meta card */}
-        {!loadingTask && task && (
-          <div className="gv-card rounded-2xl border border-white/8 bg-white/[0.04] p-5 space-y-4">
-            {/* Status + date row */}
+        {taskMissing && (
+          <div className="gv-card flex items-center gap-3 text-sm text-red-400 border-red-500/20 bg-red-500/10 p-4">
+            <AlertCircle size={16} className="flex-shrink-0" />
+            Task details aren&apos;t available — open this task from the Tasks list rather than a direct link or reload.
+          </div>
+        )}
+
+        {task && (
+          <div className="gv-card p-5 space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
-              <span
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${status.className}`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`} />
-                {status.label}
+              {(() => {
+                const s = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.pending;
+                return (
+                  <span className={`gv-tag flex items-center gap-1 ${s.className}`}>
+                    {s.icon} {s.label}
+                  </span>
+                );
+              })()}
+              <span className="flex items-center gap-1.5 text-xs text-[var(--gv-text-subtle)]">
+                <CalendarRange size={12} className="text-[var(--gv-brand)]" />
+                {formatDate(task.start_date)} → {formatDate(task.end_date)}
               </span>
-              {(task.start_date || task.end_date) && (
-                <span className="flex items-center gap-1.5 text-xs text-white/50">
-                  <CalendarRange size={12} />
-                  {formatDate(task.start_date)} → {formatDate(task.end_date)}
-                </span>
-              )}
             </div>
-            {/* Description */}
+
             {task.description && (
-              <p className="text-sm text-white/50 leading-relaxed">
+              <p className="text-sm text-[var(--gv-text-muted)] leading-relaxed">
                 {task.description}
               </p>
             )}
           </div>
         )}
-        {loadingTask && (
-          <div className="h-24 rounded-2xl bg-white/5 animate-pulse" />
-        )}
 
         {/* Subtasks section */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-white/70 uppercase tracking-widest">
+            <h2 className="text-sm font-semibold text-[var(--gv-text-primary)] flex items-center gap-2">
+              <Layers size={14} className="text-[var(--gv-brand)]" />
               Subtasks
-              {!loadingSubtasks && (
-                <span className="ml-2 text-white/30 normal-case tracking-normal font-normal">
-                  ({subtasks.length})
-                </span>
+              {subtasks.length > 0 && (
+                <span className="text-xs text-[var(--gv-text-subtle)] font-normal">· {subtasks.length}</span>
               )}
             </h2>
-            <button
-              onClick={() => router.push(`/quality/dashboard/tasks/${taskId}/subtasks/create`)}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-3 py-1.5 text-xs font-medium transition-colors"
-            >
-              <Plus size={13} />
-              Add Subtask
-            </button>
           </div>
 
-          {/* Subtask loading */}
-          {loadingSubtasks && (
+          {retryInfo && (
+            <div className="gv-card flex items-center gap-3 text-sm text-[var(--gv-text-muted)] p-3 mb-2">
+              <RefreshCw size={15} className="flex-shrink-0 animate-spin" />
+              <span>Retrying… ({retryInfo.attempt}/{retryInfo.max})</span>
+            </div>
+          )}
+
+          {subsError && subtasks.length === 0 && (
+            <div className="gv-card flex items-center gap-3 text-sm text-red-400 border-red-500/20 bg-red-500/10 p-3 mb-2">
+              <AlertCircle size={16} className="flex-shrink-0" /> {subsError}
+              <button onClick={loadSubtasks} className="ml-auto underline underline-offset-2 hover:text-red-300 flex-shrink-0">
+                Retry
+              </button>
+            </div>
+          )}
+
+          {loadingSubs && subtasks.length === 0 && !subsError && (
             <div className="space-y-2">
               {[1, 2].map((i) => (
-                <div key={i} className="h-20 rounded-2xl bg-white/5 animate-pulse" />
+                <div key={i} className="h-16 rounded-2xl bg-[var(--gv-glass-bg)] animate-pulse" />
               ))}
             </div>
           )}
 
-          {/* Subtask empty */}
-          {!loadingSubtasks && subtasks.length === 0 && (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-white/25 rounded-2xl border border-white/5 border-dashed">
-              <Layers size={32} strokeWidth={1} />
-              <p className="text-sm">No subtasks yet</p>
+          {loadingSubs && subtasks.length > 0 && (
+            <div className="flex items-center gap-2 text-xs text-[var(--gv-text-subtle)] mb-2">
+              <Loader2 size={12} className="animate-spin" /> Refreshing…
             </div>
           )}
 
-          {/* Subtask list */}
-          {!loadingSubtasks && subtasks.length > 0 && (
+          {!loadingSubs && !subsError && subtasks.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-[var(--gv-text-subtle)]">
+              <Layers size={36} strokeWidth={1} />
+              <p className="text-sm">No subtasks yet</p>
+              <button
+                onClick={goToCreateSubtask}
+                className="text-sm text-[var(--gv-brand)] hover:text-[var(--gv-brand-hover)] underline underline-offset-2"
+              >
+                Add first subtask
+              </button>
+            </div>
+          )}
+
+          {subtasks.length > 0 && (
             <div className="space-y-2">
               {subtasks.map((sub) => {
-                const st =
-                  STATUS_CONFIG[sub.status] ?? STATUS_CONFIG.pending;
-                const pct = sub.completion_percentage ?? 0;
-                const workers =
-                  sub.worker_count ??
-                  sub.workers?.length ??
-                  0;
-
+                const status = STATUS_CONFIG[sub.status] ?? STATUS_CONFIG.pending;
+                const workerCount = sub.assigned_workers?.length ?? 0;
                 return (
-                  <div
-                    key={sub.id}
-                    className="gv-card rounded-2xl border border-white/8 bg-white/[0.04] p-4 space-y-3 hover:bg-white/[0.06] transition-colors"
-                  >
-                    {/* Name + status */}
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-medium text-sm text-white truncate">
-                        {sub.name}
-                      </p>
-                      <span
-                        className={`flex-shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${st.className}`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${st.dotClass}`} />
-                        {st.label}
-                      </span>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="space-y-1">
-                      <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-white/35">
-                        <span className="flex items-center gap-1">
-                          <BarChart3 size={11} />
-                          {pct}% complete
+                  <div key={sub.id} className="gv-card w-full text-left flex items-center gap-4 p-4">
+                    <div className="flex-shrink-0 w-2 h-2 rounded-full bg-[var(--gv-brand)] mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-[var(--gv-text-primary)] truncate">{sub.name}</p>
+                      {sub.description && (
+                        <p className="text-xs text-[var(--gv-text-subtle)] truncate mt-0.5">{sub.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <span className="text-xs text-[var(--gv-text-subtle)]">
+                          {sub.completion_percentage}% complete
                         </span>
-                        {workers > 0 && (
-                          <span className="flex items-center gap-1">
+                        {workerCount > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-[var(--gv-text-subtle)]">
                             <Users size={11} />
-                            {workers} worker{workers !== 1 ? "s" : ""}
+                            {workerCount} worker{workerCount !== 1 ? "s" : ""}
                           </span>
                         )}
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`gv-tag flex items-center gap-1 ${status.className}`}>
+                        {status.icon} {status.label}
+                      </span>
+                      <ChevronRight size={14} className="text-[var(--gv-text-faint)]" />
                     </div>
                   </div>
                 );
@@ -292,15 +298,6 @@ export default function TaskDetailPage() {
           )}
         </div>
       </div>
-
-      {/* FAB */}
-      <button
-        onClick={() => router.push(`/quality/dashboard/tasks/${taskId}/subtasks/create`)}
-        className="fixed bottom-8 right-8 w-14 h-14 rounded-2xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 flex items-center justify-center shadow-xl shadow-blue-900/40 transition-colors"
-        title="Add subtask"
-      >
-        <Plus size={22} />
-      </button>
     </div>
   );
 }

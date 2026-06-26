@@ -96,6 +96,8 @@ const inputCls =
 
 const labelCls = 'block text-xs font-semibold uppercase tracking-wider text-white/40 mb-1';
 
+const SELECT_BG = '#0f1f2e';
+
 
 function NewInvoiceModal({
   onClose,
@@ -305,7 +307,7 @@ function NewInvoiceModal({
                     >
                       <Trash2 size={14} />
                     </button>
-                    {/* Row subtotal hint */}
+
                     {lineTotal > 0 && (
                       <div className="col-span-4 text-right text-xs text-white/30 -mt-1 pr-10">
                         = KES {fmtKes(lineTotal)}
@@ -563,10 +565,15 @@ export default function SubcontractorInvoicesPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
 
+  const DATE_POPUP_WIDTH = 288;
+  const VIEWPORT_MARGIN  = 16;
+
   const openDatePicker = () => {
     if (dateBtnRef.current) {
       const rect = dateBtnRef.current.getBoundingClientRect();
-      setPickerPos({ top: rect.bottom + window.scrollY + 8, left: rect.left + window.scrollX });
+      const maxLeft = window.innerWidth - DATE_POPUP_WIDTH - VIEWPORT_MARGIN;
+      const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.left, maxLeft)) + window.scrollX;
+      setPickerPos({ top: rect.bottom + window.scrollY + 8, left });
     }
     setShowDatePicker(true);
   };
@@ -650,6 +657,19 @@ export default function SubcontractorInvoicesPage() {
   }, []);
 
   useEffect(() => {
+    if (!showDatePicker) return;
+    const onResize = () => {
+      if (!dateBtnRef.current) return;
+      const rect = dateBtnRef.current.getBoundingClientRect();
+      const maxLeft = window.innerWidth - DATE_POPUP_WIDTH - VIEWPORT_MARGIN;
+      const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.left, maxLeft)) + window.scrollX;
+      setPickerPos({ top: rect.bottom + window.scrollY + 8, left });
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [showDatePicker]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       const q = search.toLowerCase();
       let result = invoices;
@@ -719,7 +739,7 @@ export default function SubcontractorInvoicesPage() {
       )}
 
       <div className="space-y-6">
-        {/* Header */}
+
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-white">Subcontractor Invoices</h2>
@@ -736,7 +756,6 @@ export default function SubcontractorInvoicesPage() {
           </button>
         </div>
 
-        {/* Search + filters */}
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4">
           <div className="flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[220px]">
@@ -756,14 +775,23 @@ export default function SubcontractorInvoicesPage() {
               <select
                 value={siteFilter}
                 onChange={(e) => setSiteFilter(e.target.value)}
-                className="w-full appearance-none bg-white/10 border border-white/20 rounded-lg
+                style={{ backgroundColor: SELECT_BG, colorScheme: 'dark' }}
+                className="w-full appearance-none border border-white/20 rounded-lg
                            text-sm text-white/70 px-3 py-2 pr-8
                            focus:outline-none focus:ring-2 focus:ring-[#33907C]
-                           cursor-pointer [color-scheme:dark]"
+                           cursor-pointer"
               >
-                <option value="">All Sites</option>
+                <option value="" style={{ backgroundColor: SELECT_BG, color: '#fff' }}>
+                  All Sites
+                </option>
                 {sites.map((s) => (
-                  <option key={s.id} value={String(s.id)}>{s.name}</option>
+                  <option
+                    key={s.id}
+                    value={String(s.id)}
+                    style={{ backgroundColor: SELECT_BG, color: '#fff' }}
+                  >
+                    {s.name}
+                  </option>
                 ))}
               </select>
               <ChevronDown
@@ -801,7 +829,6 @@ export default function SubcontractorInvoicesPage() {
                   style={{ position: 'fixed', top: pickerPos.top, left: pickerPos.left, zIndex: 99999 }}
                   className="w-72 bg-[#0d1b2a] border border-white/20 rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.9)] p-4 space-y-4"
                 >
-                  {/* Mode toggle */}
                   <div className="flex rounded-lg overflow-hidden border border-white/20 text-sm font-medium">
                     {(['single', 'range'] as const).map((m) => (
                       <button
@@ -888,7 +915,6 @@ export default function SubcontractorInvoicesPage() {
                     </div>
                   )}
 
-                  {/* Footer actions */}
                   <div className="flex gap-2 pt-1 border-t border-white/10">
                     <button
                       type="button"
@@ -923,8 +949,6 @@ export default function SubcontractorInvoicesPage() {
             )}
           </div>
         </div>
-
-        {/* Table */}
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center h-48">

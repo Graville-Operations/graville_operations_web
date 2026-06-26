@@ -3,6 +3,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Activity, AlertTriangle, ChevronLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
+import { useCachedLookup } from '@/hooks/useCachedLookup';
 import type { ToolItem, PagedResponse, Site, ToolTab } from '@/types/store';
 
 const LIMIT = 20;
@@ -100,7 +101,7 @@ export default function ToolsPage() {
   const [extraItems,  setExtraItems]  = useState<Partial<Record<ToolTab, ToolItem[]>>>({});
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const { data: sitesRaw } = useApi<Site[] | { items: Site[] }>('/sites/list');
+  const { data: sitesRaw } = useCachedLookup<Site[] | { items: Site[] }>('/sites/list');
   const sites: Site[] = useMemo(
     () => sitesRaw ? (Array.isArray(sitesRaw) ? sitesRaw : (sitesRaw.items ?? [])) : [],
     [sitesRaw],

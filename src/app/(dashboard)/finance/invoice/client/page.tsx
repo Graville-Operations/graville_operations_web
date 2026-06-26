@@ -181,7 +181,7 @@ export default function ClientInvoicesPage() {
           </div>
 
           {/* ── All Sites pill + dropdown ── */}
-          <div className="relative flex-shrink-0" ref={siteRef}>
+          <div className="relative shrink-0" ref={siteRef}>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => { setSiteOpen((p) => !p); setCalendarOpen(false); }}
@@ -237,8 +237,8 @@ export default function ClientInvoicesPage() {
             )}
           </div>
 
-          {/* ── Filter by Date pill + dropdown ── */}
-          <div className="relative flex-shrink-0" ref={calendarRef}>
+          {/* Filter by Date pill + dropdown */}
+          <div className="relative shrink-0" ref={calendarRef}>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => { setCalendarOpen((p) => !p); setSiteOpen(false); }}

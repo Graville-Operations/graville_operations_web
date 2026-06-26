@@ -2,18 +2,19 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 
-import { format, parseISO, subDays, differenceInCalendarDays } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import api from '@/lib/api';
+import { fetchSites, fetchOverviewKPIs } from '@/lib/api/sites';
 import {
   Site, ProjectStatus, SiteStatus, OverviewKPIs,
-  SiteDetail, SiteWorker, AttendanceRecord, SiteTask,
+  SiteDetail, AttendanceRecord,
 } from '@/types/site';
 import {
-  Search, Calendar, Building2, AlertCircle, Loader2,
+  MapPin, Search, Calendar, Building2, AlertCircle, Loader2,
   FileText, Briefcase, Users, ClipboardList, UserCheck,
-  ChevronLeft, ChevronDown, ChevronUp, CheckCircle2, Circle,
-  AlertTriangle, RefreshCw, DollarSign, TrendingUp,
-  Download, PiggyBank, Receipt, X, MapPin, CalendarRange, ArrowLeft,
+  ChevronLeft, ChevronDown, ChevronUp, CheckCircle2,
+  RefreshCw, DollarSign, TrendingUp,
+  Download, PiggyBank, Receipt, CalendarRange, ArrowLeft,
 } from 'lucide-react';
 
 interface RawSite {
@@ -23,31 +24,17 @@ interface RawSite {
   projectStatus?: string;
   siteStatus?: string;
   deadlineDate?: string;
+  completion_date?: string;
   [key: string]: unknown;
 }
 
 interface AttendanceSummary {
-  site_id?: number;
-  start_date?: string;
-  end_date?: string;
-  total?: number;
-  payouts?: number;
+  site_id: number;
+  start_date: string;
+  end_date: string;
+  total: number;
+  payouts: number;
   records: AttendanceRecord[];
-}
-
-interface Invoice {
-  id: number;
-  amount?: number;
-  total_amount?: number;
-  [key: string]: unknown;
-}
-
-interface StoreTool {
-  id: number;
-  hire_cost?: number;
-  cost?: number;
-  amount?: number;
-  [key: string]: unknown;
 }
 
 interface SubtaskBreakdown {
@@ -81,20 +68,12 @@ interface SiteAnalytics {
   attendanceBreakdown: AttendanceBreakdownItem[];
 }
 
-function unwrapItems<T>(raw: unknown): T[] {
-  if (Array.isArray(raw)) return raw as T[];
-  if (raw && typeof raw === 'object') {
-    const obj = raw as Record<string, unknown>;
-    if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
-      const inner = obj.data as Record<string, unknown>;
-      if (Array.isArray(inner.items))   return inner.items   as T[];
-      if (Array.isArray(inner.results)) return inner.results as T[];
-    }
-    if (Array.isArray(obj.data))    return obj.data    as T[];
-    if (Array.isArray(obj.items))   return obj.items   as T[];
-    if (Array.isArray(obj.results)) return obj.results as T[];
-  }
-  return [];
+interface SiteDetailExtended extends SiteDetail {
+  estimatedValue?: number;
+  tendererName?: string;
+  inquiringEntity?: string;
+  completionDate?: string;
+  createdAt?: string;
 }
 
 function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null {
@@ -104,7 +83,6 @@ function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null {
     const d = obj.data as Record<string, unknown>;
     if (Array.isArray(d.records)) return d as unknown as AttendanceSummary;
   }
-  if (Array.isArray((obj as any).records)) return obj as unknown as AttendanceSummary;
   return null;
 }
 
@@ -117,20 +95,56 @@ function unwrapObject<T>(raw: unknown): T {
   }
   return raw as T;
 }
+function toNum(v: unknown): number {
+  const n = typeof v === 'number' ? v : parseFloat(String(v));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeSubtask(raw: unknown): SubtaskBreakdown {
+  const obj = (raw ?? {}) as Record<string, unknown>;
+  const name =
+    obj.subtaskName ?? obj.subtask_name ?? obj.name ?? obj.title ?? '';
+  const pct =
+    obj.completionPercentage ?? obj.completion_percentage ??
+    obj.percentage ?? obj.percent ?? obj.progress ?? 0;
+  return {
+    subtaskName: String(name),
+    completionPercentage: Math.min(100, Math.max(0, Math.round(toNum(pct)))),
+  };
+}
+
+function normalizeTask(raw: unknown): TaskBreakdownItem {
+  const obj = (raw ?? {}) as Record<string, unknown>;
+  const name = obj.taskName ?? obj.task_name ?? obj.name ?? obj.title ?? '';
+  const subtasksRaw =
+    (obj.subtaskBreakdown ?? obj.subtask_breakdown ?? obj.subtasks ?? []) as unknown[];
+  return {
+    taskName: String(name),
+    subtaskBreakdown: Array.isArray(subtasksRaw) ? subtasksRaw.map(normalizeSubtask) : [],
+  };
+}
 
 function unwrapAnalytics(raw: unknown): SiteAnalytics | null {
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;
-  if (obj.data && typeof obj.data === 'object') return obj.data as SiteAnalytics;
-  return raw as SiteAnalytics;
+  const data = (obj.data && typeof obj.data === 'object')
+    ? (obj.data as Record<string, unknown>)
+    : obj;
+
+  const taskBreakdownRaw =
+    (data.taskBreakdown ?? data.task_breakdown ?? []) as unknown[];
+
+  return {
+    ...(data as unknown as SiteAnalytics),
+    taskBreakdown: Array.isArray(taskBreakdownRaw) ? taskBreakdownRaw.map(normalizeTask) : [],
+  };
 }
 
 const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string; bg: string }> = {
-  ACTIVE:   { label: 'Active',   color: 'text-green-300', bg: 'bg-green-500/20 border border-green-500/40'  },
-  INACTIVE: { label: 'Inactive', color: 'text-gray-300',  bg: 'bg-gray-500/20 border border-gray-500/40'   },
-  CLOSED:   { label: 'Closed',   color: 'text-red-300',   bg: 'bg-red-500/20 border border-red-500/40'     },
+  ACTIVE:   { label: 'Active',   color: 'text-green-300', bg: 'bg-green-500/20 border border-green-500/40' },
+  INACTIVE: { label: 'Inactive', color: 'text-gray-300',  bg: 'bg-gray-500/20 border border-gray-500/40'  },
+  CLOSED:   { label: 'Closed',   color: 'text-red-300',   bg: 'bg-red-500/20 border border-red-500/40'    },
 };
-
 function normSiteStatus(s: unknown): SiteStatus {
   switch (String(s ?? '').toLowerCase()) {
     case 'active':   return 'ACTIVE';
@@ -140,8 +154,8 @@ function normSiteStatus(s: unknown): SiteStatus {
   }
 }
 
-function normProjectStatus(s: unknown): ProjectStatus {
-  switch (String(s ?? '').toLowerCase().replace(/[\s-]+/g, '_')) {
+function normProjectStatus(s: string): ProjectStatus {
+  switch ((s ?? '').toLowerCase().replace(/[\s-]+/g, '_')) {
     case 'planning':    return 'PLANNING';
     case 'in_progress': return 'IN_PROGRESS';
     case 'on_hold':     return 'ON_HOLD';
@@ -180,11 +194,11 @@ function QuickStatPill({ label, value, loading }: {
 function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
   const ss       = normSiteStatus(site.siteStatus);
   const siteMeta = SITE_STATUS_META[ss];
+  const pct = 0;
+
   return (
-    <div
-      onClick={onClick}
-      className="gv-card flex flex-col gap-3 cursor-pointer active:scale-[0.98] transition-transform"
-    >
+    <div onClick={onClick}
+      className="gv-card gv-card-hover flex flex-col gap-3 cursor-pointer group active:scale-[0.98] transition-transform">
       <div className="flex items-start justify-between gap-2">
         <p className="font-bold text-xl text-white leading-tight">{site.name}</p>
         <span className={`text-base font-semibold px-3 py-1 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
@@ -197,6 +211,19 @@ function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
           <span>Deadline: {site.deadlineDate}</span>
         </div>
       )}
+      {!site.deadlineDate && site.completion_date && (
+        <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
+          <Calendar className="w-4 h-4 flex-shrink-0" />
+          <span>Deadline: {format(new Date(site.completion_date), 'dd MMM yyyy')}</span>
+        </div>
+      )}
+      <div className="flex flex-col gap-1.5 mt-1">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium" style={{ color: 'var(--gv-text-subtle)' }}>Progress</p>
+          <p className="text-sm font-bold" style={{ color: 'var(--gv-brand)' }}>{pct}%</p>
+        </div>
+        <ProgressBar pct={pct} height="h-2" />
+      </div>
     </div>
   );
 }
@@ -255,12 +282,10 @@ function ExpenditureGauge({
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 220" style={{ width: '100%', maxWidth: 220, height: 'auto' }}>
-        {/* Outer ring: time elapsed */}
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="#f97316" strokeWidth={SW}
           strokeDasharray={`${(timePct / 100) * outerCirc} ${outerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        {/* Inner ring: expenditure % */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(expendPct / 100) * innerCirc} ${innerCirc}`}
@@ -280,9 +305,9 @@ function ExpenditureGauge({
     </div>
   );
 }
-
 function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownItem[] }) {
   const maxCount = Math.max(...breakdown.map((d) => d.attendanceCount), 1);
+  const CHART_HEIGHT = 220;
   const DAY_ABBR: Record<string, string> = {
     Sunday: 'S', Monday: 'M', Tuesday: 'T',
     Wednesday: 'W', Thursday: 'T', Friday: 'F', Saturday: 'S',
@@ -290,24 +315,24 @@ function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownIt
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-end justify-between gap-1" style={{ height: 80 }}>
+      <div className="flex items-stretch justify-between gap-2" style={{ height: CHART_HEIGHT }}>
         {breakdown.map((item) => {
           const heightPct = (item.attendanceCount / maxCount) * 100;
           const isToday   = item.date === format(new Date(), 'yyyy-MM-dd');
           return (
-            <div key={item.date} className="flex flex-col items-center gap-1 flex-1">
+            <div key={item.date}
+              className="flex flex-col items-center justify-end gap-1.5 flex-1 h-full">
               {item.attendanceCount > 0 && (
-                <span className="text-xs font-semibold" style={{ color: 'var(--gv-text-subtle)' }}>
+                <span className="text-sm font-semibold" style={{ color: 'var(--gv-text-subtle)' }}>
                   {item.attendanceCount}
                 </span>
               )}
               <div className="w-full rounded-t-md transition-all duration-500"
                 style={{
-                  height: `${Math.max(heightPct, item.attendanceCount > 0 ? 8 : 2)}%`,
-                  minHeight: item.attendanceCount > 0 ? 8 : 2,
-                  background: isToday ? '#3b82f6' : 'rgba(255,255,255,0.12)',
-                  maxWidth: 32,
-                  alignSelf: 'flex-end',
+                  height: `${Math.max(heightPct, item.attendanceCount > 0 ? 6 : 1.5)}%`,
+                  minHeight: item.attendanceCount > 0 ? 10 : 2,
+                  background: isToday ? '#3b82f6' : 'rgba(255,255,255,0.16)',
+                  maxWidth: 40,
                 }} />
             </div>
           );
@@ -331,7 +356,7 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
   const subtasks = task.subtaskBreakdown ?? [];
   const total    = subtasks.length;
   const totalPct = subtasks.reduce((a, s) => a + s.completionPercentage, 0);
-  const taskPct  = Math.min(100, Math.round((totalPct / 500) * 100));
+  const taskPct  = total > 0 ? Math.min(100, Math.round(totalPct / total)) : 0;
 
   return (
     <div className="rounded-2xl overflow-hidden"
@@ -367,7 +392,7 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
             <div key={idx} className="flex flex-col gap-1.5 py-2 px-3 rounded-xl"
               style={{ background: 'var(--gv-glass-bg-strong)' }}>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-white truncate">{sub.subtaskName}</span>
+                <span className="text-sm text-white truncate">{sub.subtaskName || 'Untitled subtask'}</span>
                 <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
                   {sub.completionPercentage}%
                 </span>
@@ -408,7 +433,7 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
     : '?';
   const checkInDate =
     safeFormat(record.checkInTime, 'dd MMM yyyy, hh:mm aa') ??
-    safeFormat(record.date,        'dd MMM yyyy') ??
+    safeFormat(record.date, 'dd MMM yyyy') ??
     '—';
 
   return (
@@ -636,10 +661,13 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
     return () => { if (sidebar) sidebar.style.display = ''; };
   }, []);
 
+  const ss       = normSiteStatus(site.siteStatus);
+  const siteMeta = SITE_STATUS_META[ss];
+
   const [analytics,       setAnalytics      ] = useState<SiteAnalytics | null>(null);
   const [loadingAnalytics,setLoadingAnalytics] = useState(true);
 
-  const [detail,       setDetail      ] = useState<SiteDetail | null>(null);
+  const [detail,       setDetail      ] = useState<SiteDetailExtended | null>(null);
   const [loadingDetail,setLoadingDetail] = useState(true);
 
   const [rangeRecords, setRangeRecords] = useState<AttendanceRecord[]>([]);
@@ -663,7 +691,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   const loadDetail = useCallback(() => {
     setLoadingDetail(true);
     api.get(`/sites/${site.id}`)
-      .then(({ data }) => setDetail(unwrapObject<SiteDetail>(data)))
+      .then(({ data }) => setDetail(unwrapObject<SiteDetailExtended>(data)))
       .catch(() => {})
       .finally(() => setLoadingDetail(false));
   }, [site.id]);
@@ -692,12 +720,10 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
     loadRange(rangeFrom, rangeTo);
   }, [rangeFrom, rangeTo, loadRange]);
 
-  // ── Derived values ──
-
   const fmtKes = (n: number) =>
     `KES ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const estimatedValue  = analytics?.estimatedProjectValue  ?? (detail as any)?.estimatedValue ?? 0;
+  const estimatedValue  = analytics?.estimatedProjectValue  ?? detail?.estimatedValue ?? 0;
   const totalExpenditure= analytics?.totalExpenditure       ?? 0;
   const expendRemaining = analytics?.expenditureRemaining   ?? 0;
   const availableBudget = expendRemaining >= 0 ? expendRemaining : 0;
@@ -712,10 +738,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   const completedTasks     = analytics?.completedTasks       ?? 0;
   const totalWorkers       = analytics?.totalWorkers         ?? 0;
 
-  const ss       = normSiteStatus(detail?.siteStatus ?? site.siteStatus);
-  const siteMeta = SITE_STATUS_META[ss];
-
-  const rangeDateLabel = rangeFrom === rangeTo
+  const rangeLabel = rangeFrom === rangeTo
     ? format(parseISO(rangeFrom), 'dd MMM yyyy')
     : `${format(parseISO(rangeFrom), 'dd MMM')} – ${format(parseISO(rangeTo), 'dd MMM yyyy')}`;
 
@@ -728,14 +751,13 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
       {showAllWorkers && (
         <AllWorkersScreen
           records={rangeRecords}
-          dateLabel={rangeDateLabel}
+          dateLabel={rangeLabel}
           onClose={() => setShowAllWorkers(false)}
         />
       )}
 
       <div className="w-full" style={{ background: 'var(--gv-bg-gradient)', minHeight: '100vh' }}>
 
-        {/* ── Fixed nav bar ── */}
         <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-6 py-4"
           style={{
             background: 'var(--gv-nav-bg)',
@@ -968,7 +990,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                   <p className="text-2xl font-semibold text-white">Workers on Site</p>
                   <button
                     type="button"
-                    onClick={() => downloadAttendanceCSV(rangeRecords, rangeDateLabel, site.name)}
+                    onClick={() => downloadAttendanceCSV(rangeRecords, rangeLabel, site.name)}
                     disabled={rangeRecords.length === 0}
                     className="w-8 h-8 rounded-xl flex items-center justify-center transition-opacity"
                     style={{
@@ -998,7 +1020,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                     {loadingRange
                       ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
                       : <p className="text-5xl font-bold text-white">{rangeRecords.length}</p>}
-                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{rangeDateLabel}</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{rangeLabel}</p>
                   </div>
                   <div className="gv-card flex flex-col gap-1">
                     <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: '#f87171' }}>
@@ -1018,7 +1040,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 ) : rangeRecords.length === 0 ? (
                   <div className="gv-card flex flex-col items-center gap-3 py-16 text-center">
                     <UserCheck className="w-8 h-8" style={{ color: 'var(--gv-text-subtle)' }} />
-                    <p className="text-base text-white">No check-ins for {rangeDateLabel}</p>
+                    <p className="text-base text-white">No check-ins for {rangeLabel}</p>
                     <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>Try a different date range</p>
                   </div>
                 ) : (
@@ -1063,7 +1085,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
 const LS_KEY = 'gv_selected_site';
 
 export default function ConstructionSitesPage() {
-  const [sites,         setSites        ] = useState<RawSite[]>([]);
+  const [sites,         setSites        ] = useState<Site[]>([]);
   const [kpis,          setKpis         ] = useState<OverviewKPIs | null>(null);
   const [loadingSites,  setLoadingSites ] = useState(true);
   const [loadingKpis,   setLoadingKpis  ] = useState(true);
@@ -1071,26 +1093,27 @@ export default function ConstructionSitesPage() {
   const [search,        setSearch       ] = useState('');
   const [projectFilter, setProjectFilter] = useState<ProjectStatus | 'ALL'>('ALL');
 
-  const [selectedSite, setSelectedSite] = useState<RawSite | null>(() => {
+  const [selectedSite, setSelectedSite] = useState<RawSite | null>(null);
+
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      return raw ? (JSON.parse(raw) as RawSite) : null;
+      if (raw) setSelectedSite(JSON.parse(raw) as RawSite);
     } catch {
-      return null;
     }
-  });
+  }, []);
 
   const load = useCallback(() => {
     setLoadingSites(true); setSitesError(null);
-    api.get('/sites/list')
-      .then(({ data }) => setSites(unwrapItems<RawSite>(data)))
+    fetchSites()
+      .then((data) => setSites(data))
       .catch((err: unknown) =>
         setSitesError(err instanceof Error ? err.message : 'Failed to load sites'))
       .finally(() => setLoadingSites(false));
 
     setLoadingKpis(true);
-    api.get('/analytics/overview')
-      .then(({ data }) => { const d = (data as any)?.data ?? data; setKpis(d as OverviewKPIs); })
+    fetchOverviewKPIs()
+      .then((res) => { const d = (res as { data?: OverviewKPIs }).data ?? (res as OverviewKPIs); setKpis(d); })
       .catch(() => {})
       .finally(() => setLoadingKpis(false));
   }, []);
@@ -1111,16 +1134,16 @@ export default function ConstructionSitesPage() {
     return <SiteDetailView site={selectedSite} onBack={closeSite} />;
   }
 
-  const totalSites    = kpis?.totalSites    ?? sites.length;
-  const planningSites = kpis?.planningSites ?? sites.filter((s) => normProjectStatus(s.projectStatus) === 'PLANNING').length;
-  const activeSites   = kpis?.activeSites   ?? sites.filter((s) => normSiteStatus(s.siteStatus) === 'ACTIVE').length;
-  const pausedSites   = sites.filter((s) => normProjectStatus(s.projectStatus) === 'ON_HOLD').length;
-  const doneSites     = sites.filter((s) => normProjectStatus(s.projectStatus) === 'COMPLETED').length;
+  const totalSites    = kpis?.totalSites    ?? 0;
+  const planningSites = kpis?.planningSites ?? 0;
+  const activeSites   = kpis?.activeSites   ?? 0;
+  const pausedSites   = sites.filter((s) => normProjectStatus(s.project_status as unknown as string) === 'ON_HOLD').length;
+  const doneSites     = sites.filter((s) => normProjectStatus(s.project_status as unknown as string) === 'COMPLETED').length;
 
   const filtered = sites.filter((s) => {
     const q           = search.toLowerCase();
     const matchSearch = !search || s.name.toLowerCase().includes(q) || (s.location ?? '').toLowerCase().includes(q);
-    const matchProj   = projectFilter === 'ALL' || normProjectStatus(s.projectStatus) === projectFilter;
+    const matchProj   = projectFilter === 'ALL' || normProjectStatus(s.project_status as unknown as string) === projectFilter;
     return matchSearch && matchProj;
   });
 
@@ -1132,17 +1155,15 @@ export default function ConstructionSitesPage() {
           Overview of all active and completed projects
         </p>
       </div>
-
       <div className="px-4 pb-4">
         <div className="grid grid-cols-5 gap-2">
-          <QuickStatPill label="Total"  value={totalSites}    loading={loadingKpis && loadingSites} />
-          <QuickStatPill label="Plan"   value={planningSites} loading={loadingKpis && loadingSites} />
-          <QuickStatPill label="Active" value={activeSites}   loading={loadingKpis && loadingSites} />
-          <QuickStatPill label="Done"   value={doneSites}     loading={loadingSites} />
-          <QuickStatPill label="Paused" value={pausedSites}   loading={loadingSites} />
+          <QuickStatPill label="Total"  value={totalSites}    loading={loadingKpis} />
+          <QuickStatPill label="Plan"   value={planningSites} loading={loadingKpis} />
+          <QuickStatPill label="Active" value={activeSites}   loading={loadingKpis} />
+          <QuickStatPill label="Done"   value={doneSites}     loading={loadingKpis} />
+          <QuickStatPill label="Paused" value={pausedSites}   loading={loadingKpis} />
         </div>
       </div>
-
       <div className="px-4 pb-3">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
@@ -1152,7 +1173,6 @@ export default function ConstructionSitesPage() {
             className="gv-input pl-10 w-full" />
         </div>
       </div>
-
       <div className="px-4 pb-4">
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {([
@@ -1175,7 +1195,6 @@ export default function ConstructionSitesPage() {
           })}
         </div>
       </div>
-
       {sitesError && (
         <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-base"
           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
@@ -1183,11 +1202,10 @@ export default function ConstructionSitesPage() {
           <button onClick={load} className="ml-auto underline text-sm">Retry</button>
         </div>
       )}
-
       {loadingSites ? (
         <div className="px-4 flex flex-col gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-2xl animate-pulse"
+            <div key={i} className="h-40 rounded-2xl animate-pulse"
               style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }} />
           ))}
         </div>
@@ -1206,7 +1224,7 @@ export default function ConstructionSitesPage() {
       ) : (
         <div className="px-4 flex flex-col gap-3">
           {filtered.map((site) => (
-            <SiteCard key={site.id} site={site} onClick={() => openSite(site)} />
+            <SiteCard key={site.id} site={site as unknown as RawSite} onClick={() => openSite(site as unknown as RawSite)} />
           ))}
         </div>
       )}

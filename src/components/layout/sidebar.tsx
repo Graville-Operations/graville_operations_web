@@ -23,7 +23,7 @@ const fetchMenus = async () => {
   if (isLoaded) return;
   try {
     setIsLoading(true);
-    const { data } = await api.get(API.menus.list);
+    const { data } = await api.get('auth/me/menus');
     const menuData = data?.data ?? data;
     if (!Array.isArray(menuData)) return;
     const seen = new Set<string>();

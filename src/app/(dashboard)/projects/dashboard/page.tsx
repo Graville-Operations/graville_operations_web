@@ -1,5 +1,6 @@
 'use client';
 
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import {
@@ -44,10 +45,11 @@ interface DashboardMetrics {
   orders: {
     totalOrders: number;
     orderBreakdown: Array<{
-      site?: string; site_name?: string;
-      item?: string; item_name?: string; material_name?: string; material?: string;
-      quantity?: number;
-      unit?: string;
+      siteName: string;
+      materials: Array<{
+        materialName: string;
+        quantity: string;
+      }>;
     }>;
   };
 }
@@ -58,8 +60,8 @@ interface AttendanceDay {
 }
 
 function toISO(d: Date) {
-  const y   = d.getFullYear();
-  const m   = String(d.getMonth() + 1).padStart(2, '0');
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
@@ -78,13 +80,13 @@ function normaliseAnalyticsResponse(raw: unknown): AttendanceDay[] {
   else if (Array.isArray(raw)) arr = raw as unknown[];
   return arr
     .map((row: any) => ({
-      date: String(row.date ?? row.attendance_date ?? ''),
+      date: String(row.date ?? row.attendance_date ?? row.day ?? ''),
       present_count: Number(
         row.attendance_count ?? row.present_count ?? row.present ??
         row.count ?? row.workers_present ?? row.total_present ?? row.total ?? 0,
       ),
     }))
-    .filter(r => r.date !== '' && /^\d{4}-\d{2}-\d{2}$/.test(r.date));
+    .filter(r => r.date !== '');
 }
 
 async function fetchAttendanceAnalytics(startDate: string, endDate: string): Promise<AttendanceDay[]> {
@@ -94,7 +96,7 @@ async function fetchAttendanceAnalytics(startDate: string, endDate: string): Pro
     });
     return normaliseAnalyticsResponse(res.data);
   } catch (err) {
-    console.warn('[Attendance/analytics] fetch error:', err);
+    console.warn('[Attendance] fetch error:', err);
     return [];
   }
 }
@@ -128,28 +130,27 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <p className="text-2xl font-bold text-white mb-3">{children}</p>;
 }
 
-function StatusCard({ label, value, color, loading }: {
+function StatusCard({ label, value, color, loading, minHeight = 72, height, valueSize = 'text-2xl' }: {
   label: string; value: number; color: string; loading?: boolean;
+  minHeight?: number; height?: number; valueSize?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl p-4 gap-1"
-      style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', minHeight: 80 }}>
+    <div className="flex flex-col items-center justify-center rounded-xl px-2 py-3 gap-1"
+      style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', minHeight, height }}>
       {loading
-        ? <div className="h-7 w-8 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-        : <p className="text-4xl font-bold" style={{ color }}>{value}</p>}
-      <p className="text-base text-center" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
+        ? <div className="h-6 w-7 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
+        : <p className={`${valueSize} font-bold`} style={{ color }}>{value}</p>}
+      <p className="text-sm text-center leading-tight" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
     </div>
   );
 }
 
 function CalendarPicker({
-  dateFrom, dateTo, onSelect, onClose, constrainWidth, anchorRef,
+  dateFrom, dateTo, onSelect, onClose,
 }: {
   dateFrom: string; dateTo: string;
   onSelect: (from: string, to: string) => void;
   onClose: () => void;
-  constrainWidth?: boolean;
-  anchorRef?: React.RefObject<HTMLElement>;
 }) {
   const today = new Date();
   const [viewYear, setViewYear]   = useState(today.getFullYear());
@@ -163,17 +164,10 @@ function CalendarPicker({
   const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAY_NAMES   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 
-  const [maxW, setMaxW] = useState<number | undefined>(undefined);
-  useEffect(() => {
-    if (constrainWidth && anchorRef?.current) {
-      setMaxW(anchorRef.current.getBoundingClientRect().width);
-    }
-  }, [constrainWidth, anchorRef]);
-
   function getDaysInMonth(year: number, month: number) {
-    const firstDay = new Date(year, month, 1);
-    const startDow = (firstDay.getDay() + 6) % 7;
-    const daysInMo = new Date(year, month + 1, 0).getDate();
+    const firstDay  = new Date(year, month, 1);
+    const startDow  = (firstDay.getDay() + 6) % 7;
+    const daysInMo  = new Date(year, month + 1, 0).getDate();
     const days: (Date | null)[] = [];
     for (let i = 0; i < startDow; i++) days.push(null);
     for (let d = 1; d <= daysInMo; d++) days.push(new Date(year, month, d));
@@ -219,17 +213,11 @@ function CalendarPicker({
   while (weeks[weeks.length - 1]?.length < 7) weeks[weeks.length - 1].push(null);
 
   return (
-    <div
-      className="absolute z-50 rounded-2xl shadow-2xl p-4 select-none"
+    <div className="absolute z-50 rounded-2xl shadow-2xl p-4 select-none"
       style={{
-        background: 'rgba(18,20,30,0.98)',
-        border: '1px solid rgba(255,255,255,0.15)',
-        backdropFilter: 'blur(20px)',
-        top: '100%', left: 0, marginTop: 8,
-        minWidth: 280,
-        ...(maxW ? { width: maxW } : {}),
-      }}
-    >
+        background: 'rgba(18,20,30,0.98)', border: '1px solid rgba(255,255,255,0.15)',
+        backdropFilter: 'blur(20px)', top: '100%', left: 0, marginTop: 8, minWidth: 280,
+      }}>
       <div className="flex items-center justify-between mb-3">
         <button onClick={prevMonth} className="w-7 h-7 flex items-center justify-center rounded-lg"
           style={{ background: 'rgba(255,255,255,0.07)' }}>
@@ -257,12 +245,12 @@ function CalendarPicker({
         <div key={wi} className="grid grid-cols-7">
           {week.map((date, di) => {
             if (!date) return <div key={di} />;
-            const selected    = isSelected(date);
-            const inR         = inRange(date);
-            const iso         = toISO(date);
-            const isFrom      = iso === dateFrom;
-            const isTo        = iso === dateTo;
-            const isTodayDate = iso === toISO(today);
+            const selected     = isSelected(date);
+            const inR          = inRange(date);
+            const iso          = toISO(date);
+            const isFrom       = iso === dateFrom;
+            const isTo         = iso === dateTo;
+            const isTodayDate  = iso === toISO(today);
             return (
               <div key={di} className="flex items-center justify-center"
                 style={{
@@ -309,7 +297,6 @@ interface Bar {
   dateDisplay: string;
   present: number;
 }
-
 function AttendanceBarChart({
   bars, loading, tab, activeBarIdx, onBarClick,
 }: {
@@ -417,7 +404,7 @@ function AttendanceBarChart({
 export default function ProjectsDashboardPage() {
   const [metrics, setMetrics]         = useState<DashboardMetrics | null>(null);
   const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string | null>(null); // kept for future use
+  const [error, setError]             = useState<string | null>(null);
 
   const [attendanceTab, setAttendanceTab] = useState<'Today' | 'Week' | 'Month' | 'Custom'>('Today');
   const [dateFrom, setDateFrom]           = useState('');
@@ -494,7 +481,7 @@ export default function ProjectsDashboardPage() {
           : String(cur.getDate());
       result.push({
         label,
-        fullLabel:   DAY_FULL[dow],
+        fullLabel:   tab === 'Today' ? 'Today' : DAY_FULL[dow],
         date:        iso,
         dateDisplay: cur.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         present:     lookup[iso] ?? 0,
@@ -519,7 +506,10 @@ export default function ProjectsDashboardPage() {
     }
   }, [attendanceTab, dateFrom, dateTo]);
 
-  useEffect(() => { setActiveBarIdx(null); loadBars(); }, [loadBars]);
+  useEffect(() => {
+    setActiveBarIdx(null);
+    loadBars();
+  }, [loadBars]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -538,12 +528,16 @@ export default function ProjectsDashboardPage() {
 
   function handleBarClick(idx: number | null) {
     if (idx === null) { setActiveBarIdx(null); setOverlayPos(null); return; }
+
     setActiveBarIdx(idx);
+
     if (chartCardRef.current) {
       const rect     = chartCardRef.current.getBoundingClientRect();
       const count    = bars.length || 1;
       const fraction = (idx + 0.5) / count;
-      setOverlayPos({ top: rect.top, left: rect.left + fraction * rect.width });
+      const left     = rect.left + fraction * rect.width;
+      const top      = rect.top;
+      setOverlayPos({ top, left });
     }
   }
 
@@ -589,18 +583,18 @@ export default function ProjectsDashboardPage() {
         </div>
       </div>
 
-      <div className="px-4 pb-5 grid grid-cols-2 gap-3 items-start">
+      <div className="px-4 pb-5 grid grid-cols-2 gap-3 items-stretch">
 
         <div className="flex flex-col gap-3 min-w-0">
           <SectionTitle>Attendance</SectionTitle>
           <div ref={attendanceCardRef} className="flex flex-col gap-3">
-            <div className="flex items-center gap-1.5 overflow-x-auto">
+            <div className="flex items-center gap-2 overflow-x-auto">
               {(['Today', 'Week', 'Month', 'Custom'] as const).map((t) => {
                 const active = attendanceTab === t;
                 return (
                   <button key={t}
                     onClick={() => { setAttendanceTab(t); if (t === 'Custom') setShowCalendar(true); }}
-                    className="text-base font-medium px-2.5 py-1.5 rounded-full whitespace-nowrap flex-shrink-0 transition-all"
+                    className="text-base font-semibold px-4 py-2.5 rounded-full whitespace-nowrap flex-shrink-0 transition-all"
                     style={active
                       ? { background: 'var(--gv-brand)', color: '#fff' }
                       : { background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}>
@@ -631,8 +625,6 @@ export default function ProjectsDashboardPage() {
                     dateFrom={dateFrom} dateTo={dateTo}
                     onSelect={(from, to) => { setDateFrom(from); setDateTo(to); }}
                     onClose={() => setShowCalendar(false)}
-                    constrainWidth
-                    anchorRef={attendanceCardRef as React.RefObject<HTMLElement>}
                   />
                 )}
               </div>
@@ -661,12 +653,13 @@ export default function ProjectsDashboardPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 min-w-0">
+        <div className="flex flex-col gap-3 min-w-0 h-full">
           <SectionTitle>Project Status</SectionTitle>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 grid-rows-3 gap-1.5 flex-1">
             {PROJECT_STATUS_CONFIG.map(({ key, label, color }) => (
               <StatusCard key={key} label={label} color={color}
-                value={m?.projectStatus?.[key] ?? 0} loading={loading} />
+                value={m?.projectStatus?.[key] ?? 0} loading={loading}
+                minHeight={0} valueSize="text-3xl" />
             ))}
           </div>
         </div>
@@ -676,18 +669,18 @@ export default function ProjectsDashboardPage() {
 
         <div className="flex flex-col gap-3 min-w-0">
           <SectionTitle>Expenditure</SectionTitle>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {[
               { label: 'Supplier',      value: m?.expenditure?.supplier      ?? 0, color: '#a78bfa' },
               { label: 'Subcontractor', value: m?.expenditure?.subcontractor ?? 0, color: '#3b82f6' },
               { label: 'Total',         value: m?.expenditure?.total         ?? 0, color: '#22c55e' },
             ].map(({ label, value, color }) => (
-              <div key={label} className="flex items-center justify-between rounded-2xl px-4 py-5"
-                style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', minHeight: 80 }}>
-                <p className="text-lg" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
+              <div key={label} className="flex items-center justify-between rounded-xl px-4 py-3"
+                style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', height: 72 }}>
+                <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
                 {loading
                   ? <div className="h-4 w-16 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                  : <p className="text-xl font-bold" style={{ color }}>{fmtKsh(value)}</p>}
+                  : <p className="text-lg font-bold" style={{ color }}>{fmtKsh(value)}</p>}
               </div>
             ))}
           </div>
@@ -695,13 +688,14 @@ export default function ProjectsDashboardPage() {
 
         <div className="flex flex-col gap-3 min-w-0">
           <SectionTitle>Permits</SectionTitle>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {[
               { label: 'Pending',  value: m?.permits?.pending  ?? 0, color: '#eab308' },
               { label: 'Approved', value: m?.permits?.approved ?? 0, color: '#22c55e' },
               { label: 'Rejected', value: m?.permits?.rejected ?? 0, color: '#f87171' },
             ].map(({ label, value, color }) => (
-              <StatusCard key={label} label={label} value={value} color={color} loading={loading} />
+              <StatusCard key={label} label={label} value={value} color={color} loading={loading}
+                height={72} valueSize="text-2xl" />
             ))}
           </div>
         </div>
@@ -731,7 +725,6 @@ export default function ProjectsDashboardPage() {
           </div>
         </div>
 
-        {/* Orders */}
         <div className="flex flex-col gap-3 min-w-0">
           <div className="flex items-center gap-2">
             <SectionTitle>Orders</SectionTitle>
@@ -747,32 +740,32 @@ export default function ProjectsDashboardPage() {
               <div className="h-4 w-24 rounded animate-pulse mb-2" style={{ background: 'var(--gv-glass-bg-strong)' }} />
               <div className="h-3 w-16 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
             </div>
-          ) : m?.orders?.orderBreakdown && m?.orders?.orderBreakdown.length > 0 ? (
+          ) : m?.orders?.orderBreakdown && m.orders.orderBreakdown.length > 0 ? (
             <div className="flex flex-col gap-2">
-              {m?.orders?.orderBreakdown.map((order, i) => {
-                const siteName = order.site ?? order.site_name ?? '';
-                const itemName = order.item ?? order.item_name ?? order.material_name ?? order.material ?? '';
-                return (
-                  <div key={i} className="rounded-2xl p-3"
-                    style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-                    {siteName && (
-                      <p className="text-base font-semibold text-white mb-1 truncate">{siteName}</p>
-                    )}
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="text-base truncate" style={{ color: 'var(--gv-text-muted)' }}>{itemName || '—'}</p>
-                      {order.quantity != null && (
-                        <p className="text-base font-medium text-white flex-shrink-0">
-                          {order.quantity} {order.unit ?? ''}
+              {m.orders.orderBreakdown.map((order, i) => (
+                <div key={i} className="rounded-2xl p-3"
+                  style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+                  {order.siteName && (
+                    <p className="text-base font-semibold text-white mb-2 truncate">{order.siteName}</p>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    {(order.materials ?? []).map((mat, j) => (
+                      <div key={j} className="flex items-center justify-between gap-2">
+                        <p className="text-base truncate" style={{ color: 'var(--gv-text-muted)' }}>
+                          {mat.materialName || '—'}
                         </p>
-                      )}
-                    </div>
+                        <p className="text-base font-medium text-white flex-shrink-0">
+                          {mat.quantity}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="rounded-2xl p-5 flex items-center justify-center"
-              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
+            <div className="rounded-2xl p-4 flex items-center justify-center"
+              style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)', minHeight: 80 }}>
               <p className="text-base" style={{ color: 'var(--gv-text-muted)' }}>No orders yet</p>
             </div>
           )}

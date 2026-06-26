@@ -7,6 +7,7 @@ import {
   TrendingDown, Coins, AlertOctagon,
 } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
+import { useCachedLookup } from '@/hooks/useCachedLookup';
 import type { Site, StoreMaterial, StoreTool, StockTab, StoreSummary } from '@/types/store';
 
 function extractList<T>(raw: unknown): T[] {
@@ -195,7 +196,7 @@ export default function StockRegistersPage() {
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const [search,         setSearch]         = useState('');
 
-  const { data: sitesRaw, loading: isSitesLoading } = useApi<unknown>('/sites/list');
+  const { data: sitesRaw, loading: isSitesLoading } = useCachedLookup<unknown>('/sites/list');
   const sites          = useMemo(() => extractList<Site>(sitesRaw), [sitesRaw]);
   const resolvedSiteId = selectedSiteId ?? sites[0]?.id ?? null;
 
@@ -288,7 +289,7 @@ export default function StockRegistersPage() {
       {
         label:   'Damaged Tools',
         value:   damagedTools,
-        sub:     'Tools marked as damaged',
+        sub:     'Tools that need repair or replacement',
         icon:    <AlertOctagon size={18} />,
         variant: 'default' as Variant,
       },
