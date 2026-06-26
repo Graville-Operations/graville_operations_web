@@ -4,13 +4,12 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 
 import { format, parseISO, subDays, differenceInCalendarDays } from 'date-fns';
 import api from '@/lib/api';
-import { fetchSites, fetchOverviewKPIs } from '@/lib/api/sites';
 import {
   Site, ProjectStatus, SiteStatus, OverviewKPIs,
   SiteDetail, SiteWorker, AttendanceRecord, SiteTask,
 } from '@/types/site';
 import {
-  MapPin, Search, Calendar, Building2, AlertCircle, Loader2,
+  Search, Calendar, Building2, AlertCircle, Loader2,
   FileText, Briefcase, Users, ClipboardList, UserCheck,
   ChevronLeft, ChevronDown, ChevronUp, CheckCircle2, Circle,
   AlertTriangle, RefreshCw, DollarSign, TrendingUp,
@@ -30,11 +29,11 @@ interface RawSite {
 }
 
 interface AttendanceSummary {
-  site_id: number;
-  start_date: string;
-  end_date: string;
-  total: number;
-  payouts: number;
+  site_id?: number;
+  start_date?: string;
+  end_date?: string;
+  total?: number;
+  payouts?: number;
   records: AttendanceRecord[];
 }
 
@@ -109,6 +108,7 @@ function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null {
     const d = obj.data as Record<string, unknown>;
     if (Array.isArray(d.records)) return d as unknown as AttendanceSummary;
   }
+  if (Array.isArray((obj as any).records)) return obj as unknown as AttendanceSummary;
   return null;
 }
 
@@ -132,12 +132,11 @@ function unwrapAnalytics(raw: unknown): SiteAnalytics | null {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string; bg: string }> = {
-  ACTIVE:   { label: 'Active',   color: 'text-green-300', bg: 'bg-green-500/20 border border-green-500/40' },
-  INACTIVE: { label: 'Inactive', color: 'text-gray-300',  bg: 'bg-gray-500/20 border border-gray-500/40'  },
-  CLOSED:   { label: 'Closed',   color: 'text-red-300',   bg: 'bg-red-500/20 border border-red-500/40'    },
+  ACTIVE:   { label: 'Active',   color: 'text-green-300', bg: 'bg-green-500/20 border border-green-500/40'  },
+  INACTIVE: { label: 'Inactive', color: 'text-gray-300',  bg: 'bg-gray-500/20 border border-gray-500/40'   },
+  CLOSED:   { label: 'Closed',   color: 'text-red-300',   bg: 'bg-red-500/20 border border-red-500/40'     },
 };
 
-// Accepts any casing: "Active", "ACTIVE", "active", "INACTIVE", "Closed", etc.
 function normSiteStatus(s: unknown): SiteStatus {
   switch (String(s ?? '').toLowerCase()) {
     case 'active':   return 'ACTIVE';
@@ -147,8 +146,8 @@ function normSiteStatus(s: unknown): SiteStatus {
   }
 }
 
-function normProjectStatus(s: string): ProjectStatus {
-  switch ((s ?? '').toLowerCase().replace(/[\s-]+/g, '_')) {
+function normProjectStatus(s: unknown): ProjectStatus {
+  switch (String(s ?? '').toLowerCase().replace(/[\s-]+/g, '_')) {
     case 'planning':    return 'PLANNING';
     case 'in_progress': return 'IN_PROGRESS';
     case 'on_hold':     return 'ON_HOLD';
@@ -190,35 +189,22 @@ function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
   const ss       = normSiteStatus(site.siteStatus);
   const siteMeta = SITE_STATUS_META[ss];
   return (
-    <div onClick={onClick}
-      className="gv-card gv-card-hover flex flex-col gap-3 cursor-pointer group active:scale-[0.98] transition-transform">
+    <div
+      onClick={onClick}
+      className="gv-card flex flex-col gap-3 cursor-pointer active:scale-[0.98] transition-transform"
+    >
       <div className="flex items-start justify-between gap-2">
-        <p className="font-bold text-lg text-white leading-tight group-hover:text-[var(--gv-brand)] transition-colors">
-          {site.name}
-        </p>
+        <p className="font-bold text-lg text-white leading-tight">{site.name}</p>
         <span className={`text-sm font-semibold px-3 py-1 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
           {siteMeta.label}
         </span>
       </div>
-      {site.location && (
-        <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
-          <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">{site.location}</span>
-        </div>
-      )}
-      {site.completion_date && (
+      {site.deadlineDate && (
         <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
           <Calendar className="w-4 h-4 flex-shrink-0" />
-          <span>Deadline: {format(new Date(site.completion_date), 'dd MMM yyyy')}</span>
+          <span>Deadline: {site.deadlineDate}</span>
         </div>
       )}
-      <div className="flex flex-col gap-1.5 mt-1">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium" style={{ color: 'var(--gv-text-subtle)' }}>Progress</p>
-          <p className="text-sm font-bold" style={{ color: 'var(--gv-brand)' }}>{pct}%</p>
-        </div>
-        <ProgressBar pct={pct} height="h-2" />
-      </div>
     </div>
   );
 }
@@ -232,14 +218,11 @@ function ProjectCompletionGauge({ taskPct, timePct }: { taskPct: number; timePct
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 220" style={{ width: '100%', maxWidth: 220, height: 'auto' }}>
-        {/* outer track */}
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="#f97316" strokeWidth={SW}
           strokeDasharray={`${(timePct / 100) * outerCirc} ${outerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        {/* inner track */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
-        {/* inner = task completion (blue) */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(taskPct / 100) * innerCirc} ${innerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
@@ -443,9 +426,10 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
   const initials = name !== '—'
     ? name.trim().split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : '?';
-  const checkInDate = record.checkInTime
-    ? format(new Date(record.checkInTime), 'dd MMM yyyy, hh:mm aa')
-    : record.date ? format(new Date(record.date), 'dd MMM yyyy') : '—';
+  const checkInDate =
+    safeFormat(record.checkInTime, 'dd MMM yyyy, hh:mm aa') ??
+    safeFormat(record.date,        'dd MMM yyyy') ??
+    '—';
 
   return (
     <div className="flex items-center gap-3 py-3"
@@ -761,7 +745,10 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   const completedTasks     = analytics?.completedTasks       ?? 0;
   const totalWorkers       = analytics?.totalWorkers         ?? 0;
 
-  const rangeLabel = rangeFrom === rangeTo
+  const ss       = normSiteStatus(detail?.siteStatus ?? site.siteStatus);
+  const siteMeta = SITE_STATUS_META[ss];
+
+  const rangeDateLabel = rangeFrom === rangeTo
     ? format(parseISO(rangeFrom), 'dd MMM yyyy')
     : `${format(parseISO(rangeFrom), 'dd MMM')} – ${format(parseISO(rangeTo), 'dd MMM yyyy')}`;
 
@@ -1152,7 +1139,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
 const LS_KEY = 'gv_selected_site';
 
 export default function ConstructionSitesPage() {
-  const [sites,         setSites        ] = useState<Site[]>([]);
+  const [sites,         setSites        ] = useState<RawSite[]>([]);
   const [kpis,          setKpis         ] = useState<OverviewKPIs | null>(null);
   const [loadingSites,  setLoadingSites ] = useState(true);
   const [loadingKpis,   setLoadingKpis  ] = useState(true);
@@ -1171,19 +1158,15 @@ export default function ConstructionSitesPage() {
 
   const load = useCallback(() => {
     setLoadingSites(true); setSitesError(null);
-    fetchSites()
-      .then((data) => {
-        // DEBUG — remove after confirming status values are correct
-        console.log('[Sites] raw site_status values:', data.map((s) => ({ id: s.id, name: s.name, site_status: s.site_status })));
-        setSites(data);
-      })
+    api.get('/sites/list')
+      .then(({ data }) => setSites(unwrapItems<RawSite>(data)))
       .catch((err: unknown) =>
         setSitesError(err instanceof Error ? err.message : 'Failed to load sites'))
       .finally(() => setLoadingSites(false));
 
     setLoadingKpis(true);
-    fetchOverviewKPIs()
-      .then((res) => { const d = (res as any).data ?? res; setKpis(d as OverviewKPIs); })
+    api.get('/analytics/overview')
+      .then(({ data }) => { const d = (data as any)?.data ?? data; setKpis(d as OverviewKPIs); })
       .catch(() => {})
       .finally(() => setLoadingKpis(false));
   }, []);
@@ -1204,16 +1187,16 @@ export default function ConstructionSitesPage() {
     return <SiteDetailView site={selectedSite} onBack={closeSite} />;
   }
 
-  const totalSites    = kpis?.totalSites    ?? 0;
-  const planningSites = kpis?.planningSites ?? 0;
-  const activeSites   = kpis?.activeSites   ?? 0;
-  const pausedSites   = sites.filter((s) => normProjectStatus(s.project_status as unknown as string) === 'ON_HOLD').length;
-  const doneSites     = sites.filter((s) => normProjectStatus(s.project_status as unknown as string) === 'COMPLETED').length;
+  const totalSites    = kpis?.totalSites    ?? sites.length;
+  const planningSites = kpis?.planningSites ?? sites.filter((s) => normProjectStatus(s.projectStatus) === 'PLANNING').length;
+  const activeSites   = kpis?.activeSites   ?? sites.filter((s) => normSiteStatus(s.siteStatus) === 'ACTIVE').length;
+  const pausedSites   = sites.filter((s) => normProjectStatus(s.projectStatus) === 'ON_HOLD').length;
+  const doneSites     = sites.filter((s) => normProjectStatus(s.projectStatus) === 'COMPLETED').length;
 
   const filtered = sites.filter((s) => {
     const q           = search.toLowerCase();
     const matchSearch = !search || s.name.toLowerCase().includes(q) || (s.location ?? '').toLowerCase().includes(q);
-    const matchProj   = projectFilter === 'ALL' || normProjectStatus(s.project_status as unknown as string) === projectFilter;
+    const matchProj   = projectFilter === 'ALL' || normProjectStatus(s.projectStatus) === projectFilter;
     return matchSearch && matchProj;
   });
 
@@ -1225,15 +1208,17 @@ export default function ConstructionSitesPage() {
           Overview of all active and completed projects
         </p>
       </div>
+
       <div className="px-4 pb-4">
         <div className="grid grid-cols-5 gap-2">
-          <QuickStatPill label="Total"  value={totalSites}    loading={loadingKpis} />
-          <QuickStatPill label="Plan"   value={planningSites} loading={loadingKpis} />
-          <QuickStatPill label="Active" value={activeSites}   loading={loadingKpis} />
-          <QuickStatPill label="Done"   value={doneSites}     loading={loadingKpis} />
-          <QuickStatPill label="Paused" value={pausedSites}   loading={loadingKpis} />
+          <QuickStatPill label="Total"  value={totalSites}    loading={loadingKpis && loadingSites} />
+          <QuickStatPill label="Plan"   value={planningSites} loading={loadingKpis && loadingSites} />
+          <QuickStatPill label="Active" value={activeSites}   loading={loadingKpis && loadingSites} />
+          <QuickStatPill label="Done"   value={doneSites}     loading={loadingSites} />
+          <QuickStatPill label="Paused" value={pausedSites}   loading={loadingSites} />
         </div>
       </div>
+
       <div className="px-4 pb-3">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
@@ -1243,6 +1228,7 @@ export default function ConstructionSitesPage() {
             className="gv-input pl-10 w-full" />
         </div>
       </div>
+
       <div className="px-4 pb-4">
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {([
@@ -1265,6 +1251,7 @@ export default function ConstructionSitesPage() {
           })}
         </div>
       </div>
+
       {sitesError && (
         <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
@@ -1272,10 +1259,11 @@ export default function ConstructionSitesPage() {
           <button onClick={load} className="ml-auto underline text-xs">Retry</button>
         </div>
       )}
+
       {loadingSites ? (
         <div className="px-4 flex flex-col gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-40 rounded-2xl animate-pulse"
+            <div key={i} className="h-24 rounded-2xl animate-pulse"
               style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }} />
           ))}
         </div>

@@ -23,6 +23,7 @@ export interface StoreSummary {
   tools_damaged: number;
   total_hire_cost: number;
   total_tools: number;
+  overdue_tools: number;
 }
 
 
@@ -105,4 +106,4 @@ export interface StoreActivityResponse {
 export type ToolTab = 'all' | 'available' | 'in_use' | 'damaged';
 export type DetailType = 'materials' | 'tools' | null;
 export type StockTab = 'materials' | 'tools';
-export type ActivityTab = 'usage' | 'receipts';
+export type ActivityTab = 'usage' | 'orders';
