@@ -68,7 +68,6 @@ export interface PendingApprovalItem {
   updated_at:  string;
 }
 
-// Payload for creating a permit
 export interface ApproverStep {
   approver_id: number;
   step_order:  number;
