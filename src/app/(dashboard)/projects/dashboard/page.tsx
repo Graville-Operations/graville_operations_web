@@ -97,7 +97,7 @@ async function fetchAttendanceAnalytics(startDate: string, endDate: string): Pro
     });
     return normaliseAnalyticsResponse(res.data);
   } catch (err) {
-    console.warn(`[Attendance] site ${siteId} fetch error:`, err);
+    console.warn(`[Attendance] fetch error:`, err);
     return [];
   }
 }

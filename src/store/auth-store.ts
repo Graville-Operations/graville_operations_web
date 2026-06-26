@@ -1,12 +1,11 @@
 import { create } from 'zustand';
 import { User } from '@/types';
-import { saveToken, saveRole, saveUser, clearSession, getUser, getToken, getRole } from '@/lib/auth';
+import {
+  saveToken, saveRole, saveUser, saveExpiresAt,
+  clearSession, getUser, getToken, getRole,
+} from '@/lib/auth';
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/constants';
-import { useUserStore } from '@/store/user-store';
-import { useMenuStore } from '@/store/menu-store';
-import { useInvoiceStore } from '@/store/invoice-store';
-import { useProfileStore } from '@/store/profile-store';
 
 interface AuthState {
   user: User | null;
@@ -25,43 +24,62 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
 
   loadFromStorage: () => {
-    const user  = getUser();
+    const user = getUser();
     const token = getToken();
-    const role  = getRole();
+    const role = getRole();
     if (token && user) set({ user, token, role });
   },
 
   login: async (email, password) => {
     set({ isLoading: true });
     try {
+      // Step 1: Login — plain axios to bypass interceptor
       const loginRes = await axios.post(
         `${API_BASE_URL}/auth/login`,
         { email, password },
         { headers: { 'Content-Type': 'application/json' } }
       );
-      const payload = loginRes.data?.data ?? loginRes.data;
-      if (!payload?.token) throw new Error('Login failed — no token returned');
 
+      const payload = loginRes.data?.data ?? loginRes.data;
+
+      if (!payload?.token) {
+        throw new Error('Login failed — no token returned');
+      }
+
+      // Step 2: Fetch profile using fresh token — plain axios again
       const meRes = await axios.get(
         `${API_BASE_URL}/auth/me`,
         { headers: { Authorization: `Bearer ${payload.token}` } }
       );
-      const meData = meRes.data?.data ?? meRes.data;
-      if (!meData || !meData.email) throw new Error('Failed to fetch user profile');
 
+      const meData = meRes.data?.data ?? meRes.data;
+
+      if (!meData || !meData.email) {
+        throw new Error('Failed to fetch user profile');
+      }
+
+      // Map camelCase API fields → snake_case User type
       const user: User = {
         ...meData,
-        first_name:   meData.firstName ?? '',
-        last_name:    meData.lastName  ?? '',
-        account_type: meData.role      ?? '',
-        phone_no: meData.phone ?? '',
-        expires_at:   payload.expires_at ?? '', 
+        first_name:   meData.firstName  ?? '',
+        last_name:    meData.lastName   ?? '',
+        account_type: meData.role       ?? '',
+        phone_no:     meData.phone      ?? '',
+        expires_at:   payload.expires_at ?? '',
       };
 
+      // Step 3: Save everything — token, role, full user, and separate expiry cookie
       saveToken(payload.token);
       saveRole(payload.role);
       saveUser(user);
-      set({ token: payload.token, role: payload.role, user, isLoading: false });
+      saveExpiresAt(payload.expires_at ?? ''); // ✅ readable by middleware
+
+      set({
+        token: payload.token,
+        role:  payload.role,
+        user,
+        isLoading: false,
+      });
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -71,10 +89,5 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     clearSession();
     set({ user: null, token: null, role: null });
-
-    useUserStore.getState().clearUsers();
-    useMenuStore.getState().clearMenus();
-    useInvoiceStore.getState().clearInvoices();
-    useProfileStore.getState().clearProfile();
   },
 }));

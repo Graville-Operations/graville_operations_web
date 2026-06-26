@@ -17,7 +17,7 @@ import {
   AlertCircle, Loader2, UserCircle, Building2,
 } from 'lucide-react';
 
-const formatRole = (role?: string) =>
+const formatRole = (role?: string | null) =>
   role
     ? role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
     : '';
@@ -268,19 +268,19 @@ export default function HomePage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate" style={{ color: 'var(--gv-text-primary)' }}>
-                        {inv.invoiceNo}
+                        {inv.invoice_number}
                       </p>
                       <p className="text-xs truncate" style={{ color: 'var(--gv-text-subtle)' }}>
-                        {inv.clientName}
+                        {inv.client_name}
                       </p>
                     </div>
                   </div>
                   <div className="text-right shrink-0 ml-3">
                     <p className="text-sm font-semibold" style={{ color: '#33907c' }}>
-                      KES {inv.total?.toLocaleString()}
+                      KES {inv.total_invoice_value?.toLocaleString()}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
-                      {inv.invoiceDate}
+                      {inv.invoice_date}
                     </p>
                   </div>
                 </div>

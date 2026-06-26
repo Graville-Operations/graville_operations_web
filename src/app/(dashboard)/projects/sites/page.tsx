@@ -14,7 +14,7 @@ import {
   FileText, Briefcase, Users, ClipboardList, UserCheck,
   ChevronLeft, ChevronDown, ChevronUp, CheckCircle2, Circle,
   AlertTriangle, RefreshCw, DollarSign, TrendingUp,
-  Download, PiggyBank, Receipt, X, MapPin, CalendarRange, ArrowLeft,
+  Download, PiggyBank, Receipt, X, CalendarRange, ArrowLeft,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
