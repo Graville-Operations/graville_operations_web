@@ -157,7 +157,7 @@ function DetailHeader({ log }: { log: Record<string, unknown> }) {
               <Building2 size={11} />{siteName}
             </span>
             <span>{items.length} material{items.length !== 1 ? 's' : ''}</span>
-            {log.created_at && <span>Created {log.created_at as string}</span>}
+           {Boolean(log.created_at) && <span>Created {log.created_at as string}</span>}
           </div>
         </div>
         <span

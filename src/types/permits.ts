@@ -29,6 +29,7 @@ export interface PermitListItem {
   category_id:  number;
   categoryName: string;
   created_at:   string;
+  updated_at:   string;
 }
 
 export interface PermitDetail {
