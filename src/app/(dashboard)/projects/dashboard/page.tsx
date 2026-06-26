@@ -97,7 +97,7 @@ async function fetchAttendanceAnalytics(startDate: string, endDate: string): Pro
     });
     return normaliseAnalyticsResponse(res.data);
   } catch (err) {
-    console.warn(`[Attendance] site ${siteId} fetch error:`, err);
+    console.warn(`[Attendance] fetch error:`, err);
     return [];
   }
 }
@@ -167,12 +167,12 @@ function CalendarPicker({
   const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAY_NAMES   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 
-  const [maxW, setMaxW] = useState<number | undefined>(undefined);
-  useEffect(() => {
-    if (constrainWidth && anchorRef?.current) {
-      setMaxW(anchorRef.current.getBoundingClientRect().width);
-    }
-  }, [constrainWidth, anchorRef]);
+  // const [maxW, setMaxW] = useState<number | undefined>(undefined);
+  // useEffect(() => {
+  //   if (constrainWidth && anchorRef?.current) {
+  //     setMaxW(anchorRef.current.getBoundingClientRect().width);
+  //   }
+  // }, [constrainWidth, anchorRef]);
 
   function getDaysInMonth(year: number, month: number) {
     const firstDay  = new Date(year, month, 1);
@@ -414,6 +414,10 @@ function AttendanceBarChart({
     </div>
   );
 }
+async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
+  const { data } = await api.get('/sites/dashboard/metrics');
+  return (data?.data ?? data) as DashboardMetrics;
+}
 
 /* ─────────────────────────────────────────────
    Main Page
@@ -524,7 +528,7 @@ export default function ProjectsDashboardPage() {
       setLoadingBars(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attendanceTab, dateFrom, dateTo, sites]);
+  }, [attendanceTab, dateFrom, dateTo,]);
 
   useEffect(() => {
     setActiveBarIdx(null);
@@ -679,7 +683,7 @@ export default function ProjectsDashboardPage() {
                   : 'Select date range'}
                 <ChevronRightIcon className="w-4 h-4 ml-auto opacity-40" />
               </button>
-              {showCalendar && (
+              {/* {showCalendar && (
                 <CalendarPicker
                   dateFrom={dateFrom} dateTo={dateTo}
                   onSelect={(from, to) => { setDateFrom(from); setDateTo(to); }}
@@ -687,7 +691,7 @@ export default function ProjectsDashboardPage() {
                   constrainWidth
                   anchorRef={attendanceCardRef as React.RefObject<HTMLElement>}
                 />
-              )}
+              )} */}
             </div>
           )}
 
