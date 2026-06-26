@@ -127,7 +127,7 @@ interface BodyProps extends React.HTMLAttributes<HTMLParagraphElement> {
   as?: "p" | "span" | "div" | "li" | "td" | "dd";
   muted?: boolean;
   subtle?: boolean;
-  mono?: boolean;   // switches to Space Mono (good for data/values)
+  mono?: boolean;   
 }
 
 const bodySize: Record<BodySize, string> = {
