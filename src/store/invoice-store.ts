@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 export interface InvoiceItem {
   id: number;
   invoice_number: string;
-  client_name: string;
+  client_name: string;     
   total_invoice_value: number;
   invoice_date: string;
   status?: string;

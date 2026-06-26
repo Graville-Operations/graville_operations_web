@@ -257,7 +257,7 @@ useEffect(() => {
             <p className="text-xs font-semibold text-white truncate">
               {user?.first_name} {user?.last_name}
             </p>
-            <p className="text-xs text-white/40 truncate">{formatRole(role)}</p>
+            <p className="text-xs text-white/40 truncate">{formatRole(role ?? undefined)}</p>
           </div>
           <User size={14} className="shrink-0 opacity-40" />
         </Link>
