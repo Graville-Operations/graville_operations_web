@@ -102,19 +102,10 @@ function unwrapAnalytics(raw: unknown): SiteAnalytics | null {
   if (obj.data && typeof obj.data === 'object') return obj.data as SiteAnalytics;
   return raw as SiteAnalytics;
 }
-
-// ── Subtask / task breakdown normalization ──
-// The backend has, at various times, sent this nested block in snake_case
-// (task_name / subtask_breakdown / subtask_name / completion_percentage)
-// instead of the camelCase shape our types expect. When that happens the
-// camelCase fields read as `undefined`, so the subtask rows render with a
-// missing/0% completion value even though the percentage was actually
-// returned by the API. Normalize defensively so either casing works.
 function normalizeSubtaskBreakdown(raw: unknown): SubtaskBreakdown[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((s) => {
     const obj = (s ?? {}) as Record<string, unknown>;
-    // Accept whichever percentage field name the backend actually sent.
     const pctRaw =
       obj.completionPercentage ?? obj.completion_percentage ??
       obj.percentage ?? obj.percent ?? obj.progress ?? 0;
@@ -132,9 +123,6 @@ function normalizeTaskBreakdown(raw: unknown): TaskBreakdownItem[] {
   return raw.map((t) => {
     const obj = (t ?? {}) as Record<string, unknown>;
     const nameRaw = obj.taskName ?? obj.task_name ?? obj.name ?? obj.title ?? '';
-    // The nested subtask array has shown up under several different keys
-    // depending on the endpoint/version, so check all the likely ones
-    // rather than assuming a single shape.
     const subtasksRaw =
       obj.subtaskBreakdown ?? obj.subtask_breakdown ??
       obj.subtasks ?? obj.sub_tasks ?? obj.items ?? [];
@@ -245,14 +233,11 @@ function ProjectCompletionGauge({ taskPct, timePct }: { taskPct: number; timePct
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 220" style={{ width: '100%', maxWidth: 220, height: 'auto' }}>
-        {/* outer track */}
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="#f97316" strokeWidth={SW}
           strokeDasharray={`${(timePct / 100) * outerCirc} ${outerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        {/* inner track */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
-        {/* inner = task completion (blue) */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(taskPct / 100) * innerCirc} ${innerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
@@ -295,12 +280,10 @@ function ExpenditureGauge({
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 220" style={{ width: '100%', maxWidth: 220, height: 'auto' }}>
-        {/* Outer ring: time elapsed */}
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="#f97316" strokeWidth={SW}
           strokeDasharray={`${(timePct / 100) * outerCirc} ${outerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        {/* Inner ring: expenditure % */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(expendPct / 100) * innerCirc} ${innerCirc}`}
@@ -324,22 +307,13 @@ function ExpenditureGauge({
 function WeeklyAttendanceChart({ breakdown, totalWorkers }: { breakdown: AttendanceBreakdownItem[]; totalWorkers: number }) {
   const counts   = breakdown.map((d) => d.attendanceCount);
   const maxCount = Math.max(...counts, 1);
-
-  // Absolute scale: bar height represents count / scaleMax, where scaleMax
-  // is anchored to the site's total workforce — not to the other days in
-  // the current week. This means a single day with 3 check-ins stays
-  // small and proportional rather than filling the bar just because it's
-  // the only non-zero day, and a jump from 3 to 8 always reads as the
-  // same visual jump no matter what other days look like.
-  // A floor of 10 keeps bars from looking exaggerated on very small sites,
-  // and Math.max(..., maxCount) guarantees no bar ever overflows the track.
   const scaleMax = Math.max(totalWorkers > 0 ? totalWorkers : 0, maxCount, 10);
 
-  const CHART_HEIGHT = 200;                        // total height available for the chart
-  const LABEL_SPACE  = 26;                         // space reserved above each bar for its count label
-  const BAR_TRACK    = CHART_HEIGHT - LABEL_SPACE; // height of the track behind each bar
-  const BAR_MIN      = 6;                          // smallest filled height so a non-zero count is never invisible
-  const BAR_ZERO     = 3;                          // sliver height for days with 0 attendance
+  const CHART_HEIGHT = 200;                        
+  const LABEL_SPACE  = 26;                         
+  const BAR_TRACK    = CHART_HEIGHT - LABEL_SPACE; 
+  const BAR_MIN      = 6;                          
+  const BAR_ZERO     = 3;                          
 
   function barHeightPx(count: number) {
     if (count <= 0) return BAR_ZERO;
@@ -471,12 +445,6 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
   const initials = name !== '—'
     ? name.trim().split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : '?';
-
-  // Use safeFormat (same helper as the CSV export) instead of calling
-  // `new Date(...)` + `format(...)` directly here. checkInTime/date can be
-  // null, empty, or an unparsable string depending on the source record,
-  // and format() throws "Invalid time value" on an invalid Date rather
-  // than returning a fallback string.
   const checkInDate =
     safeFormat(record.checkInTime, 'dd MMM yyyy, hh:mm aa') ??
     safeFormat(record.date, 'dd MMM yyyy') ??
@@ -735,10 +703,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
           setAnalytics(a);
           return;
         }
-        // Normalize taskBreakdown/subtaskBreakdown so the subtasks always
-        // arrive with their completion percentage attached, regardless of
-        // whether the backend used camelCase, snake_case, or an entirely
-        // different key (tasks / task_list) for the array itself.
         const rawTaskBreakdown =
           (a as unknown as Record<string, unknown>).taskBreakdown ??
           (a as unknown as Record<string, unknown>).task_breakdown ??
@@ -825,7 +789,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
 
       <div className="w-full" style={{ background: 'var(--gv-bg-gradient)', minHeight: '100vh' }}>
 
-        {/* ── Fixed nav bar ── */}
         <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-6 py-4"
           style={{
             background: 'var(--gv-nav-bg)',
@@ -1162,8 +1125,6 @@ export default function ConstructionSitesPage() {
   const [projectFilter, setProjectFilter] = useState<ProjectStatus | 'ALL'>('ALL');
 
   const [selectedSite, setSelectedSite] = useState<RawSite | null>(null);
-
-  // Read any previously-selected site from localStorage after mount (client-only).
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
