@@ -84,7 +84,7 @@ export default function HomePage() {
   const [usersLoading, setUsersLoading] = useState(!usersLoaded);
   const recentUsers = users.slice(0, 5);
 
-  const { invoices, isLoaded: invoicesLoaded, setInvoices } = useInvoiceStore();
+  const { invoices, isLoaded: invoicesLoaded, startPolling } = useInvoiceStore();
   const [invoicesLoading, setInvoicesLoading] = useState(!invoicesLoaded);
   const recentInvoices = invoices.slice(0, 5);
 
@@ -93,6 +93,13 @@ export default function HomePage() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  useEffect(() => {
+    const stopPolling = startPolling();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInvoicesLoading(false);
+    return () => stopPolling();
+  }, [startPolling]);
 
   useEffect(() => {
     fetchOverviewKPIs()
@@ -113,21 +120,7 @@ export default function HomePage() {
         .catch(console.error)
         .finally(() => setUsersLoading(false));
     }
-
-    if (!invoicesLoaded) {
-      api.get('/client-invoices/all?limit=5')
-        .then(({ data }) => {
-          const payload = data?.data ?? data;
-          const list = Array.isArray(payload)
-            ? payload
-            : payload?.items ?? payload?.results ?? [];
-          setInvoices(list);
-        })
-        .catch(console.error)
-        .finally(() => setInvoicesLoading(false));
-    }
-  }, [invoicesLoaded, setInvoices, setUsers, usersLoaded]);
-
+  }, [setUsers, usersLoaded]);
   const stats = [
     {
       label: 'Total Sites',
