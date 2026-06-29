@@ -29,6 +29,7 @@ export interface PermitListItem {
   category_id:  number;
   categoryName: string;
   created_at:   string;
+  updated_at:   string | null; 
 }
 
 export interface PermitDetail {
@@ -68,7 +69,6 @@ export interface PendingApprovalItem {
   updated_at:  string;
 }
 
-// Payload for creating a permit
 export interface ApproverStep {
   approver_id: number;
   step_order:  number;

@@ -7,7 +7,7 @@ import { useMenuStore } from '@/store/menu-store';
 import api from '@/lib/api';
 import { MenuItem } from '@/types';
 import { ChevronDown, ChevronRight, LogOut, User, Bell } from 'lucide-react';
-import { API } from '@/lib/endpoints';
+//import { API } from '@/lib/endpoints';
 import { ROUTES } from '@/lib/routes';
 import { formatRole } from '@/lib/utils/format-role';
 
@@ -19,49 +19,49 @@ export default function Sidebar() {
   const router = useRouter();
   const { user, role, logout } = useAuthStore();
 
-const fetchMenus = async () => {
-  if (isLoaded) return;
-  try {
-    setIsLoading(true);
-    const { data } = await api.get('auth/me/menus');
-    const menuData = data?.data ?? data;
-    if (!Array.isArray(menuData)) return;
-    const seen = new Set<string>();
-    const unique = menuData.filter((m: MenuItem) => {
-      if (seen.has(m.name)) return false;
-      seen.add(m.name);
-      return true;
-    });
-    setMenus(unique);
-  } catch (error) {
-    console.error('Failed to fetch menus:', error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  const fetchMenus = async () => {
+    if (isLoaded) return;
+    try {
+      setIsLoading(true);
+      const { data } = await api.get('auth/me/menus');
+      const menuData = data?.data ?? data;
+      if (!Array.isArray(menuData)) return;
+      const seen = new Set<string>();
+      const unique = menuData.filter((m: MenuItem) => {
+        if (seen.has(m.name)) return false;
+        seen.add(m.name);
+        return true;
+      });
+      setMenus(unique);
+    } catch (error) {
+      console.error('Failed to fetch menus:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-useEffect(() => {
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  fetchMenus();
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchMenus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-useEffect(() => {
-  if (menus.length > 0) {
-  }
-}, [pathname, menus]);
+  useEffect(() => {
+    if (menus.length > 0) {
+    }
+  }, [pathname, menus]);
 
   const toggleMenu = (id: number) => {
-  setOpenMenus((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    return next;
-  });
-};
+    setOpenMenus((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const handleLogout = () => {
     clearMenus();
@@ -145,32 +145,24 @@ useEffect(() => {
                           <div key={sub.id}>
                             {sub.subsubmenus && sub.subsubmenus.length > 0 ? (
                               <div>
-                                {/* Submenu with children */}
-                                <div className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
-                                  isSubActive(sub)
-                                    ? 'bg-[#33907C]/20 text-[#33907C] font-medium'
-                                    : 'text-white/50 hover:bg-white/10 hover:text-white'
-                                }`}>
+                                {/* Submenu with children — entire row is toggle-only, NEVER a link */}
+                                <button
+                                  onClick={() => toggleMenu(sub.id)}
+                                  className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
+                                    isSubActive(sub)
+                                      ? 'bg-[#33907C]/20 text-[#33907C] font-medium'
+                                      : 'text-white/50 hover:bg-white/10 hover:text-white'
+                                  }`}
+                                >
                                   <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" />
-                                  {sub.link ? (
-                                    <Link href={sub.link} className="flex-1 text-left">
-                                      {sub.title}
-                                    </Link>
-                                  ) : (
-                                    <span className="flex-1 text-left">{sub.title}</span>
-                                  )}
-                                  <button
-                                    onClick={() => toggleMenu(sub.id)}
-                                    className="p-0.5 shrink-0"
-                                  >
-                                    <ChevronDown
-                                      size={12}
-                                      className={`transition-transform duration-200 opacity-50 ${
-                                        openMenus.has(sub.id) ? 'rotate-180' : ''
-                                      }`}
-                                    />
-                                  </button>
-                                </div>
+                                  <span className="flex-1 text-left">{sub.title}</span>
+                                  <ChevronDown
+                                    size={12}
+                                    className={`transition-transform duration-200 opacity-50 shrink-0 ${
+                                      openMenus.has(sub.id) ? 'rotate-180' : ''
+                                    }`}
+                                  />
+                                </button>
 
                                 {/* Sub-submenus */}
                                 {openMenus.has(sub.id) && (
@@ -195,7 +187,7 @@ useEffect(() => {
                                 )}
                               </div>
                             ) : (
-                              /* Regular submenu — use link from database */
+                              /* Regular submenu — no children, use link from database */
                               <Link
                                 href={sub.link ?? '#'}
                                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
@@ -220,7 +212,7 @@ useEffect(() => {
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
                     isMenuActive(menu)
                       ? 'bg-[#33907C] text-white'
-                      : 'text-white/70 hover:bg-white/10 ehover:text-white'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <ChevronRight size={14} className="shrink-0 opacity-40" />
@@ -257,7 +249,7 @@ useEffect(() => {
             <p className="text-xs font-semibold text-white truncate">
               {user?.first_name} {user?.last_name}
             </p>
-            <p className="text-xs text-white/40 truncate">{formatRole(role)}</p>
+            <p className="text-xs text-white/40 truncate">{formatRole(role ?? undefined)}</p>
           </div>
           <User size={14} className="shrink-0 opacity-40" />
         </Link>

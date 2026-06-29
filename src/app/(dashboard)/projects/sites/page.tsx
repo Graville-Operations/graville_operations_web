@@ -2,22 +2,20 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 
-import { format, parseISO, subDays, differenceInCalendarDays } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import api from '@/lib/api';
 import { fetchSites, fetchOverviewKPIs } from '@/lib/api/sites';
 import {
   Site, ProjectStatus, SiteStatus, OverviewKPIs,
-  SiteDetail, SiteWorker, AttendanceRecord, SiteTask,
+  SiteDetail, AttendanceRecord,
 } from '@/types/site';
 import {
   MapPin, Search, Calendar, Building2, AlertCircle, Loader2,
   FileText, Briefcase, Users, ClipboardList, UserCheck,
-  ChevronLeft, ChevronDown, ChevronUp, CheckCircle2, Circle,
-  AlertTriangle, RefreshCw, DollarSign, TrendingUp,
-  Download, PiggyBank, Receipt, X, MapPin, CalendarRange, ArrowLeft,
+  ChevronLeft, ChevronDown, ChevronUp, CheckCircle2,
+  RefreshCw, DollarSign, TrendingUp,
+  Download, PiggyBank, Receipt, CalendarRange, ArrowLeft,
 } from 'lucide-react';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface RawSite {
   id: number;
@@ -26,6 +24,7 @@ interface RawSite {
   projectStatus?: string;
   siteStatus?: string;
   deadlineDate?: string;
+  completion_date?: string;
   [key: string]: unknown;
 }
 
@@ -36,21 +35,6 @@ interface AttendanceSummary {
   total: number;
   payouts: number;
   records: AttendanceRecord[];
-}
-
-interface Invoice {
-  id: number;
-  amount?: number;
-  total_amount?: number;
-  [key: string]: unknown;
-}
-
-interface StoreTool {
-  id: number;
-  hire_cost?: number;
-  cost?: number;
-  amount?: number;
-  [key: string]: unknown;
 }
 
 interface SubtaskBreakdown {
@@ -84,22 +68,12 @@ interface SiteAnalytics {
   attendanceBreakdown: AttendanceBreakdownItem[];
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function unwrapItems<T>(raw: unknown): T[] {
-  if (Array.isArray(raw)) return raw as T[];
-  if (raw && typeof raw === 'object') {
-    const obj = raw as Record<string, unknown>;
-    if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
-      const inner = obj.data as Record<string, unknown>;
-      if (Array.isArray(inner.items))   return inner.items   as T[];
-      if (Array.isArray(inner.results)) return inner.results as T[];
-    }
-    if (Array.isArray(obj.data))    return obj.data    as T[];
-    if (Array.isArray(obj.items))   return obj.items   as T[];
-    if (Array.isArray(obj.results)) return obj.results as T[];
-  }
-  return [];
+interface SiteDetailExtended extends SiteDetail {
+  estimatedValue?: number;
+  tendererName?: string;
+  inquiringEntity?: string;
+  completionDate?: string;
+  createdAt?: string;
 }
 
 function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null {
@@ -128,8 +102,36 @@ function unwrapAnalytics(raw: unknown): SiteAnalytics | null {
   if (obj.data && typeof obj.data === 'object') return obj.data as SiteAnalytics;
   return raw as SiteAnalytics;
 }
+function normalizeSubtaskBreakdown(raw: unknown): SubtaskBreakdown[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((s) => {
+    const obj = (s ?? {}) as Record<string, unknown>;
+    const pctRaw =
+      obj.completionPercentage ?? obj.completion_percentage ??
+      obj.percentage ?? obj.percent ?? obj.progress ?? 0;
+    const pct = typeof pctRaw === 'number' ? pctRaw : Number(pctRaw) || 0;
+    const nameRaw = obj.subtaskName ?? obj.subtask_name ?? obj.name ?? obj.title ?? '';
+    return {
+      subtaskName: String(nameRaw),
+      completionPercentage: pct,
+    };
+  });
+}
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+function normalizeTaskBreakdown(raw: unknown): TaskBreakdownItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((t) => {
+    const obj = (t ?? {}) as Record<string, unknown>;
+    const nameRaw = obj.taskName ?? obj.task_name ?? obj.name ?? obj.title ?? '';
+    const subtasksRaw =
+      obj.subtaskBreakdown ?? obj.subtask_breakdown ??
+      obj.subtasks ?? obj.sub_tasks ?? obj.items ?? [];
+    return {
+      taskName: String(nameRaw),
+      subtaskBreakdown: normalizeSubtaskBreakdown(subtasksRaw),
+    };
+  });
+}
 
 const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string; bg: string }> = {
   ACTIVE:   { label: 'Active',   color: 'text-green-300', bg: 'bg-green-500/20 border border-green-500/40' },
@@ -158,8 +160,6 @@ function normProjectStatus(s: string): ProjectStatus {
   }
 }
 
-// ─── Small shared components ──────────────────────────────────────────────────
-
 function ProgressBar({ pct, color = 'var(--gv-brand)', height = 'h-2' }: {
   pct: number; color?: string; height?: string;
 }) {
@@ -178,10 +178,10 @@ function QuickStatPill({ label, value, loading }: {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl px-2 py-3"
       style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
-      <p className="text-xs mb-1 text-center font-medium" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
+      <p className="text-sm mb-1 text-center font-medium" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
       {loading
         ? <div className="h-6 w-6 rounded animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-        : <p className="text-2xl font-bold text-white leading-none">{value}</p>}
+        : <p className="text-3xl font-bold text-white leading-none">{value}</p>}
     </div>
   );
 }
@@ -189,24 +189,27 @@ function QuickStatPill({ label, value, loading }: {
 function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
   const ss       = normSiteStatus(site.siteStatus);
   const siteMeta = SITE_STATUS_META[ss];
+
+  // Completion rate isn't available on the list payload (only on /sites/analytics/:id),
+  // so the card shows 0 until the user opens the site detail view.
+  const pct = 0;
+
   return (
     <div onClick={onClick}
       className="gv-card gv-card-hover flex flex-col gap-3 cursor-pointer group active:scale-[0.98] transition-transform">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-bold text-lg text-white leading-tight group-hover:text-[var(--gv-brand)] transition-colors">
-          {site.name}
-        </p>
-        <span className={`text-sm font-semibold px-3 py-1 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
+        <p className="font-bold text-xl text-white leading-tight">{site.name}</p>
+        <span className={`text-base font-semibold px-3 py-1 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
           {siteMeta.label}
         </span>
       </div>
-      {site.location && (
-        <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
-          <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">{site.location}</span>
+      {site.deadlineDate && (
+        <div className="flex items-center gap-2 text-lg" style={{ color: 'var(--gv-text-muted)' }}>
+          <Calendar className="w-4 h-4 flex-shrink-0" />
+          <span>Deadline: {site.deadlineDate}</span>
         </div>
       )}
-      {site.completion_date && (
+      {!site.deadlineDate && site.completion_date && (
         <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
           <Calendar className="w-4 h-4 flex-shrink-0" />
           <span>Deadline: {format(new Date(site.completion_date), 'dd MMM yyyy')}</span>
@@ -223,8 +226,6 @@ function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
   );
 }
 
-// ─── Dual Gauge: Project Completion + Time Elapsed ────────────────────────────
-
 function ProjectCompletionGauge({ taskPct, timePct }: { taskPct: number; timePct: number }) {
   const CX = 110, CY = 110, R_outer = 88, R_inner = 64, SW = 13;
   const outerCirc = 2 * Math.PI * R_outer;
@@ -232,34 +233,29 @@ function ProjectCompletionGauge({ taskPct, timePct }: { taskPct: number; timePct
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 220" style={{ width: '100%', maxWidth: 220, height: 'auto' }}>
-        {/* outer track */}
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="#f97316" strokeWidth={SW}
           strokeDasharray={`${(timePct / 100) * outerCirc} ${outerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        {/* inner track */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
-        {/* inner = task completion (blue) */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(taskPct / 100) * innerCirc} ${innerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        <text x={CX} y={CY - 6}  textAnchor="middle" fontSize="22" fontWeight="700" fill="white">{taskPct}%</text>
-        <text x={CX} y={CY + 16} textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.4)">completion</text>
+        <text x={CX} y={CY - 6}  textAnchor="middle" fontSize="26" fontWeight="700" fill="white">{taskPct}%</text>
+        <text x={CX} y={CY + 16} textAnchor="middle" fontSize="13" fill="rgba(255,255,255,0.4)">completion</text>
       </svg>
       <div className="flex flex-col gap-1.5 mt-3 w-full">
-        <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+        <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
           <span className="w-3 h-3 rounded-full flex-shrink-0 bg-blue-500" />Project completion ({taskPct}%)
         </span>
-        <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+        <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
           <span className="w-3 h-3 rounded-full flex-shrink-0 bg-orange-500" />% to deadline day ({timePct}%)
         </span>
       </div>
-      <p className="text-sm font-semibold text-white mt-3 text-center">Project Completion</p>
+      <p className="text-base font-semibold text-white mt-3 text-center">Project Completion</p>
     </div>
   );
 }
-
-// ─── Expenditure Gauge ────────────────────────────────────────────────────────
 
 function ExpenditureGauge({
   totalExpenditure,
@@ -274,7 +270,6 @@ function ExpenditureGauge({
   const outerCirc = 2 * Math.PI * R_outer;
   const innerCirc = 2 * Math.PI * R_inner;
 
-  // Expenditure as % of estimated value (capped at 100)
   const expendPct = estimatedValue > 0
     ? Math.min(100, Math.round((totalExpenditure / estimatedValue) * 100))
     : 0;
@@ -285,36 +280,47 @@ function ExpenditureGauge({
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 220" style={{ width: '100%', maxWidth: 220, height: 'auto' }}>
-        {/* Outer ring: time elapsed */}
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="#f97316" strokeWidth={SW}
           strokeDasharray={`${(timePct / 100) * outerCirc} ${outerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        {/* Inner ring: expenditure % */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(expendPct / 100) * innerCirc} ${innerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
-        <text x={CX} y={CY - 6}  textAnchor="middle" fontSize="22" fontWeight="700" fill="white">{expendPct}%</text>
-        <text x={CX} y={CY + 16} textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.4)">spent</text>
+        <text x={CX} y={CY - 6}  textAnchor="middle" fontSize="26" fontWeight="700" fill="white">{expendPct}%</text>
+        <text x={CX} y={CY + 16} textAnchor="middle" fontSize="13" fill="rgba(255,255,255,0.4)">spent</text>
       </svg>
       <div className="flex flex-col gap-1.5 mt-3 w-full">
-        <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+        <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
           <span className="w-3 h-3 rounded-full flex-shrink-0 bg-blue-500" />Expenditure ({fmtKes(totalExpenditure)})
         </span>
-        <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+        <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
           <span className="w-3 h-3 rounded-full flex-shrink-0 bg-orange-500" />% to deadline day ({timePct}%)
         </span>
       </div>
-      <p className="text-sm font-semibold text-white mt-3 text-center">Expenditure</p>
+      <p className="text-base font-semibold text-white mt-3 text-center">Expenditure</p>
     </div>
   );
 }
 
-// ─── Weekly Attendance Bar Chart ──────────────────────────────────────────────
+function WeeklyAttendanceChart({ breakdown, totalWorkers }: { breakdown: AttendanceBreakdownItem[]; totalWorkers: number }) {
+  const counts   = breakdown.map((d) => d.attendanceCount);
+  const maxCount = Math.max(...counts, 1);
+  const scaleMax = Math.max(totalWorkers > 0 ? totalWorkers : 0, maxCount, 10);
 
-function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownItem[] }) {
-  const maxCount = Math.max(...breakdown.map((d) => d.attendanceCount), 1);
+  const CHART_HEIGHT = 200;                        
+  const LABEL_SPACE  = 26;                         
+  const BAR_TRACK    = CHART_HEIGHT - LABEL_SPACE; 
+  const BAR_MIN      = 6;                          
+  const BAR_ZERO     = 3;                          
+
+  function barHeightPx(count: number) {
+    if (count <= 0) return BAR_ZERO;
+    const ratio = Math.min(count / scaleMax, 1);
+    return Math.max(BAR_MIN, Math.round(ratio * BAR_TRACK));
+  }
+
   const DAY_ABBR: Record<string, string> = {
     Sunday: 'S', Monday: 'M', Tuesday: 'T',
     Wednesday: 'W', Thursday: 'T', Friday: 'F', Saturday: 'S',
@@ -322,25 +328,26 @@ function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownIt
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-end justify-between gap-1" style={{ height: 80 }}>
+      <div className="flex items-end justify-between gap-1" style={{ height: CHART_HEIGHT }}>
         {breakdown.map((item) => {
-          const heightPct = (item.attendanceCount / maxCount) * 100;
-          const isToday   = item.date === format(new Date(), 'yyyy-MM-dd');
+          const barPx   = barHeightPx(item.attendanceCount);
+          const isToday = item.date === format(new Date(), 'yyyy-MM-dd');
           return (
-            <div key={item.date} className="flex flex-col items-center gap-1 flex-1">
-              {item.attendanceCount > 0 && (
-                <span className="text-[10px] font-semibold" style={{ color: 'var(--gv-text-subtle)' }}>
-                  {item.attendanceCount}
-                </span>
-              )}
-              <div className="w-full rounded-t-md transition-all duration-500"
+            <div key={item.date} className="flex flex-col items-center justify-end gap-1 flex-1"
+              style={{ height: CHART_HEIGHT }}>
+              <span className="text-xs font-semibold"
                 style={{
-                  height: `${Math.max(heightPct, item.attendanceCount > 0 ? 8 : 2)}%`,
-                  minHeight: item.attendanceCount > 0 ? 8 : 2,
-                  background: isToday ? '#3b82f6' : 'rgba(255,255,255,0.12)',
-                  maxWidth: 32,
-                  alignSelf: 'flex-end',
-                }} />
+                  color: 'var(--gv-text-subtle)',
+                  visibility: item.attendanceCount > 0 ? 'visible' : 'hidden',
+                }}>
+                {item.attendanceCount}
+              </span>
+              {/* Track: always visible so the chart reads as a bar graph even on quiet days */}
+              <div className="relative w-full rounded-t-md overflow-hidden"
+                style={{ maxWidth: 32, height: BAR_TRACK, background: 'rgba(255,255,255,0.06)' }}>
+                <div className="absolute bottom-0 left-0 w-full rounded-t-md transition-all duration-500"
+                  style={{ height: barPx, background: isToday ? '#3b82f6' : 'rgba(255,255,255,0.4)' }} />
+              </div>
             </div>
           );
         })}
@@ -348,7 +355,7 @@ function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownIt
       <div className="flex justify-between gap-1">
         {breakdown.map((item) => (
           <div key={item.date} className="flex-1 flex justify-center">
-            <span className="text-[11px]" style={{ color: 'var(--gv-text-subtle)' }}>
+            <span className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
               {DAY_ABBR[item.day] ?? item.day[0]}
             </span>
           </div>
@@ -358,15 +365,12 @@ function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownIt
   );
 }
 
-// ─── Task Accordion (analytics-driven) ───────────────────────────────────────
-
 function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
   const [open, setOpen] = useState(false);
   const subtasks = task.subtaskBreakdown ?? [];
   const total    = subtasks.length;
-  const avgPct   = total > 0
-    ? Math.round(subtasks.reduce((a, s) => a + s.completionPercentage, 0) / total)
-    : 0;
+  const totalPct = subtasks.reduce((a, s) => a + s.completionPercentage, 0);
+  const taskPct  = total > 0 ? Math.min(100, Math.round(totalPct / total)) : 0;
 
   return (
     <div className="rounded-2xl overflow-hidden"
@@ -375,21 +379,21 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
         <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
           style={{ background: 'var(--gv-glass-bg-strong)', border: '1px solid var(--gv-glass-border)' }}>
-          <CheckCircle2 className={`w-4 h-4 ${avgPct === 100 ? 'text-teal-300' : 'text-blue-300'}`} />
+          <CheckCircle2 className={`w-4 h-4 ${taskPct === 100 ? 'text-teal-300' : 'text-blue-300'}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white">{task.taskName}</p>
+          <p className="text-base font-semibold text-white">{task.taskName}</p>
           <div className="mt-1.5 flex items-center gap-2">
             <div className="flex-1">
-              <ProgressBar pct={avgPct} color={avgPct === 100 ? '#14b8a6' : 'var(--gv-brand)'} height="h-1.5" />
+              <ProgressBar pct={taskPct} color={taskPct === 100 ? '#14b8a6' : 'var(--gv-brand)'} height="h-1.5" />
             </div>
-            <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
-              {avgPct}%
+            <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
+              {taskPct}%
             </span>
           </div>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--gv-text-subtle)' }}>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-subtle)' }}>
             {total > 0 ? `${total} subtask${total !== 1 ? 's' : ''}` : 'No subtasks'}
-            {total > 0 ? ` · ${avgPct}% avg completion` : ''}
+            {total > 0 ? ` · ${taskPct}% completion` : ''}
           </p>
         </div>
         {open
@@ -402,8 +406,8 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
             <div key={idx} className="flex flex-col gap-1.5 py-2 px-3 rounded-xl"
               style={{ background: 'var(--gv-glass-bg-strong)' }}>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-white truncate">{sub.subtaskName}</span>
-                <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
+                <span className="text-sm text-white truncate">{sub.subtaskName}</span>
+                <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
                   {sub.completionPercentage}%
                 </span>
               </div>
@@ -418,14 +422,12 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
       )}
       {open && subtasks.length === 0 && (
         <div className="px-4 pb-4 pt-2" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
-          <p className="text-xs text-center" style={{ color: 'var(--gv-text-subtle)' }}>No subtasks recorded</p>
+          <p className="text-sm text-center" style={{ color: 'var(--gv-text-subtle)' }}>No subtasks recorded</p>
         </div>
       )}
     </div>
   );
 }
-
-// ─── Attendance Row ───────────────────────────────────────────────────────────
 
 function safeFormat(value: unknown, fmt: string): string | null {
   if (!value) return null;
@@ -443,32 +445,31 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
   const initials = name !== '—'
     ? name.trim().split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : '?';
-  const checkInDate = record.checkInTime
-    ? format(new Date(record.checkInTime), 'dd MMM yyyy, hh:mm aa')
-    : record.date ? format(new Date(record.date), 'dd MMM yyyy') : '—';
+  const checkInDate =
+    safeFormat(record.checkInTime, 'dd MMM yyyy, hh:mm aa') ??
+    safeFormat(record.date, 'dd MMM yyyy') ??
+    '—';
 
   return (
     <div className="flex items-center gap-3 py-3"
       style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
-      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
+      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white"
         style={{ background: 'rgba(51,144,124,0.2)', border: '1px solid rgba(51,144,124,0.4)' }}>
         {initials}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white capitalize">{name}</p>
-        <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>{record.phone ?? '—'}</p>
+        <p className="text-base font-semibold text-white capitalize">{name}</p>
+        <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>{record.phone ?? '—'}</p>
       </div>
       <div className="text-right flex-shrink-0 space-y-0.5">
-        <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>Check In: {checkInDate}</p>
+        <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>Check In: {checkInDate}</p>
         {record.nationalId && (
-          <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>ID: {record.nationalId}</p>
+          <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>ID: {record.nationalId}</p>
         )}
       </div>
     </div>
   );
 }
-
-// ─── All Workers Full Screen ──────────────────────────────────────────────────
 
 function AllWorkersScreen({
   records,
@@ -488,19 +489,19 @@ function AllWorkersScreen({
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
         }}>
-        <button onClick={onClose} className="flex items-center gap-2 text-sm font-semibold"
+        <button onClick={onClose} className="flex items-center gap-2 text-base font-semibold"
           style={{ color: 'var(--gv-brand)' }}>
           <ArrowLeft className="w-5 h-5" />Back
         </button>
         <div className="flex-1 text-center">
-          <p className="text-base font-bold text-white">Workers on Site</p>
-          <p className="text-xs" style={{ color: 'var(--gv-text-muted)' }}>{dateLabel}</p>
+          <p className="text-lg font-bold text-white">Workers on Site</p>
+          <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>{dateLabel}</p>
         </div>
         <span className="w-16" />
       </div>
 
       <div className="px-6 pt-5 pb-3 flex-shrink-0">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold"
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-base font-semibold"
           style={{ background: 'rgba(51,144,124,0.15)', border: '1px solid rgba(51,144,124,0.35)', color: '#33907C' }}>
           <Users className="w-4 h-4" />
           {records.length} worker{records.length !== 1 ? 's' : ''} checked in
@@ -511,7 +512,7 @@ function AllWorkersScreen({
         {records.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-20 text-center">
             <UserCheck className="w-8 h-8" style={{ color: 'var(--gv-text-subtle)' }} />
-            <p className="text-sm text-white">No check-ins for this period</p>
+            <p className="text-base text-white">No check-ins for this period</p>
           </div>
         ) : (
           <div className="gv-card" style={{ padding: '0 1rem' }}>
@@ -522,8 +523,6 @@ function AllWorkersScreen({
     </div>
   );
 }
-
-// ─── Date Range Picker ────────────────────────────────────────────────────────
 
 interface DateRangePickerProps {
   from: string;
@@ -572,11 +571,11 @@ function DateRangePicker({ from, to, maxDate, onChange }: DateRangePickerProps) 
   return (
     <div className="relative" ref={ref}>
       <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-white">
+        <div className="flex items-center gap-2 text-base font-semibold text-white">
           <span>{label}</span>
         </div>
         <button onClick={handleOpen}
-          className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-xl"
+          className="flex items-center gap-1.5 text-base font-semibold px-3 py-1.5 rounded-xl"
           style={{ color: 'var(--gv-brand)', background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}>
           <CalendarRange className="w-4 h-4" />Pick Range
         </button>
@@ -599,7 +598,7 @@ function DateRangePicker({ from, to, maxDate, onChange }: DateRangePickerProps) 
               return (
                 <button key={p.label}
                   onClick={() => { setDraftFrom(p.f); setDraftTo(p.t); }}
-                  className="text-xs px-2 py-1.5 rounded-xl text-left"
+                  className="text-sm px-2 py-1.5 rounded-xl text-left"
                   style={{
                     background: active ? 'var(--gv-brand)' : 'var(--gv-glass-bg-strong)',
                     border: `1px solid ${active ? 'var(--gv-brand)' : 'var(--gv-glass-border)'}`,
@@ -612,24 +611,24 @@ function DateRangePicker({ from, to, maxDate, onChange }: DateRangePickerProps) 
           </div>
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>From</label>
+              <label className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>From</label>
               <input type="date" value={draftFrom} max={maxDate}
                 onChange={(e) => setDraftFrom(e.target.value)}
-                className="gv-input text-sm py-2 w-full cursor-pointer" style={{ colorScheme: 'dark' }} />
+                className="gv-input text-base py-2 w-full cursor-pointer" style={{ colorScheme: 'dark' }} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>To</label>
+              <label className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>To</label>
               <input type="date" value={draftTo} min={draftFrom} max={maxDate}
                 onChange={(e) => setDraftTo(e.target.value)}
-                className="gv-input text-sm py-2 w-full cursor-pointer" style={{ colorScheme: 'dark' }} />
+                className="gv-input text-base py-2 w-full cursor-pointer" style={{ colorScheme: 'dark' }} />
             </div>
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={handleCancel} className="flex-1 text-sm py-2 rounded-xl"
+            <button onClick={handleCancel} className="flex-1 text-base py-2 rounded-xl"
               style={{ background: 'var(--gv-glass-bg-strong)', border: '1px solid var(--gv-glass-border)', color: 'var(--gv-text-muted)' }}>
               Cancel
             </button>
-            <button onClick={handleApply} className="flex-1 text-sm py-2 rounded-xl font-semibold text-white"
+            <button onClick={handleApply} className="flex-1 text-base py-2 rounded-xl font-semibold text-white"
               style={{ background: 'var(--gv-brand)' }}>
               Apply
             </button>
@@ -640,9 +639,9 @@ function DateRangePicker({ from, to, maxDate, onChange }: DateRangePickerProps) 
   );
 }
 
-// ─── Download helper ──────────────────────────────────────────────────────────
-
 function downloadAttendanceCSV(records: AttendanceRecord[], dateLabel: string, siteName: string) {
+  if (records.length === 0) return;
+
   const headers = ['Name', 'Phone', 'National ID', 'Check In'];
   const rows = records.map((r) => {
     const name      = r.workerName ?? '';
@@ -661,32 +660,30 @@ function downloadAttendanceCSV(records: AttendanceRecord[], dateLabel: string, s
   const a    = document.createElement('a');
   a.href     = url;
   a.download = `attendance_${siteName.replace(/\s+/g, '_')}_${dateLabel}.csv`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
-// ─── Site Detail View ─────────────────────────────────────────────────────────
-
 function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void }) {
 
-  // Hide sidebar while in detail view
   useEffect(() => {
     const sidebar = document.querySelector('aside') as HTMLElement | null;
     if (sidebar) sidebar.style.display = 'none';
     return () => { if (sidebar) sidebar.style.display = ''; };
   }, []);
 
-  // ── Analytics from /api/v1/sites/analytics/{site_id} ──
+  const ss       = normSiteStatus(site.siteStatus);
+  const siteMeta = SITE_STATUS_META[ss];
+
   const [analytics,       setAnalytics      ] = useState<SiteAnalytics | null>(null);
   const [loadingAnalytics,setLoadingAnalytics] = useState(true);
-  const [analyticsError,  setAnalyticsError ] = useState<string | null>(null);
 
-  // ── Static site detail (header only) ──
-  const [detail,       setDetail      ] = useState<SiteDetail | null>(null);
+  const [detail,       setDetail      ] = useState<SiteDetailExtended | null>(null);
   const [loadingDetail,setLoadingDetail] = useState(true);
-  const [detailError,  setDetailError ] = useState<string | null>(null);
 
-  // ── Workers on Site (attendance records, range-based) ──
   const [rangeRecords, setRangeRecords] = useState<AttendanceRecord[]>([]);
   const [rangePayouts, setRangePayouts] = useState<number>(0);
   const [loadingRange, setLoadingRange] = useState(true);
@@ -697,23 +694,34 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   const [rangeFrom, setRangeFrom] = useState(todayStr);
   const [rangeTo,   setRangeTo  ] = useState(todayStr);
 
-  // ── Loaders ──
-
   const loadAnalytics = useCallback(() => {
     setLoadingAnalytics(true);
-    setAnalyticsError(null);
     api.get(`/sites/analytics/${site.id}`)
-      .then(({ data }) => setAnalytics(unwrapAnalytics(data)))
-      .catch(() => setAnalyticsError('Failed to load site analytics.'))
+      .then(({ data }) => {
+        const a = unwrapAnalytics(data);
+        if (!a) {
+          setAnalytics(a);
+          return;
+        }
+        const rawTaskBreakdown =
+          (a as unknown as Record<string, unknown>).taskBreakdown ??
+          (a as unknown as Record<string, unknown>).task_breakdown ??
+          (a as unknown as Record<string, unknown>).tasks ??
+          (a as unknown as Record<string, unknown>).task_list;
+        setAnalytics({
+          ...a,
+          taskBreakdown: normalizeTaskBreakdown(rawTaskBreakdown),
+        });
+      })
+      .catch(() => {})
       .finally(() => setLoadingAnalytics(false));
   }, [site.id]);
 
   const loadDetail = useCallback(() => {
     setLoadingDetail(true);
-    setDetailError(null);
     api.get(`/sites/${site.id}`)
-      .then(({ data }) => setDetail(unwrapObject<SiteDetail>(data)))
-      .catch(() => setDetailError('Failed to load site details.'))
+      .then(({ data }) => setDetail(unwrapObject<SiteDetailExtended>(data)))
+      .catch(() => {})
       .finally(() => setLoadingDetail(false));
   }, [site.id]);
 
@@ -746,7 +754,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   const fmtKes = (n: number) =>
     `KES ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const estimatedValue  = analytics?.estimatedProjectValue  ?? (detail as any)?.estimatedValue ?? 0;
+  const estimatedValue  = analytics?.estimatedProjectValue  ?? detail?.estimatedValue ?? 0;
   const totalExpenditure= analytics?.totalExpenditure       ?? 0;
   const expendRemaining = analytics?.expenditureRemaining   ?? 0;
   const availableBudget = expendRemaining >= 0 ? expendRemaining : 0;
@@ -774,14 +782,13 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
       {showAllWorkers && (
         <AllWorkersScreen
           records={rangeRecords}
-          dateLabel={rangeDateLabel}
+          dateLabel={rangeLabel}
           onClose={() => setShowAllWorkers(false)}
         />
       )}
 
       <div className="w-full" style={{ background: 'var(--gv-bg-gradient)', minHeight: '100vh' }}>
 
-        {/* ── Fixed nav bar ── */}
         <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-6 py-4"
           style={{
             background: 'var(--gv-nav-bg)',
@@ -790,44 +797,24 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
             WebkitBackdropFilter: 'blur(24px)',
             boxShadow: '0 1px 0 rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.5)',
           }}>
-          <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold"
+          <button onClick={onBack} className="flex items-center gap-2 text-base font-semibold"
             style={{ color: 'var(--gv-brand)' }}>
             <ChevronLeft className="w-5 h-5" />Back to Sites
           </button>
-          <span className="text-base font-bold text-white flex-1 text-center">Site Details</span>
+          <span className="text-lg font-bold text-white flex-1 text-center">Site Details</span>
           <span className="w-28" />
         </div>
 
         <div className="mx-auto pt-20 pb-20" style={{ width: '80%' }}>
           <div className="flex flex-col gap-8">
 
-            {/* ── Error banners ── */}
-            {detailError && (
-              <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />{detailError}
-                <button onClick={loadDetail} className="ml-auto underline text-xs">Retry</button>
-              </div>
-            )}
-            {analyticsError && (
-              <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />{analyticsError}
-                <button onClick={loadAnalytics} className="ml-auto underline text-xs">Retry</button>
-              </div>
-            )}
-
-            {/* ══════════════════════════════════════════════
-                SECTION 1 – Site Information (from /sites/{id})
-                Always uses detail endpoint, not analytics
-                ══════════════════════════════════════════════ */}
             <div className="gv-card flex flex-col gap-5"
               style={{ background: 'linear-gradient(135deg,rgba(30,42,58,0.95) 0%,rgba(20,32,46,0.95) 100%)' }}>
               <div className="flex items-start justify-between gap-4">
                 {loadingDetail
                   ? <div className="h-9 w-64 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                  : <h1 className="text-3xl font-bold text-white leading-tight">{detail?.name ?? site.name}</h1>}
-                <span className={`text-sm font-semibold px-4 py-1.5 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
+                  : <h1 className="text-4xl font-bold text-white leading-tight">{detail?.name ?? site.name}</h1>}
+                <span className={`text-base font-semibold px-4 py-1.5 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
                   {siteMeta.label}
                 </span>
               </div>
@@ -841,17 +828,17 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
               ) : detail && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {detail.location && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <MapPin className="w-4 h-4 flex-shrink-0" /><span>{detail.location}</span>
                     </div>
                   )}
                   {detail.description && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <FileText className="w-4 h-4 flex-shrink-0" /><span>{detail.description}</span>
                     </div>
                   )}
                   {(detail.createdAt || detail.completionDate) && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <Calendar className="w-4 h-4 flex-shrink-0" />
                       <span>
                         {detail.createdAt ? `Started ${detail.createdAt}` : ''}
@@ -860,12 +847,12 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                     </div>
                   )}
                   {detail.tendererName && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <Briefcase className="w-4 h-4 flex-shrink-0" /><span>Tenderer: {detail.tendererName}</span>
                     </div>
                   )}
                   {detail.inquiringEntity && (
-                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
                       <Building2 className="w-4 h-4 flex-shrink-0" /><span>Procuring entity: {detail.inquiringEntity}</span>
                     </div>
                   )}
@@ -875,52 +862,45 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 <p className="gv-label">Estimated Value</p>
                 {loadingDetail && !analytics
                   ? <div className="h-8 w-40 rounded animate-pulse mt-1" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                  : <p className="text-3xl font-bold text-white">{fmtKes(estimatedValue)}</p>}
+                  : <p className="text-4xl font-bold text-white">{fmtKes(estimatedValue)}</p>}
               </div>
             </div>
 
-            {/* ══════════════════════════════════════════════
-                SECTION 2 – Project Overview (from analytics)
-                ══════════════════════════════════════════════ */}
             <section>
-              <p className="text-xl font-semibold text-white mb-4">Project Overview</p>
+              <p className="text-2xl font-semibold text-white mb-4">Project Overview</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="gv-card flex flex-col gap-1">
                   <p className="gv-label">Total Workers</p>
                   {loadingAnalytics
                     ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{totalWorkers}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Overall headcount</p>
+                    : <p className="text-5xl font-bold text-white">{totalWorkers}</p>}
+                  <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Overall headcount</p>
                 </div>
                 <div className="gv-card flex flex-col gap-1">
                   <p className="gv-label">Completion Rate</p>
                   {loadingAnalytics
                     ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{projectCompletion}%</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Based on subtasks from DB</p>
+                    : <p className="text-5xl font-bold text-white">{projectCompletion}%</p>}
+                  <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Based on subtasks from DB</p>
                 </div>
                 <div className="gv-card flex flex-col gap-1">
                   <p className="gv-label">Tasks Completed</p>
                   {loadingAnalytics
                     ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{completedTasks}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{completedTasks} of {taskBreakdown.length} tasks</p>
+                    : <p className="text-5xl font-bold text-white">{completedTasks}</p>}
+                  <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{completedTasks} of {taskBreakdown.length} tasks</p>
                 </div>
                 <div className="gv-card flex flex-col gap-1">
                   <p className="gv-label">Estimated Value</p>
                   {loadingAnalytics && !detail
                     ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-xl font-bold text-white leading-tight">{fmtKes(estimatedValue)}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Total budget</p>
+                    : <p className="text-2xl font-bold text-white leading-tight">{fmtKes(estimatedValue)}</p>}
+                  <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Total budget</p>
                 </div>
               </div>
             </section>
-
-            {/* ══════════════════════════════════════════════
-                SECTION 3 – Financials (from analytics)
-                ══════════════════════════════════════════════ */}
             <section>
-              <p className="text-xl font-semibold text-white mb-4">Financials</p>
+              <p className="text-2xl font-semibold text-white mb-4">Financials</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
                   { icon: DollarSign, label: 'Estimated Value',    value: fmtKes(estimatedValue),  sub: 'Total project budget',              loading: loadingAnalytics && !detail },
@@ -935,26 +915,21 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                       <p className="gv-label">{card.label}</p>
                       {card.loading
                         ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                        : <p className="text-xl font-bold text-white">{card.value}</p>}
-                      <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{card.sub}</p>
+                        : <p className="text-2xl font-bold text-white">{card.value}</p>}
+                      <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{card.sub}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* ══════════════════════════════════════════════
-                SECTION 4 – Visual Metrics (from analytics)
-                Left:  Project Completion % + time elapsed
-                Right: Expenditure % + time elapsed
-                ══════════════════════════════════════════════ */}
             <section>
-              <p className="text-xl font-semibold text-white mb-4">Visual Metrics</p>
+              <p className="text-2xl font-semibold text-white mb-4">Visual Metrics</p>
               <div className="gv-card">
                 {loadingAnalytics ? (
                   <div className="flex items-center justify-center py-16 gap-3">
                     <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    <span className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>Loading metrics…</span>
+                    <span className="text-base" style={{ color: 'var(--gv-text-muted)' }}>Loading metrics…</span>
                   </div>
                 ) : (
                   <div className="flex items-start">
@@ -973,61 +948,55 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 )}
               </div>
             </section>
-
-            {/* ══════════════════════════════════════════════
-                SECTION 5 – Attendance (from analytics)
-                ══════════════════════════════════════════════ */}
             <section>
-              <p className="text-xl font-semibold text-white mb-4">Attendance</p>
+              <p className="text-2xl font-semibold text-white mb-4">Attendance</p>
 
-              {/* Today / Previous cards */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="gv-card flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--gv-brand)' }}>
-                    <Calendar className="w-3.5 h-3.5" />Today
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Today / Previous cards — left column */}
+                <div className="flex flex-col gap-4">
+                  <div className="gv-card flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: 'var(--gv-brand)' }}>
+                      <Calendar className="w-3.5 h-3.5" />Today
+                    </div>
+                    {loadingAnalytics
+                      ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
+                      : <p className="text-5xl font-bold text-white">{todayAttendance}</p>}
+                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Check-ins today</p>
                   </div>
-                  {loadingAnalytics
-                    ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{todayAttendance}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Check-ins today</p>
+                  <div className="gv-card flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: 'var(--gv-text-muted)' }}>
+                      <RefreshCw className="w-3.5 h-3.5" />Previous
+                    </div>
+                    {loadingAnalytics
+                      ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
+                      : <p className="text-5xl font-bold text-white">{previousAttendance}</p>}
+                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Yesterday's check-ins</p>
+                  </div>
                 </div>
-                <div className="gv-card flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--gv-text-muted)' }}>
-                    <RefreshCw className="w-3.5 h-3.5" />Previous
-                  </div>
-                  {loadingAnalytics
-                    ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                    : <p className="text-4xl font-bold text-white">{previousAttendance}</p>}
-                  <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Yesterday's check-ins</p>
+                <div className="gv-card md:col-span-2 flex flex-col">
+                  <p className="text-base font-semibold text-white mb-4">Daily Attendance</p>
+                  {loadingAnalytics ? (
+                    <div className="flex items-center justify-center py-10 flex-1">
+                      <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
+                    </div>
+                  ) : attendanceBreakdown.length > 0 ? (
+                    <div className="mt-auto">
+                      <WeeklyAttendanceChart breakdown={attendanceBreakdown} totalWorkers={totalWorkers} />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-center py-6 flex-1 flex items-center justify-center" style={{ color: 'var(--gv-text-subtle)' }}>
+                      No attendance data available
+                    </p>
+                  )}
                 </div>
-              </div>
-
-              {/* Weekly bar chart */}
-              <div className="gv-card">
-                <p className="text-sm font-semibold text-white mb-4">Daily Attendance</p>
-                {loadingAnalytics ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                  </div>
-                ) : attendanceBreakdown.length > 0 ? (
-                  <WeeklyAttendanceChart breakdown={attendanceBreakdown} />
-                ) : (
-                  <p className="text-xs text-center py-6" style={{ color: 'var(--gv-text-subtle)' }}>
-                    No attendance data available
-                  </p>
-                )}
               </div>
             </section>
 
-            {/* ══════════════════════════════════════════════
-                SECTION 6 – Task Breakdown + Workers on Site
-                ══════════════════════════════════════════════ */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-              {/* Task Breakdown (analytics) */}
               <section>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xl font-semibold text-white">Task Breakdown</p>
+                  <p className="text-2xl font-semibold text-white">Task Breakdown</p>
                 </div>
                 {loadingAnalytics ? (
                   <div className="flex items-center justify-center py-16">
@@ -1036,8 +1005,8 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 ) : taskBreakdown.length === 0 ? (
                   <div className="gv-card flex flex-col items-center gap-3 py-16 text-center">
                     <ClipboardList className="w-8 h-8" style={{ color: 'var(--gv-text-subtle)' }} />
-                    <p className="text-sm text-white">No tasks yet</p>
-                    <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>Tasks assigned to this site will appear here</p>
+                    <p className="text-base text-white">No tasks yet</p>
+                    <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>Tasks assigned to this site will appear here</p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -1047,13 +1016,12 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                   </div>
                 )}
               </section>
-
-              {/* Workers on Site (attendance/summary — unchanged) */}
               <section>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xl font-semibold text-white">Workers on Site</p>
+                  <p className="text-2xl font-semibold text-white">Workers on Site</p>
                   <button
-                    onClick={() => downloadAttendanceCSV(rangeRecords, rangeDateLabel, site.name)}
+                    type="button"
+                    onClick={() => downloadAttendanceCSV(rangeRecords, rangeLabel, site.name)}
                     disabled={rangeRecords.length === 0}
                     className="w-8 h-8 rounded-xl flex items-center justify-center transition-opacity"
                     style={{
@@ -1075,29 +1043,27 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                   onChange={(f, t) => { setRangeFrom(f); setRangeTo(t); }}
                 />
 
-                {/* Summary cards */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="gv-card flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: 'var(--gv-brand)' }}>
+                    <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: 'var(--gv-brand)' }}>
                       <Users className="w-3.5 h-3.5" />Present
                     </div>
                     {loadingRange
                       ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                      : <p className="text-4xl font-bold text-white">{rangeRecords.length}</p>}
-                    <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{rangeDateLabel}</p>
+                      : <p className="text-5xl font-bold text-white">{rangeRecords.length}</p>}
+                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{rangeLabel}</p>
                   </div>
                   <div className="gv-card flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: '#f87171' }}>
+                    <div className="flex items-center gap-1.5 text-sm mb-1" style={{ color: '#f87171' }}>
                       <TrendingUp className="w-3.5 h-3.5" />Payouts
                     </div>
                     {loadingRange
                       ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                      : <p className="text-2xl font-bold text-white">{fmtKes(rangePayouts)}</p>}
-                    <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}></p>
+                      : <p className="text-3xl font-bold text-white">{fmtKes(rangePayouts)}</p>}
+                    <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}></p>
                   </div>
                 </div>
 
-                {/* Attendance records */}
                 {loadingRange ? (
                   <div className="flex items-center justify-center py-16">
                     <Loader2 className="w-7 h-7 animate-spin" style={{ color: 'var(--gv-brand)' }} />
@@ -1105,8 +1071,8 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                 ) : rangeRecords.length === 0 ? (
                   <div className="gv-card flex flex-col items-center gap-3 py-16 text-center">
                     <UserCheck className="w-8 h-8" style={{ color: 'var(--gv-text-subtle)' }} />
-                    <p className="text-sm text-white">No check-ins for {rangeDateLabel}</p>
-                    <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>Try a different date range</p>
+                    <p className="text-base text-white">No check-ins for {rangeLabel}</p>
+                    <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>Try a different date range</p>
                   </div>
                 ) : (
                   <>
@@ -1116,7 +1082,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                     {hasMore && (
                       <button
                         onClick={() => setShowAllWorkers(true)}
-                        className="mt-3 w-full py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                        className="mt-3 w-full py-3 rounded-2xl text-base font-semibold flex items-center justify-center gap-2 transition-all"
                         style={{
                           background: 'var(--gv-glass-bg)',
                           border: '1px solid var(--gv-glass-border)',
@@ -1147,8 +1113,6 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   );
 }
 
-// ─── ConstructionSitesPage ────────────────────────────────────────────────────
-
 const LS_KEY = 'gv_selected_site';
 
 export default function ConstructionSitesPage() {
@@ -1160,30 +1124,27 @@ export default function ConstructionSitesPage() {
   const [search,        setSearch       ] = useState('');
   const [projectFilter, setProjectFilter] = useState<ProjectStatus | 'ALL'>('ALL');
 
-  const [selectedSite, setSelectedSite] = useState<RawSite | null>(() => {
+  const [selectedSite, setSelectedSite] = useState<RawSite | null>(null);
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      return raw ? (JSON.parse(raw) as RawSite) : null;
+      if (raw) setSelectedSite(JSON.parse(raw) as RawSite);
     } catch {
-      return null;
+      /* ignore corrupted storage */
     }
-  });
+  }, []);
 
   const load = useCallback(() => {
     setLoadingSites(true); setSitesError(null);
     fetchSites()
-      .then((data) => {
-        // DEBUG — remove after confirming status values are correct
-        console.log('[Sites] raw site_status values:', data.map((s) => ({ id: s.id, name: s.name, site_status: s.site_status })));
-        setSites(data);
-      })
+      .then((data) => setSites(data))
       .catch((err: unknown) =>
         setSitesError(err instanceof Error ? err.message : 'Failed to load sites'))
       .finally(() => setLoadingSites(false));
 
     setLoadingKpis(true);
     fetchOverviewKPIs()
-      .then((res) => { const d = (res as any).data ?? res; setKpis(d as OverviewKPIs); })
+      .then((res) => { const d = (res as { data?: OverviewKPIs }).data ?? (res as OverviewKPIs); setKpis(d); })
       .catch(() => {})
       .finally(() => setLoadingKpis(false));
   }, []);
@@ -1220,8 +1181,8 @@ export default function ConstructionSitesPage() {
   return (
     <div className="gv-page-dashboard flex flex-col gap-0 overflow-y-auto pb-10">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-white">Construction Sites</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+        <h1 className="text-3xl font-bold text-white">Construction Sites</h1>
+        <p className="text-base mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
           Overview of all active and completed projects
         </p>
       </div>
@@ -1255,7 +1216,7 @@ export default function ConstructionSitesPage() {
             return (
               <button key={f.value}
                 onClick={() => setProjectFilter(f.value as ProjectStatus | 'ALL')}
-                className="text-sm font-medium px-4 py-1.5 rounded-full whitespace-nowrap shrink-0 transition-all"
+                className="text-base font-medium px-4 py-1.5 rounded-full whitespace-nowrap shrink-0 transition-all"
                 style={active
                   ? { background: 'white', color: '#0b1120' }
                   : { background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}>
@@ -1266,10 +1227,10 @@ export default function ConstructionSitesPage() {
         </div>
       </div>
       {sitesError && (
-        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
+        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl px-4 py-3 text-base"
           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" />{sitesError}
-          <button onClick={load} className="ml-auto underline text-xs">Retry</button>
+          <button onClick={load} className="ml-auto underline text-sm">Retry</button>
         </div>
       )}
       {loadingSites ? (
@@ -1284,17 +1245,17 @@ export default function ConstructionSitesPage() {
           <div className="gv-icon-box w-14 h-14 mb-4" style={{ opacity: 0.4 }}>
             <Building2 className="w-7 h-7" style={{ color: 'var(--gv-brand)' }} />
           </div>
-          <p className="text-sm font-medium text-white">
+          <p className="text-base font-medium text-white">
             {sites.length === 0 ? 'No sites yet' : 'No results found'}
           </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>
+          <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>
             {sites.length === 0 ? 'Create your first project to get started' : 'Try adjusting your filters'}
           </p>
         </div>
       ) : (
         <div className="px-4 flex flex-col gap-3">
           {filtered.map((site) => (
-            <SiteCard key={site.id} site={site} onClick={() => openSite(site)} />
+            <SiteCard key={site.id} site={site as unknown as RawSite} onClick={() => openSite(site as unknown as RawSite)} />
           ))}
         </div>
       )}

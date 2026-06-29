@@ -10,14 +10,13 @@ import { fetchOverviewKPIs } from '@/lib/api/sites';
 import { OverviewKPIs } from '@/types/site';
 import { API } from '@/lib/endpoints';
 import { ROUTES } from '@/lib/routes';
-//import { formatDate } from '@/lib/utils/date';
 import {
   Users, BarChart2, Briefcase, TrendingUp,
   ArrowRight, Clock, Receipt, CheckCircle2,
   AlertCircle, Loader2, UserCircle, Building2,
 } from 'lucide-react';
 
-const formatRole = (role?: string) =>
+const formatRole = (role?: string | null) =>
   role
     ? role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
     : '';
@@ -85,7 +84,7 @@ export default function HomePage() {
   const [usersLoading, setUsersLoading] = useState(!usersLoaded);
   const recentUsers = users.slice(0, 5);
 
-  const { invoices, isLoaded: invoicesLoaded, setInvoices } = useInvoiceStore();
+  const { invoices, isLoaded: invoicesLoaded, startPolling } = useInvoiceStore();
   const [invoicesLoading, setInvoicesLoading] = useState(!invoicesLoaded);
   const recentInvoices = invoices.slice(0, 5);
 
@@ -94,6 +93,13 @@ export default function HomePage() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  useEffect(() => {
+    const stopPolling = startPolling();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInvoicesLoading(false);
+    return () => stopPolling();
+  }, [startPolling]);
 
   useEffect(() => {
     fetchOverviewKPIs()
@@ -114,21 +120,7 @@ export default function HomePage() {
         .catch(console.error)
         .finally(() => setUsersLoading(false));
     }
-
-    if (!invoicesLoaded) {
-      api.get('/client-invoices/all?limit=5')
-        .then(({ data }) => {
-          const payload = data?.data ?? data;
-          const list = Array.isArray(payload)
-            ? payload
-            : payload?.items ?? payload?.results ?? [];
-          setInvoices(list);
-        })
-        .catch(console.error)
-        .finally(() => setInvoicesLoading(false));
-    }
-  }, [invoicesLoaded, setInvoices, setUsers, usersLoaded]);
-
+  }, [setUsers, usersLoaded]);
   const stats = [
     {
       label: 'Total Sites',
@@ -234,7 +226,7 @@ export default function HomePage() {
               </h3>
             </div>
             <Link
-              href={'finance/invoice/client'}
+              href="/finance/invoice/client"
               className="flex items-center gap-1 text-xs font-medium"
               style={{ color: '#33907c' }}
             >
@@ -254,9 +246,10 @@ export default function HomePage() {
               </div>
             ) : (
               recentInvoices.map((inv, idx) => (
-                <div
+                <Link
                   key={inv.id}
-                  className="flex items-center justify-between py-2.5 rounded-lg px-2"
+                  href={`/finance/invoice/client/${inv.id}`}
+                  className="flex items-center justify-between py-2.5 rounded-lg px-2 hover:bg-white/5 transition-colors"
                   style={{ borderBottom: idx < recentInvoices.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -283,7 +276,7 @@ export default function HomePage() {
                       {inv.invoiceDate}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>
@@ -291,7 +284,7 @@ export default function HomePage() {
           {!invoicesLoading && (
             <div className="px-5 py-3" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
               <Link
-                href={'finance/invoice/client/new'}
+                href="/finance/invoice/client/new"
                 className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium"
                 style={{ background: 'rgba(51,144,124,0.10)', color: '#33907c', border: '1px solid rgba(51,144,124,0.20)' }}
               >
