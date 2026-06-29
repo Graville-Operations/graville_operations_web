@@ -18,7 +18,6 @@ export interface InvoicePDFData {
   createdAt:   string;
   total:       number;
   items:       InvoicePDFItem[];
-  // Optional extra metadata — only rendered when supplied (e.g. Supplier invoices)
   lpoNumber?:      string;
   deliveryNumber?: string;
   site?:           string;
@@ -119,8 +118,6 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
   };
   drawPageHeader();
   let y = 108;
-
-  // ── Meta card — horizontal grid, 4 fields per row ──
   const billToLabel =
     data.invoiceType === 'Supplier'   ? 'Supplier'   :
     data.invoiceType === 'Contractor' ? 'Contractor' :
@@ -242,9 +239,7 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
   let maxOnThisPage = itemsPage1;
 
   data.items.forEach((item, i) => {
-    // Page break check
     if (pageItemCount >= maxOnThisPage) {
-      // Footer current page
       drawPageFooter(pageNum, pagesNeeded);
 
       doc.addPage();
@@ -260,12 +255,8 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
 
     const rowY  = y + pageItemCount * ROW_H;
     const textY = rowY + 18;
-
-    // White row background
     fill(C.white);
     doc.rect(ML, rowY, CW, ROW_H, 'F');
-
-    // Subtle hairline separator between rows
     stroke(C.hairline);
     doc.setLineWidth(0.35);
     hline(ML, rowY + ROW_H, MR, 0.35);
@@ -299,8 +290,6 @@ export async function generateInvoicePDF(data: InvoicePDFData): Promise<void> {
   font('bold', 13);
   txt(`KES ${(data.total ?? 0).toLocaleString()}`, TX.total, gtY, { align: 'right' });
   y += 34;
-
-  // ── Amount paid / balance due — only rendered when supplied ──
   if (data.amountPaid != null || data.balanceDue != null) {
     const extraRows: { label: string; value: number; emphasize?: boolean }[] = [];
     if (data.amountPaid != null) extraRows.push({ label: 'Amount Paid', value: data.amountPaid });
