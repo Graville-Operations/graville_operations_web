@@ -122,7 +122,7 @@ export function Label({
 
 type BodySize = "lg" | "md" | "sm" | "xs";
 
-interface BodyProps extends React.HTMLAttributes<HTMLParagraphElement> {
+interface BodyProps extends React.HTMLAttributes<HTMLElement>  {
   size?: BodySize;
   as?: "p" | "span" | "div" | "li" | "td" | "dd";
   muted?: boolean;
