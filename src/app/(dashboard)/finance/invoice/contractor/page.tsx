@@ -558,9 +558,9 @@ export default function SubcontractorInvoicesPage() {
   const [invoices, setInvoices]       = useState<SubcontractorInvoiceListItem[]>([]);
   const [filtered, setFiltered]       = useState<SubcontractorInvoiceListItem[]>([]);
   const [search, setSearch]           = useState('');
-  const [dateFilter, setDateFilter]   = useState('');       // single date (YYYY-MM-DD)
-  const [dateFrom, setDateFrom]       = useState('');       // range start
-  const [dateTo, setDateTo]           = useState('');       // range end
+  const [dateFilter, setDateFilter]   = useState('');       
+  const [dateFrom, setDateFrom]       = useState('');      
+  const [dateTo, setDateTo]           = useState('');       
   const [dateMode, setDateMode]       = useState<'single' | 'range'>('single');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
@@ -694,7 +694,7 @@ export default function SubcontractorInvoicesPage() {
 
           const cleaned = raw.replace(/(\d+)(st|nd|rd|th)/gi, '$1');
           const t = new Date(cleaned).getTime();
-          if (isNaN(t)) return true; // can't parse — include it
+          if (isNaN(t)) return true; 
           return t >= from && t <= to;
         });
       }
@@ -733,7 +733,7 @@ export default function SubcontractorInvoicesPage() {
           onClose={() => setShowNewModal(false)}
           onCreated={() => {
             setShowNewModal(false);
-            fetchInvoices(); // refresh list after creation
+            fetchInvoices(); 
           }}
         />
       )}

@@ -68,6 +68,12 @@ export default function InvoiceDetailPage() {
         createdAt:   invoice.created_at    ?? '—',
         total:       invoice.total_amount,
         notes:       invoice.notes ?? undefined,
+        lpoNumber:      invoice.lpo_number      ?? undefined,
+        deliveryNumber: invoice.delivery_number ?? undefined,
+        site:           invoice.site            ?? undefined,
+        status:         invoice.status          ?? undefined,
+        amountPaid:     invoice.amount_paid,
+        balanceDue:     invoice.total_amount - invoice.amount_paid,
         items: (invoice.items ?? []).map((item, i) => ({
           index:       i + 1,
           particulars: item.particular,

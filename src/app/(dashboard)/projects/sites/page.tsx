@@ -95,49 +95,54 @@ function unwrapObject<T>(raw: unknown): T {
   }
   return raw as T;
 }
-function toNum(v: unknown): number {
-  const n = typeof v === 'number' ? v : parseFloat(String(v));
-  return Number.isFinite(n) ? n : 0;
-}
-
-function normalizeSubtask(raw: unknown): SubtaskBreakdown {
-  const obj = (raw ?? {}) as Record<string, unknown>;
-  const name =
-    obj.subtaskName ?? obj.subtask_name ?? obj.name ?? obj.title ?? '';
-  const pct =
-    obj.completionPercentage ?? obj.completion_percentage ??
-    obj.percentage ?? obj.percent ?? obj.progress ?? 0;
-  return {
-    subtaskName: String(name),
-    completionPercentage: Math.min(100, Math.max(0, Math.round(toNum(pct)))),
-  };
-}
-
-function normalizeTask(raw: unknown): TaskBreakdownItem {
-  const obj = (raw ?? {}) as Record<string, unknown>;
-  const name = obj.taskName ?? obj.task_name ?? obj.name ?? obj.title ?? '';
-  const subtasksRaw =
-    (obj.subtaskBreakdown ?? obj.subtask_breakdown ?? obj.subtasks ?? []) as unknown[];
-  return {
-    taskName: String(name),
-    subtaskBreakdown: Array.isArray(subtasksRaw) ? subtasksRaw.map(normalizeSubtask) : [],
-  };
-}
 
 function unwrapAnalytics(raw: unknown): SiteAnalytics | null {
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;
-  const data = (obj.data && typeof obj.data === 'object')
-    ? (obj.data as Record<string, unknown>)
-    : obj;
+  if (obj.data && typeof obj.data === 'object') return obj.data as SiteAnalytics;
+  return raw as SiteAnalytics;
+}
 
-  const taskBreakdownRaw =
-    (data.taskBreakdown ?? data.task_breakdown ?? []) as unknown[];
+// ── Subtask / task breakdown normalization ──
+// The backend has, at various times, sent this nested block in snake_case
+// (task_name / subtask_breakdown / subtask_name / completion_percentage)
+// instead of the camelCase shape our types expect. When that happens the
+// camelCase fields read as `undefined`, so the subtask rows render with a
+// missing/0% completion value even though the percentage was actually
+// returned by the API. Normalize defensively so either casing works.
+function normalizeSubtaskBreakdown(raw: unknown): SubtaskBreakdown[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((s) => {
+    const obj = (s ?? {}) as Record<string, unknown>;
+    // Accept whichever percentage field name the backend actually sent.
+    const pctRaw =
+      obj.completionPercentage ?? obj.completion_percentage ??
+      obj.percentage ?? obj.percent ?? obj.progress ?? 0;
+    const pct = typeof pctRaw === 'number' ? pctRaw : Number(pctRaw) || 0;
+    const nameRaw = obj.subtaskName ?? obj.subtask_name ?? obj.name ?? obj.title ?? '';
+    return {
+      subtaskName: String(nameRaw),
+      completionPercentage: pct,
+    };
+  });
+}
 
-  return {
-    ...(data as unknown as SiteAnalytics),
-    taskBreakdown: Array.isArray(taskBreakdownRaw) ? taskBreakdownRaw.map(normalizeTask) : [],
-  };
+function normalizeTaskBreakdown(raw: unknown): TaskBreakdownItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((t) => {
+    const obj = (t ?? {}) as Record<string, unknown>;
+    const nameRaw = obj.taskName ?? obj.task_name ?? obj.name ?? obj.title ?? '';
+    // The nested subtask array has shown up under several different keys
+    // depending on the endpoint/version, so check all the likely ones
+    // rather than assuming a single shape.
+    const subtasksRaw =
+      obj.subtaskBreakdown ?? obj.subtask_breakdown ??
+      obj.subtasks ?? obj.sub_tasks ?? obj.items ?? [];
+    return {
+      taskName: String(nameRaw),
+      subtaskBreakdown: normalizeSubtaskBreakdown(subtasksRaw),
+    };
+  });
 }
 
 const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string; bg: string }> = {
@@ -145,6 +150,8 @@ const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string; bg: s
   INACTIVE: { label: 'Inactive', color: 'text-gray-300',  bg: 'bg-gray-500/20 border border-gray-500/40'  },
   CLOSED:   { label: 'Closed',   color: 'text-red-300',   bg: 'bg-red-500/20 border border-red-500/40'    },
 };
+
+// Accepts any casing: "Active", "ACTIVE", "active", "INACTIVE", "Closed", etc.
 function normSiteStatus(s: unknown): SiteStatus {
   switch (String(s ?? '').toLowerCase()) {
     case 'active':   return 'ACTIVE';
@@ -194,6 +201,9 @@ function QuickStatPill({ label, value, loading }: {
 function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
   const ss       = normSiteStatus(site.siteStatus);
   const siteMeta = SITE_STATUS_META[ss];
+
+  // Completion rate isn't available on the list payload (only on /sites/analytics/:id),
+  // so the card shows 0 until the user opens the site detail view.
   const pct = 0;
 
   return (
@@ -235,11 +245,14 @@ function ProjectCompletionGauge({ taskPct, timePct }: { taskPct: number; timePct
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 220" style={{ width: '100%', maxWidth: 220, height: 'auto' }}>
+        {/* outer track */}
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="#f97316" strokeWidth={SW}
           strokeDasharray={`${(timePct / 100) * outerCirc} ${outerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
+        {/* inner track */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
+        {/* inner = task completion (blue) */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(taskPct / 100) * innerCirc} ${innerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
@@ -282,10 +295,12 @@ function ExpenditureGauge({
   return (
     <div className="flex flex-col items-center w-full">
       <svg viewBox="0 0 220 220" style={{ width: '100%', maxWidth: 220, height: 'auto' }}>
+        {/* Outer ring: time elapsed */}
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_outer} fill="none" stroke="#f97316" strokeWidth={SW}
           strokeDasharray={`${(timePct / 100) * outerCirc} ${outerCirc}`}
           strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`} />
+        {/* Inner ring: expenditure % */}
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={SW} />
         <circle cx={CX} cy={CY} r={R_inner} fill="none" stroke="#3b82f6" strokeWidth={SW}
           strokeDasharray={`${(expendPct / 100) * innerCirc} ${innerCirc}`}
@@ -305,9 +320,33 @@ function ExpenditureGauge({
     </div>
   );
 }
-function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownItem[] }) {
-  const maxCount = Math.max(...breakdown.map((d) => d.attendanceCount), 1);
-  const CHART_HEIGHT = 220;
+
+function WeeklyAttendanceChart({ breakdown, totalWorkers }: { breakdown: AttendanceBreakdownItem[]; totalWorkers: number }) {
+  const counts   = breakdown.map((d) => d.attendanceCount);
+  const maxCount = Math.max(...counts, 1);
+
+  // Absolute scale: bar height represents count / scaleMax, where scaleMax
+  // is anchored to the site's total workforce — not to the other days in
+  // the current week. This means a single day with 3 check-ins stays
+  // small and proportional rather than filling the bar just because it's
+  // the only non-zero day, and a jump from 3 to 8 always reads as the
+  // same visual jump no matter what other days look like.
+  // A floor of 10 keeps bars from looking exaggerated on very small sites,
+  // and Math.max(..., maxCount) guarantees no bar ever overflows the track.
+  const scaleMax = Math.max(totalWorkers > 0 ? totalWorkers : 0, maxCount, 10);
+
+  const CHART_HEIGHT = 200;                        // total height available for the chart
+  const LABEL_SPACE  = 26;                         // space reserved above each bar for its count label
+  const BAR_TRACK    = CHART_HEIGHT - LABEL_SPACE; // height of the track behind each bar
+  const BAR_MIN      = 6;                          // smallest filled height so a non-zero count is never invisible
+  const BAR_ZERO     = 3;                          // sliver height for days with 0 attendance
+
+  function barHeightPx(count: number) {
+    if (count <= 0) return BAR_ZERO;
+    const ratio = Math.min(count / scaleMax, 1);
+    return Math.max(BAR_MIN, Math.round(ratio * BAR_TRACK));
+  }
+
   const DAY_ABBR: Record<string, string> = {
     Sunday: 'S', Monday: 'M', Tuesday: 'T',
     Wednesday: 'W', Thursday: 'T', Friday: 'F', Saturday: 'S',
@@ -315,25 +354,26 @@ function WeeklyAttendanceChart({ breakdown }: { breakdown: AttendanceBreakdownIt
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-stretch justify-between gap-2" style={{ height: CHART_HEIGHT }}>
+      <div className="flex items-end justify-between gap-1" style={{ height: CHART_HEIGHT }}>
         {breakdown.map((item) => {
-          const heightPct = (item.attendanceCount / maxCount) * 100;
-          const isToday   = item.date === format(new Date(), 'yyyy-MM-dd');
+          const barPx   = barHeightPx(item.attendanceCount);
+          const isToday = item.date === format(new Date(), 'yyyy-MM-dd');
           return (
-            <div key={item.date}
-              className="flex flex-col items-center justify-end gap-1.5 flex-1 h-full">
-              {item.attendanceCount > 0 && (
-                <span className="text-sm font-semibold" style={{ color: 'var(--gv-text-subtle)' }}>
-                  {item.attendanceCount}
-                </span>
-              )}
-              <div className="w-full rounded-t-md transition-all duration-500"
+            <div key={item.date} className="flex flex-col items-center justify-end gap-1 flex-1"
+              style={{ height: CHART_HEIGHT }}>
+              <span className="text-xs font-semibold"
                 style={{
-                  height: `${Math.max(heightPct, item.attendanceCount > 0 ? 6 : 1.5)}%`,
-                  minHeight: item.attendanceCount > 0 ? 10 : 2,
-                  background: isToday ? '#3b82f6' : 'rgba(255,255,255,0.16)',
-                  maxWidth: 40,
-                }} />
+                  color: 'var(--gv-text-subtle)',
+                  visibility: item.attendanceCount > 0 ? 'visible' : 'hidden',
+                }}>
+                {item.attendanceCount}
+              </span>
+              {/* Track: always visible so the chart reads as a bar graph even on quiet days */}
+              <div className="relative w-full rounded-t-md overflow-hidden"
+                style={{ maxWidth: 32, height: BAR_TRACK, background: 'rgba(255,255,255,0.06)' }}>
+                <div className="absolute bottom-0 left-0 w-full rounded-t-md transition-all duration-500"
+                  style={{ height: barPx, background: isToday ? '#3b82f6' : 'rgba(255,255,255,0.4)' }} />
+              </div>
             </div>
           );
         })}
@@ -392,7 +432,7 @@ function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
             <div key={idx} className="flex flex-col gap-1.5 py-2 px-3 rounded-xl"
               style={{ background: 'var(--gv-glass-bg-strong)' }}>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-white truncate">{sub.subtaskName || 'Untitled subtask'}</span>
+                <span className="text-sm text-white truncate">{sub.subtaskName}</span>
                 <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--gv-brand)' }}>
                   {sub.completionPercentage}%
                 </span>
@@ -431,6 +471,12 @@ function AttendanceRow({ record }: { record: AttendanceRecord }) {
   const initials = name !== '—'
     ? name.trim().split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : '?';
+
+  // Use safeFormat (same helper as the CSV export) instead of calling
+  // `new Date(...)` + `format(...)` directly here. checkInTime/date can be
+  // null, empty, or an unparsable string depending on the source record,
+  // and format() throws "Invalid time value" on an invalid Date rather
+  // than returning a fallback string.
   const checkInDate =
     safeFormat(record.checkInTime, 'dd MMM yyyy, hh:mm aa') ??
     safeFormat(record.date, 'dd MMM yyyy') ??
@@ -683,7 +729,26 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   const loadAnalytics = useCallback(() => {
     setLoadingAnalytics(true);
     api.get(`/sites/analytics/${site.id}`)
-      .then(({ data }) => setAnalytics(unwrapAnalytics(data)))
+      .then(({ data }) => {
+        const a = unwrapAnalytics(data);
+        if (!a) {
+          setAnalytics(a);
+          return;
+        }
+        // Normalize taskBreakdown/subtaskBreakdown so the subtasks always
+        // arrive with their completion percentage attached, regardless of
+        // whether the backend used camelCase, snake_case, or an entirely
+        // different key (tasks / task_list) for the array itself.
+        const rawTaskBreakdown =
+          (a as unknown as Record<string, unknown>).taskBreakdown ??
+          (a as unknown as Record<string, unknown>).task_breakdown ??
+          (a as unknown as Record<string, unknown>).tasks ??
+          (a as unknown as Record<string, unknown>).task_list;
+        setAnalytics({
+          ...a,
+          taskBreakdown: normalizeTaskBreakdown(rawTaskBreakdown),
+        });
+      })
       .catch(() => {})
       .finally(() => setLoadingAnalytics(false));
   }, [site.id]);
@@ -719,6 +784,8 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
   useEffect(() => {
     loadRange(rangeFrom, rangeTo);
   }, [rangeFrom, rangeTo, loadRange]);
+
+  // ── Derived values ──
 
   const fmtKes = (n: number) =>
     `KES ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -758,6 +825,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
 
       <div className="w-full" style={{ background: 'var(--gv-bg-gradient)', minHeight: '100vh' }}>
 
+        {/* ── Fixed nav bar ── */}
         <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-6 py-4"
           style={{
             background: 'var(--gv-nav-bg)',
@@ -950,7 +1018,7 @@ function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void })
                     </div>
                   ) : attendanceBreakdown.length > 0 ? (
                     <div className="mt-auto">
-                      <WeeklyAttendanceChart breakdown={attendanceBreakdown} />
+                      <WeeklyAttendanceChart breakdown={attendanceBreakdown} totalWorkers={totalWorkers} />
                     </div>
                   ) : (
                     <p className="text-sm text-center py-6 flex-1 flex items-center justify-center" style={{ color: 'var(--gv-text-subtle)' }}>
@@ -1095,11 +1163,13 @@ export default function ConstructionSitesPage() {
 
   const [selectedSite, setSelectedSite] = useState<RawSite | null>(null);
 
+  // Read any previously-selected site from localStorage after mount (client-only).
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (raw) setSelectedSite(JSON.parse(raw) as RawSite);
     } catch {
+      /* ignore corrupted storage */
     }
   }, []);
 
