@@ -70,10 +70,6 @@ interface SiteAnalytics {
 
 interface SiteDetailExtended extends SiteDetail {
   estimatedValue?: number;
-  tendererName?: string;
-  inquiringEntity?: string;
-  completionDate?: string;
-  createdAt?: string;
 }
 
 function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null {
