@@ -21,7 +21,6 @@ export const getUser = () => {
   return u ? JSON.parse(u) : null;
 };
 
-// ✅ Separate expiry cookie — readable server-side in middleware
 export const saveExpiresAt = (expiresAt: string) =>
   Cookies.set(EXPIRES_KEY, expiresAt, { expires: 7 });
 export const getExpiresAt = () => Cookies.get(EXPIRES_KEY);
@@ -30,7 +29,7 @@ export const clearSession = () => {
   Cookies.remove(TOKEN_KEY);
   Cookies.remove(ROLE_KEY);
   Cookies.remove(USER_KEY);
-  Cookies.remove(EXPIRES_KEY); // ✅ also clear expiry
+  Cookies.remove(EXPIRES_KEY);
 };
 
 export const isAuthenticated = () => !!getToken();
