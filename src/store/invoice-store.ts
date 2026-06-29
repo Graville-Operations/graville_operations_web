@@ -3,10 +3,10 @@ import { persist } from 'zustand/middleware';
 
 export interface InvoiceItem {
   id: number;
-  invoice_number: string;
-  client_name: string;     
-  total_invoice_value: number;
-  invoice_date: string;
+  invoiceNo: string;
+  clientName: string;
+  total: number;
+  invoiceDate: string;
   status?: string;
 }
 
@@ -25,6 +25,9 @@ export const useInvoiceStore = create<InvoiceStore>()(
       setInvoices: (invoices) => set({ invoices, isLoaded: true }),
       clearInvoices: () => set({ invoices: [], isLoaded: false }),
     }),
-    { name: 'graville_invoices' }
+    {
+      name: 'graville_invoices',
+      version: 2,
+    }
   )
 );

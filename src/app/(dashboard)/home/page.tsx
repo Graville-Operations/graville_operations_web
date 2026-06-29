@@ -10,7 +10,6 @@ import { fetchOverviewKPIs } from '@/lib/api/sites';
 import { OverviewKPIs } from '@/types/site';
 import { API } from '@/lib/endpoints';
 import { ROUTES } from '@/lib/routes';
-//import { formatDate } from '@/lib/utils/date';
 import {
   Users, BarChart2, Briefcase, TrendingUp,
   ArrowRight, Clock, Receipt, CheckCircle2,
@@ -234,7 +233,7 @@ export default function HomePage() {
               </h3>
             </div>
             <Link
-              href={'finance/invoice/client'}
+              href="/finance/invoice/client"
               className="flex items-center gap-1 text-xs font-medium"
               style={{ color: '#33907c' }}
             >
@@ -254,9 +253,10 @@ export default function HomePage() {
               </div>
             ) : (
               recentInvoices.map((inv, idx) => (
-                <div
+                <Link
                   key={inv.id}
-                  className="flex items-center justify-between py-2.5 rounded-lg px-2"
+                  href={`/finance/invoice/client/${inv.id}`}
+                  className="flex items-center justify-between py-2.5 rounded-lg px-2 hover:bg-white/5 transition-colors"
                   style={{ borderBottom: idx < recentInvoices.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -268,22 +268,22 @@ export default function HomePage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate" style={{ color: 'var(--gv-text-primary)' }}>
-                        {inv.invoice_number}
+                        {inv.invoiceNo}
                       </p>
                       <p className="text-xs truncate" style={{ color: 'var(--gv-text-subtle)' }}>
-                        {inv.client_name}
+                        {inv.clientName}
                       </p>
                     </div>
                   </div>
                   <div className="text-right shrink-0 ml-3">
                     <p className="text-sm font-semibold" style={{ color: '#33907c' }}>
-                      KES {inv.total_invoice_value?.toLocaleString()}
+                      KES {inv.total?.toLocaleString()}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
-                      {inv.invoice_date}
+                      {inv.invoiceDate}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>
@@ -291,7 +291,7 @@ export default function HomePage() {
           {!invoicesLoading && (
             <div className="px-5 py-3" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
               <Link
-                href={'finance/invoice/client/new'}
+                href="/finance/invoice/client/new"
                 className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium"
                 style={{ background: 'rgba(51,144,124,0.10)', color: '#33907c', border: '1px solid rgba(51,144,124,0.20)' }}
               >
