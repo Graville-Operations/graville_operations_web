@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { typography } from "@/components/custom/typography";
+import { Title, Subtitle, Label, Body } from "@/components/ui/typography";
 
 interface RawDepartment {
   id: number;
@@ -42,9 +42,10 @@ function Toast({ message, type }: { message: string; type: "success" | "error" }
     <div
       className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white z-[60] shadow-xl pointer-events-none
         ${type === "success" ? "bg-[#33907c]" : "bg-red-600"}`}
-      style={typography.label.sm}
     >
-      {message}
+      <Label size="sm" as="span" className="text-white normal-case tracking-normal">
+        {message}
+      </Label>
     </div>
   );
 }
@@ -132,14 +133,12 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
               <BuildingIcon />
             </div>
             <div>
-              {/* title.md → 24px bold */}
-              <h2 style={{ ...typography.title.md, color: "#fff" }}>
+              <Title size="md" as="h2">
                 New Department
-              </h2>
-              {/* body.sm → 14px, muted */}
-              <p style={{ ...typography.body.sm, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>
+              </Title>
+              <Body size="sm" muted className="mt-0.5">
                 Fill in the details below to get started
-              </p>
+              </Body>
             </div>
           </div>
           <button type="button" onClick={onClose} className="text-white/30 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5">
@@ -150,55 +149,57 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
         {/* Modal Body */}
         <div className="px-7 py-6 space-y-5">
           <div className="space-y-2">
-            {/* label.xs → 12px uppercase */}
-            <label style={{ ...typography.label.xs, color: "rgba(255,255,255,0.6)" }}>
-              Department Name <span className="text-red-400">*</span>
+            <label>
+              <Label size="sm" subtle>
+                Department Name{" "}
+              </Label>
+              <span className="text-red-400">*</span>
             </label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleSubmit()}
               placeholder="e.g. Finance, Operations, Engineering…"
-              className="w-full gv-input px-4 py-3 outline-none"
-              style={{ ...typography.body.sm, color: "#fff" }}
+              className="w-full gv-input px-4 py-3 outline-none text-white text-[0.8125rem]"
             />
           </div>
           <div className="space-y-2">
-            {/* label.xs → 12px uppercase */}
-            <label style={{ ...typography.label.xs, color: "rgba(255,255,255,0.6)" }}>
-              Description
-              <span style={{ ...typography.body.sm, color: "rgba(255,255,255,0.3)", marginLeft: 8, textTransform: "none", letterSpacing: "normal" }}>
-                — optional
-              </span>
+            <label className="flex items-baseline gap-2">
+              <Label size="sm" subtle>Description</Label>
+              <Body size="sm" subtle as="span">— optional</Body>
             </label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="What does this department do?"
               rows={4}
-              className="w-full gv-input px-4 py-3 outline-none resize-none"
-              style={{ ...typography.body.sm, color: "#fff" }}
+              className="w-full gv-input px-4 py-3 outline-none resize-none text-white text-[0.8125rem]"
             />
           </div>
           {error && (
             <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl bg-red-500/10 border border-red-500/25">
               <span className="text-red-400 text-base leading-none mt-0.5">⚠</span>
-              <p style={{ ...typography.body.sm, color: "rgb(248 113 113)" }}>{error}</p>
+              <Body size="sm" as="p" className="text-red-400">{error}</Body>
             </div>
           )}
         </div>
 
         {/* Modal Footer */}
         <div className="px-7 pb-7 flex gap-3">
-          <button type="button" onClick={onClose} className="gv-btn-outline flex-1 justify-center py-3" style={typography.label.sm} disabled={isSubmitting}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="gv-btn-outline flex-1 justify-center py-3 text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium"
+            disabled={isSubmitting}
+          >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || !name.trim()}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all disabled:opacity-40"
-            style={{ ...typography.label.sm, background: "var(--gv-brand)", color: "#fff" }}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all disabled:opacity-40 text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium"
+            style={{ background: "var(--gv-brand)", color: "#fff" }}
           >
             {isSubmitting ? <SpinnerIcon /> : <PlusIcon />}
             {isSubmitting ? "Creating…" : "Create Department"}
@@ -242,20 +243,12 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
             <BuildingIcon />
           </div>
           <div className="min-w-0 flex-1">
-            {/* title.md variant but smaller — use subtitle.sm for card names */}
-            <p
-              className="truncate"
-              style={{ ...typography.subtitle.sm, color: "#fff", lineHeight: 1.3 }}
-            >
+            <Subtitle size="sm" as="p" className="truncate leading-[1.3]">
               {dept.name}
-            </p>
-            {/* body.sm → 14px for description */}
-            <p
-              className="line-clamp-2"
-              style={{ ...typography.body.sm, color: "rgba(255,255,255,0.45)", marginTop: 4 }}
-            >
+            </Subtitle>
+            <Body size="sm" muted as="p" className="line-clamp-2 mt-1">
               {dept.description || "No description provided."}
-            </p>
+            </Body>
           </div>
         </div>
       </div>
@@ -269,10 +262,12 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
           style={{ background: "color-mix(in srgb, var(--gv-brand) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--gv-brand) 28%, transparent)" }}
         >
           <span style={{ color: "var(--gv-brand)" }}><MenusIcon /></span>
-          {/* mono.md for counts */}
-          <span style={{ ...typography.mono.md, color: "var(--gv-brand)", fontWeight: 700 }}>{dept.menusCount}</span>
-          {/* label.xs for badge text */}
-          <span style={{ ...typography.label.xs, color: "rgba(255,255,255,0.4)", textTransform: "none", letterSpacing: "normal" }}>Menus</span>
+          <Body size="sm" mono as="span" className="font-bold" style={{ color: "var(--gv-brand)" }}>
+            {dept.menusCount}
+          </Body>
+          <Label size="sm" as="span" className="normal-case tracking-normal" subtle>
+            Menus
+          </Label>
         </div>
         {/* Users badge */}
         <div
@@ -280,8 +275,12 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
           style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
         >
           <span className="text-white/40"><UsersIcon /></span>
-          <span style={{ ...typography.mono.md, color: "rgba(255,255,255,0.8)", fontWeight: 700 }}>{dept.usersCount}</span>
-          <span style={{ ...typography.label.xs, color: "rgba(255,255,255,0.4)", textTransform: "none", letterSpacing: "normal" }}>Users</span>
+          <Body size="sm" mono as="span" className="font-bold text-white/80">
+            {dept.usersCount}
+          </Body>
+          <Label size="sm" as="span" className="normal-case tracking-normal" subtle>
+            Users
+          </Label>
         </div>
       </div>
     </div>
@@ -379,16 +378,14 @@ export default function DepartmentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          {/* eyebrow → label.xs */}
-          <p className="gv-eyebrow mb-1" style={typography.label.xs}>Sections</p>
-          {/* page title → title.lg (30px bold) */}
-          <h1 style={{ ...typography.title.lg, color: "#fff" }}>Departments</h1>
+          <Label size="sm" as="p" className="gv-eyebrow mb-1">Sections</Label>
+          <Title size="lg" as="h1">Departments</Title>
         </div>
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl"
-          style={{ ...typography.label.sm, background: "var(--gv-brand)", color: "#fff" }}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium text-white"
+          style={{ background: "var(--gv-brand)" }}
         >
           <PlusIcon /> Add Department
         </button>
@@ -401,8 +398,7 @@ export default function DepartmentsPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search departments…"
-          className="flex-1 bg-transparent outline-none placeholder:text-white/30"
-          style={{ ...typography.body.sm, color: "#fff" }}
+          className="flex-1 bg-transparent outline-none placeholder:text-white/30 text-white text-[0.8125rem]"
         />
         {search && (
           <button type="button" onClick={() => setSearch("")} className="text-white/30 hover:text-white transition-colors">
@@ -412,9 +408,9 @@ export default function DepartmentsPage() {
       </div>
 
       {/* Section label */}
-      <p className="gv-eyebrow" style={typography.label.xs}>
+      <Label size="sm" as="p" className="gv-eyebrow">
         All Departments {!isLoading && `(${filtered.length})`}
-      </p>
+      </Label>
 
       {/* Grid */}
       {isLoading ? (
@@ -424,16 +420,15 @@ export default function DepartmentsPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-4xl mb-3">🏢</p>
-          <p style={{ ...typography.body.sm, color: "rgba(255,255,255,0.4)" }}>
+          <Body size="sm" muted>
             {search ? "No departments match your search." : "No departments found."}
-          </p>
+          </Body>
           {!search && (
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl mx-auto"
+              className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl mx-auto text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium"
               style={{
-                ...typography.label.sm,
                 background: "color-mix(in srgb, var(--gv-brand) 13%, transparent)",
                 border: "1px solid color-mix(in srgb, var(--gv-brand) 27%, transparent)",
                 color: "var(--gv-brand)",

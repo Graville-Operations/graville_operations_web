@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import api from "@/lib/api";
+import { Title, Label, Body } from "@/components/ui/typography";
 
 interface Menu {
   id: number;
@@ -94,9 +95,13 @@ function parseUsers(raw: unknown, tag = ""): User[] {
 function Toast({ message, type }: { message: string; type: "success" | "error" }) {
   return (
     <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white
-      text-sm font-semibold z-[60] shadow-xl pointer-events-none
+      z-[60] shadow-xl pointer-events-none
       ${type === "success" ? "bg-[#33907c]" : "bg-red-600"}`}
-    >{message}</div>
+    >
+      <Label size="sm" as="span" className="text-white normal-case tracking-normal">
+        {message}
+      </Label>
+    </div>
   );
 }
 
@@ -168,7 +173,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       <div className="w-full max-w-lg bg-[#0d1528] border border-white/10 rounded-2xl flex flex-col overflow-hidden"
         style={{ maxHeight: "80vh", animation: "fadeUp 0.2s ease" }}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-          <h2 className="text-white font-bold text-base">{title}</h2>
+          <Title size="sm" as="h2">{title}</Title>
           <button type="button" onClick={onClose} className="text-white/30 hover:text-white transition-colors p-1.5">
             <CloseIcon />
           </button>
@@ -187,7 +192,7 @@ function EmptyState({ icon, label, action }: { icon: React.ReactNode; label: str
         style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
         {icon}
       </div>
-      <p className="text-white/30 text-sm">{label}</p>
+      <Body size="sm" subtle>{label}</Body>
       {action}
     </div>
   );
@@ -286,17 +291,17 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
           [1,2,3,4].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)
         ) : errMsg ? (
           <div className="px-4 py-4 rounded-xl space-y-1.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
-            <p className="text-red-400 text-sm font-semibold">Could not load menus</p>
-            <p className="text-red-300/60 text-xs font-mono break-all">{errMsg}</p>
+            <Body size="sm" as="p" className="text-red-400 font-semibold">Could not load menus</Body>
+            <Body size="xs" mono as="p" className="text-red-300/60 break-all">{errMsg}</Body>
           </div>
         ) : available.length === 0 ? (
-          <p className="text-white/30 text-sm text-center py-10">
+          <Body size="sm" subtle as="p" className="text-center py-10">
             {allMenus.filter(m => !currentMenuIds.has(m.id)).length === 0 ? "All menus already assigned." : "No menus match."}
-          </p>
+          </Body>
         ) : (
           <>
             <div className="flex items-center justify-between py-1">
-              <span className="text-white/40 text-xs">{available.length} available</span>
+              <Body size="xs" subtle as="span">{available.length} available</Body>
               <button type="button"
                 onClick={() => selected.size === available.length ? setSelected(new Set()) : setSelected(new Set(available.map(m => m.id)))}
                 className="text-xs font-semibold" style={{ color: "var(--gv-brand)" }}>
@@ -306,8 +311,8 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
             {available.map(menu => (
               <SelectRow key={menu.id} isSelected={selected.has(menu.id)} onClick={() => toggle(menu.id)}>
                 <div className="min-w-0 flex-1">
-                  <p className="text-white text-sm font-semibold truncate">{menu.title || menu.name}</p>
-                  {menu.link && <p className="text-white/35 text-xs truncate mt-0.5">{menu.link}</p>}
+                  <Body size="sm" as="p" className="font-semibold truncate">{menu.title || menu.name}</Body>
+                  {menu.link && <Body size="xs" subtle as="p" className="truncate mt-0.5">{menu.link}</Body>}
                 </div>
               </SelectRow>
             ))}
@@ -406,18 +411,18 @@ function AssignUserModal({ deptId, currentUserEmails, onClose, onAssigned, showT
           [1,2,3,4].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)
         ) : errMsg ? (
           <div className="px-4 py-4 rounded-xl space-y-1.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
-            <p className="text-red-400 text-sm font-semibold">Could not load users</p>
-            <p className="text-red-300/60 text-xs font-mono break-all">{errMsg}</p>
-            <p className="text-white/25 text-xs mt-1">Share this message so the parser can be fixed.</p>
+            <Body size="sm" as="p" className="text-red-400 font-semibold">Could not load users</Body>
+            <Body size="xs" mono as="p" className="text-red-300/60 break-all">{errMsg}</Body>
+            <Body size="xs" subtle as="p" className="mt-1">Share this message so the parser can be fixed.</Body>
           </div>
         ) : available.length === 0 ? (
-          <p className="text-white/30 text-sm text-center py-10">
+          <Body size="sm" subtle as="p" className="text-center py-10">
             {allUsers.filter(u => !currentUserEmails.has(u.email.toLowerCase())).length === 0 ? "All users already assigned." : "No users match."}
-          </p>
+          </Body>
         ) : (
           <>
             <div className="flex items-center justify-between py-1">
-              <span className="text-white/40 text-xs">{available.length} available</span>
+              <Body size="xs" subtle as="span">{available.length} available</Body>
               <button type="button"
                 onClick={() => selected.size === available.length ? setSelected(new Set()) : setSelected(new Set(available.map(u => u.id)))}
                 className="text-xs font-semibold" style={{ color: "var(--gv-brand)" }}>
@@ -436,8 +441,8 @@ function AssignUserModal({ deptId, currentUserEmails, onClose, onAssigned, showT
                     {inits}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-white text-sm font-semibold truncate">{user.name}</p>
-                    <p className="text-white/40 text-xs truncate">{user.role || user.email}</p>
+                    <Body size="sm" as="p" className="font-semibold truncate">{user.name}</Body>
+                    <Body size="xs" subtle as="p" className="truncate">{user.role || user.email}</Body>
                   </div>
                 </SelectRow>
               );
@@ -482,7 +487,6 @@ export default function DepartmentDetailPage() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // Fetch department detail
   const loadDept = useCallback(async () => {
     if (!deptId) return;
     setDeptLoading(true);
@@ -492,13 +496,11 @@ export default function DepartmentDetailPage() {
       setDept({ id: d.id, name: d.name, description: d.description });
     } catch (err: any) {
       console.warn("[loadDept] failed:", err?.response?.status, err?.response?.data);
-      // Non-fatal: header will just show a skeleton
     } finally {
       setDeptLoading(false);
     }
   }, [deptId]);
 
-  // Fetch menus
   const loadMenus = useCallback(async () => {
     if (!deptId) return;
     setMenusLoading(true);
@@ -516,7 +518,6 @@ export default function DepartmentDetailPage() {
     }
   }, [deptId, showToast]);
 
-  // Fetch members
   const loadUsers = useCallback(async () => {
     if (!deptId) return;
     setUsersLoading(true);
@@ -537,7 +538,6 @@ export default function DepartmentDetailPage() {
     }
   }, [deptId, showToast]);
 
-  // Full reload
   const load = useCallback(() => {
     loadDept();
     loadMenus();
@@ -546,7 +546,6 @@ export default function DepartmentDetailPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Remove menu
   const removeMenu = async (menu: Menu) => {
     setRemovingMenuId(menu.id);
     try {
@@ -565,7 +564,6 @@ export default function DepartmentDetailPage() {
     }
   };
 
-  // ── Remove user
   const removeUser = async (user: User) => {
     setRemovingUserEmail(user.email);
     const attempts: Array<() => Promise<unknown>> = [
@@ -613,15 +611,17 @@ export default function DepartmentDetailPage() {
             <BackIcon />
           </button>
           <div>
-            <p className="gv-eyebrow mb-0.5">Departments</p>
+            <Label size="sm" as="p" className="gv-eyebrow mb-0.5">Departments</Label>
             {deptLoading ? (
               <div className="h-7 w-48 rounded-lg bg-white/5 animate-pulse" />
             ) : dept ? (
-              <h1 className="text-white text-2xl font-bold leading-tight">{dept.name}</h1>
+              <Title size="md" as="h1">{dept.name}</Title>
             ) : (
-              <h1 className="text-white text-2xl font-bold leading-tight">Department #{deptId}</h1>
+              <Title size="md" as="h1">Department #{deptId}</Title>
             )}
-            {dept?.description && <p className="text-white/40 text-sm mt-1">{dept.description}</p>}
+            {dept?.description && (
+              <Body size="sm" muted className="mt-1">{dept.description}</Body>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 pt-1">
@@ -652,10 +652,13 @@ export default function DepartmentDetailPage() {
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
               <MenusIcon />
             </div>
-            <span className="text-white font-semibold text-sm">Menus</span>
+            <Body size="sm" as="span" className="font-semibold">Menus</Body>
             {!menusLoading && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold text-white/40"
-                style={{ background: "rgba(255,255,255,0.07)" }}>{menus.length}</span>
+              <Body size="xs" subtle as="span"
+                className="px-2 py-0.5 rounded-full font-bold"
+                style={{ background: "rgba(255,255,255,0.07)" }}>
+                {menus.length}
+              </Body>
             )}
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -679,11 +682,11 @@ export default function DepartmentDetailPage() {
                   <MenusIcon />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-white text-sm font-semibold truncate">{menu.title || menu.name}</p>
+                  <Body size="sm" as="p" className="font-semibold truncate">{menu.title || menu.name}</Body>
                   {menu.link && (
-                    <p className="text-white/35 text-xs truncate mt-0.5 flex items-center gap-1">
+                    <Body size="xs" subtle as="p" className="truncate mt-0.5 flex items-center gap-1">
                       <LinkIcon />{menu.link}
-                    </p>
+                    </Body>
                   )}
                 </div>
                 <button type="button" onClick={() => removeMenu(menu)}
@@ -705,10 +708,13 @@ export default function DepartmentDetailPage() {
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
               <UsersIcon />
             </div>
-            <span className="text-white font-semibold text-sm">Users</span>
+            <Body size="sm" as="span" className="font-semibold">Users</Body>
             {!usersLoading && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold text-white/40"
-                style={{ background: "rgba(255,255,255,0.07)" }}>{users.length}</span>
+              <Body size="xs" subtle as="span"
+                className="px-2 py-0.5 rounded-full font-bold"
+                style={{ background: "rgba(255,255,255,0.07)" }}>
+                {users.length}
+              </Body>
             )}
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -734,8 +740,8 @@ export default function DepartmentDetailPage() {
                     {inits}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-white text-sm font-semibold truncate">{user.name}</p>
-                    <p className="text-white/40 text-xs truncate">{user.role || user.email}</p>
+                    <Body size="sm" as="p" className="font-semibold truncate">{user.name}</Body>
+                    <Body size="xs" subtle as="p" className="truncate">{user.role || user.email}</Body>
                   </div>
                   <button type="button" onClick={() => removeUser(user)}
                     disabled={removingUserEmail === user.email}
