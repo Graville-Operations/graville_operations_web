@@ -34,7 +34,6 @@ export default function ForgotPasswordPage() {
       setSuccess('If this email exists, an OTP has been sent to it.');
     }
   };
-
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -52,8 +51,7 @@ export default function ForgotPasswordPage() {
         });
         const user = meRes.data?.data ?? meRes.data;
         saveUser(user);
-
-        loadFromStorage();
+        const { loadFromStorage } = useAuthStore();
 
         setSuccess('Verified! Redirecting to dashboard...');
         setTimeout(() => router.replace(ROUTES.home), 1500);
