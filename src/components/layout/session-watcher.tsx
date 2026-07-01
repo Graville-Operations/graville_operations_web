@@ -8,7 +8,6 @@ import { useMenuStore } from '@/store/menu-store';
 import { useUserStore } from '@/store/user-store';
 import { useInvoiceStore } from '@/store/invoice-store';
 
-// How often to check (in milliseconds) — every 60 seconds
 const CHECK_INTERVAL_MS = 60 * 1000;
 
 function isSessionExpired(): boolean {
@@ -16,12 +15,10 @@ function isSessionExpired(): boolean {
   if (!token) return true;
 
   const expiresAt = getExpiresAt();
-  if (!expiresAt) return false; // no expiry info — assume valid
+  if (!expiresAt) return false; 
 
-  // ✅ Parse directly — cookie already contains timezone info (+03:00)
-  // Do NOT append 'Z' — that would corrupt the timezone offset
   const expiry = new Date(expiresAt);
-  if (isNaN(expiry.getTime())) return false; // malformed — don't log out
+  if (isNaN(expiry.getTime())) return false; 
 
   return new Date() >= expiry;
 }
@@ -41,20 +38,17 @@ export default function SessionWatcher() {
   };
 
   useEffect(() => {
-    // Run once immediately on mount
     if (isSessionExpired()) {
       handleExpiry();
       return;
     }
 
-    // Then check every 60 seconds
     intervalRef.current = setInterval(() => {
       if (isSessionExpired()) {
         handleExpiry();
       }
     }, CHECK_INTERVAL_MS);
 
-    // Also check when the tab becomes visible again
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isSessionExpired()) {
         handleExpiry();
