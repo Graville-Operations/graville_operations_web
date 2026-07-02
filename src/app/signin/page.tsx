@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { ROUTES } from '@/lib/routes';
+import { getApiErrorMessage } from '@/lib/errors';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,21 +26,17 @@ export default function LoginPage() {
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await login(email, password);
-      router.replace(ROUTES.home);
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string; message?: string } } };
-      setError(
-        axiosErr.response?.data?.message ||
-        axiosErr.response?.data?.detail ||
-        'Login failed'
-      );
-      setPassword('');
-    }
-  };
+  e.preventDefault();
+  setError('');
+  try {
+    await login(email, password);
+    router.replace(ROUTES.home);
+  } catch (err: unknown) {
+    console.error('Login error:', err);
+    setError(getApiErrorMessage(err));
+    setPassword('');
+  }
+};
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,#1a3a6e_0%,#0a0f1e_60%,#000000_100%)]">
