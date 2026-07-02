@@ -10,6 +10,7 @@ import {
 } from '@/types/company_invoices';
 import { RawPaginatedResponse } from '@/types/invoice';
 import { Search, Plus, Receipt, Calendar, X, ChevronDown } from 'lucide-react';
+import EmptyState from '@/components/ui/emptystate';
 
 type FilterMode = 'single' | 'range';
 
@@ -126,13 +127,24 @@ export default function CompanyInvoicesPage() {
     router.push(`/finance/invoice/company/${inv.id}`);
   };
 
-  const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center h-48">
-      <Receipt size={40} style={{ color: 'var(--gv-text-faint)' }} className="mb-3" />
-      <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>
-        {search || appliedLabel ? 'No results for your filter' : 'No company invoices found'}
-      </p>
-    </div>
+  const hasFilter = !!(search || appliedLabel);
+
+  const renderEmptyState = () => (
+    <EmptyState
+      icon={Receipt}
+      title={hasFilter ? 'No results for your filter' : 'No company invoices yet'}
+      description={
+        hasFilter
+          ? 'Try a different search term or date range.'
+          : 'Invoices you create will show up here.'
+      }
+      fullScreen={false}
+      action={
+        !hasFilter
+          ? { label: 'New Invoice', onClick: () => router.push('/finance/invoice/company/create') }
+          : undefined
+      }
+    />
   );
 
   return (
@@ -269,7 +281,7 @@ export default function CompanyInvoicesPage() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => <ShimmerRow key={i} />)
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={4}><EmptyState /></td></tr>
+              <tr><td colSpan={4}>{renderEmptyState()}</td></tr>
             ) : (
               filtered.map((inv, idx) => (
                 <tr
@@ -301,7 +313,7 @@ export default function CompanyInvoicesPage() {
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)
         ) : filtered.length === 0 ? (
-          <EmptyState />
+          renderEmptyState()
         ) : (
           filtered.map((inv) => (
             <div

@@ -10,6 +10,7 @@ import {
   normaliseInvoice,
 } from '@/types/invoice';
 import { Search, Eye, Receipt, Calendar, ChevronDown, ChevronUp, X } from 'lucide-react';
+import EmptyState from '@/components/ui/emptystate';
 
 interface Site { id: number; name: string; location: string; }
 
@@ -47,8 +48,6 @@ function ShimmerCard() {
     </div>
   );
 }
-
-/* ── Site dropdown ── */
 function SiteSelect({
   sites,
   value,
@@ -131,8 +130,6 @@ function SiteSelect({
     </div>
   );
 }
-
-/* ── Date filter picker ── */
 function DateFilterPicker({
   startDate, endDate, onApply, onClear,
 }: {
@@ -260,13 +257,6 @@ function DateFilterPicker({
   );
 }
 
-const EmptyState = ({ msg }: { msg: string }) => (
-  <div className="flex flex-col items-center justify-center h-48">
-    <Receipt size={40} style={{ color: 'var(--gv-text-faint)' }} className="mb-3" />
-    <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>{msg}</p>
-  </div>
-);
-
 export default function SupplierInvoicesPage() {
   const router = useRouter();
   const [invoices, setInvoices]   = useState<Invoice[]>([]);
@@ -328,6 +318,18 @@ export default function SupplierInvoicesPage() {
     }));
     router.push(`/finance/invoice/supplier/${inv.id}`);
   };
+
+  const renderEmptyState = () => (
+    <EmptyState
+      icon={Receipt}
+      title={hasFilter ? 'No invoices match your filters' : 'No invoices yet'}
+      description={
+        hasFilter
+          ? 'Try a different search term, site, or date range.'
+          : 'Supplier invoices you receive will show up here.'
+      }
+    />
+  );
 
   return (
     <div className="space-y-6">
@@ -400,7 +402,9 @@ export default function SupplierInvoicesPage() {
             </tbody>
           </table>
         ) : filtered.length === 0 ? (
-          <EmptyState msg={hasFilter ? 'No invoices match your filters' : 'No invoices found'} />
+          renderEmptyState(
+            
+          )
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -450,7 +454,7 @@ export default function SupplierInvoicesPage() {
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)
         ) : filtered.length === 0 ? (
-          <EmptyState msg={hasFilter ? 'No invoices match your filters' : 'No invoices found'} />
+          renderEmptyState()
         ) : filtered.map((inv) => {
           const st = statusStyles[inv.status] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--gv-text-muted)' };
           return (

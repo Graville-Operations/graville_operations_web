@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { normaliseInvoice, Invoice } from '@/types/invoice';
 import { generateInvoicePDF } from '@/lib/utils/generate-invoice-pdf';
-import { ArrowLeft, Loader2, Download } from 'lucide-react';
+import { ArrowLeft, Loader2, Download, Receipt } from 'lucide-react';
+import EmptyState from '@/components/ui/emptystate';
 
 const statusStyles: Record<string, { bg: string; color: string }> = {
   PENDING:        { bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24' },
@@ -96,10 +97,13 @@ export default function InvoiceDetailPage() {
   );
 
   if (!invoice) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-3">
-      <p style={{ color: 'var(--gv-text-muted)' }}>Invoice not found.</p>
-      <button onClick={() => router.back()} className="gv-btn-outline text-sm px-4 py-2">Go back</button>
-    </div>
+    <EmptyState
+      icon={Receipt}
+      title="Invoice not found"
+      description="This invoice may have been removed or the link is incorrect."
+      fullScreen={false}
+      action={{ label: 'Go back', onClick: () => router.back() }}
+    />
   );
 
   const st = statusStyles[invoice.status] ?? { bg: 'rgba(255,255,255,0.08)', color: 'var(--gv-text-muted)' };

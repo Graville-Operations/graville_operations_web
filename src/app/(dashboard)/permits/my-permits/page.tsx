@@ -9,6 +9,7 @@ import {
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { getRole } from "@/lib/auth";
+import EmptyState from "@/components/ui/emptystate";
 import {
   PermitListItem, PermitDetail, PermitCategory,
   STATUS_STYLES, APPROVAL_STYLES,
@@ -362,13 +363,13 @@ function CategoriesTab() {
             </tbody>
           </table>
         ) : categories.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48">
-            <FileText size={40} style={{ color: "var(--gv-text-faint)" }} className="mb-3" />
-            <p className="text-sm mb-3" style={{ color: "var(--gv-text-subtle)" }}>No categories yet.</p>
-            <button onClick={openCreate} className="gv-btn-brand px-4 py-2 rounded-xl text-sm flex items-center gap-2">
-              <Plus size={14} /> Create first category
-            </button>
-          </div>
+          <EmptyState
+            icon={Tag}
+            title="No categories yet"
+            description="Categories you create will show up here."
+            fullScreen={false}
+            action={{ label: "Create first category", onClick: openCreate }}
+          />
         ) : (
           <table className="w-full">
             <thead>
@@ -941,18 +942,23 @@ export default function PermitsDashboard() {
                 </tbody>
               </table>
             ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 gap-3">
-                <FileText size={40} style={{ color: "var(--gv-text-faint)" }} />
-                <p className="text-sm" style={{ color: "var(--gv-text-subtle)" }}>
-                  {search ? `No results for "${search}"` : activeStatus === "All" ? "No permits yet" : `No ${activeStatus} permits`}
-                </p>
-                {activeStatus === "All" && !search && isFieldOp && (
-                  <button onClick={() => router.push("/permits/create")}
-                    className="gv-btn-brand px-4 py-2 rounded-xl text-sm flex items-center gap-2">
-                    <Plus size={14} /> Create your first permit
-                  </button>
-                )}
-              </div>
+              <EmptyState
+                icon={FileText}
+                title={
+                  search
+                    ? `No results for "${search}"`
+                    : activeStatus === "All"
+                    ? "No permits yet"
+                    : `No ${activeStatus} permits`
+                }
+                description={search ? "Try a different search term." : "Permits you create will show up here."}
+                fullScreen={false}
+                action={
+                  activeStatus === "All" && !search && isFieldOp
+                    ? { label: "Create your first permit", onClick: () => router.push("/permits/create") }
+                    : undefined
+                }
+              />
             ) : (
               <table className="w-full">
                 <thead>
@@ -996,16 +1002,17 @@ export default function PermitsDashboard() {
                 {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-32 gap-3">
-                <p className="text-sm" style={{ color: "var(--gv-text-subtle)" }}>
-                  {activeStatus === "All" ? "No permits yet" : `No ${activeStatus} permits`}
-                </p>
-                {activeStatus === "All" && isFieldOp && (
-                  <button onClick={() => router.push("/permits/create")} className="gv-btn-brand px-4 py-2 rounded-xl text-sm">
-                    Create Permit
-                  </button>
-                )}
-              </div>
+              <EmptyState
+                icon={FileText}
+                title={activeStatus === "All" ? "No permits yet" : `No ${activeStatus} permits`}
+                description="Permits you create will show up here."
+                fullScreen={false}
+                action={
+                  activeStatus === "All" && isFieldOp
+                    ? { label: "Create Permit", onClick: () => router.push("/permits/create") }
+                    : undefined
+                }
+              />
             ) : filtered.map((permit) => {
               const st = STATUS_STYLES[permit.status] ?? { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" };
               return (

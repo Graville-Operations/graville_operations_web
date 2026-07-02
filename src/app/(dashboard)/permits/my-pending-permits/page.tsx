@@ -3,22 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { X, FileText, Search, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
+import EmptyState from "@/components/ui/emptystate";
 import {
   PendingApprovalItem, PermitDetail,
   STATUS_STYLES, APPROVAL_STYLES,
 } from "@/types/permits";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-// PermitApproval, PermitDetail and PendingApprovalItem all come from @/types/permits
 type PermitDetailWithRaw = PermitDetail;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Safe date formatter.
- * The backend's FormattedDateTime may return a pre-formatted string like "12 Jun 2025"
- * that new Date() can't parse. We try ISO first; if it fails we use the string as-is.
- */
 function fmtDate(val: string | null | undefined): string {
   if (!val) return "—";
   const d = new Date(val);
@@ -62,7 +53,6 @@ function Shimmer({ className = "", style = {} }: { className?: string; style?: R
   );
 }
 
-/** Skeleton row matching the desktop pending approvals table columns */
 function SkeletonRow() {
   return (
     <tr style={{ borderBottom: "1px solid var(--gv-glass-border)" }}>
@@ -75,7 +65,6 @@ function SkeletonRow() {
   );
 }
 
-/** Skeleton card matching the mobile pending approvals card layout */
 function SkeletonCard() {
   return (
     <div className="gv-card" style={{ padding: "14px 16px" }}>
@@ -90,8 +79,6 @@ function SkeletonCard() {
     </div>
   );
 }
-
-// ─── Reject confirm modal (reason required) ───────────────────────────────────
 
 function RejectConfirmModal({ onConfirm, onCancel, loading, comment, setComment }: {
   onConfirm:  () => void;
@@ -143,8 +130,6 @@ function RejectConfirmModal({ onConfirm, onCancel, loading, comment, setComment 
     </div>
   );
 }
-
-// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function PendingApprovalsPage() {
   const [approvals,    setApprovals]    = useState<PendingApprovalItem[]>([]);
@@ -257,12 +242,16 @@ export default function PendingApprovalsPage() {
             </tbody>
           </table>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48">
-            <FileText size={40} style={{ color: "var(--gv-text-faint)" }} className="mb-3" />
-            <p className="text-sm" style={{ color: "var(--gv-text-subtle)" }}>
-              {search ? `No results for "${search}"` : "No pending permits!"}
-            </p>
-          </div>
+          <EmptyState
+            icon={FileText}
+            title={search ? `No results for "${search}"` : "No pending permits"}
+            description={
+              search
+                ? "Try a different search term."
+                : "Permits awaiting your approval will show up here."
+            }
+            fullScreen={false}
+          />
         ) : (
           <table className="w-full">
             <thead>
@@ -305,9 +294,12 @@ export default function PendingApprovalsPage() {
             {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex items-center justify-center h-32">
-            <p className="text-sm" style={{ color: "var(--gv-text-subtle)" }}>No pending permits</p>
-          </div>
+          <EmptyState
+            icon={FileText}
+            title="No pending permits"
+            description="Permits awaiting your approval will show up here."
+            fullScreen={false}
+          />
         ) : filtered.map((item) => {
           const detail = permitCache[item.permit_id];
           const st = STATUS_STYLES[item.status] ?? { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" };

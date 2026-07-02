@@ -10,6 +10,7 @@ import {
 } from '@/types/company_invoices';
 import { generateInvoicePDF } from '@/lib/utils/generate-invoice-pdf';
 import { Receipt, ArrowLeft, Loader2, Download } from 'lucide-react';
+import EmptyState from '@/components/ui/emptystate';
 
 function Shimmer({ w, h }: { w: string; h: string }) {
   return (
@@ -29,7 +30,6 @@ export default function CompanyInvoiceDetailPage() {
   useEffect(() => {
     if (!id) return;
 
-    // ── Prefill from list cache immediately ──
     const cached = sessionStorage.getItem(`cinv_${id}`);
     if (cached) {
       try {
@@ -51,7 +51,6 @@ export default function CompanyInvoiceDetailPage() {
       } catch (_) {}
     }
 
-    // ── Fetch full details ──
     const load = async () => {
       try {
         setDetailLoading(true);
@@ -96,7 +95,6 @@ export default function CompanyInvoiceDetailPage() {
     }
   };
 
-  // ── Full skeleton — only when no cache at all ──
   if (loading && !invoice) return (
     <div className="space-y-6 w-full" style={{ maxWidth: '75vw', margin: '0 auto' }}>
       <div className="flex items-center gap-3">
@@ -129,11 +127,13 @@ export default function CompanyInvoiceDetailPage() {
   );
 
   if (!invoice) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-3">
-      <Receipt size={40} style={{ color: 'var(--gv-text-faint)' }} />
-      <p className="text-sm" style={{ color: 'var(--gv-text-subtle)' }}>Invoice not found</p>
-      <button onClick={() => router.back()} className="gv-btn-brand px-4 py-2 rounded-xl text-sm">Go Back</button>
-    </div>
+    <EmptyState
+      icon={Receipt}
+      title="Invoice not found"
+      description="This invoice may have been removed or the link is incorrect."
+      fullScreen={false}
+      action={{ label: 'Go Back', onClick: () => router.back() }}
+    />
   );
 
   return (
