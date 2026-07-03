@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { ROUTES } from '@/lib/routes';
-import { getApiErrorMessage } from '@/lib/errors';
+import { getLoginErrorMessage } from '@/lib/errors';
 
 export function useLoginForm() {
   const [email, setEmail] = useState('');
@@ -31,7 +31,7 @@ export function useLoginForm() {
       router.replace(ROUTES.home);
     } catch (err: unknown) {
       console.error('Login error:', err);
-      setError(getApiErrorMessage(err));
+      setError(getLoginErrorMessage(err));
       setPassword('');
     }
   };

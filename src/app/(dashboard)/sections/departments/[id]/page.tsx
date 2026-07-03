@@ -3,21 +3,27 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import api from "@/lib/api";
-import {
-  type Menu,
-  type User,
-  type Department,
-  getCachedDepartment,
-  getCachedMenus,
-  setCachedMenus,
-  getCachedUsers,
-  setCachedUsers,
-  getDeptCache,
-  setDeptCache,
-} from "@/lib/departments-cache";
+import { Title, Label, Body } from "@/components/ui/typography";
 
+interface Menu {
+  id: number;
+  name: string;
+  title: string;
+  link?: string;
+}
 
-interface DeptDetail { id: number; name: string; description?: string; }
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface DeptDetail {
+  id: number;
+  name: string;
+  description?: string;
+}
 
 
 function extractArray(data: unknown): any[] {
@@ -58,7 +64,6 @@ function toMenu(m: any): Menu {
   };
 }
 
-
 function toUser(u: any): User {
   const src = u?.user ?? u?.member ?? u;
   return {
@@ -74,8 +79,7 @@ function toUser(u: any): User {
 }
 
 function parseMenus(raw: unknown): Menu[] {
-  const arr = extractArray(raw);
-  return arr.map(toMenu).filter(m => m.id > 0);
+  return extractArray(raw).map(toMenu).filter(m => m.id > 0);
 }
 
 function parseUsers(raw: unknown, tag = ""): User[] {
@@ -84,26 +88,22 @@ function parseUsers(raw: unknown, tag = ""): User[] {
     console.log(`[parseUsers${tag ? " " + tag : ""}] raw sample:`, JSON.stringify(arr[0]).slice(0, 300));
     console.log(`[parseUsers${tag ? " " + tag : ""}] → array len:`, arr.length);
   }
-  return arr.map(toUser).filter(u => u.id > 0);
+  return arr.map(toUser).filter(u => u.id > 0 || u.email);
 }
 
-
-function syncDeptListCounts(deptId: number, counts: Partial<Pick<Department, "menusCount" | "usersCount">>) {
-  const cache = getDeptCache();
-  if (!cache) return;
-  const updated = cache.map(d => (d.id === deptId ? { ...d, ...counts } : d));
-  setDeptCache(updated);
-}
 
 function Toast({ message, type }: { message: string; type: "success" | "error" }) {
   return (
     <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white
-      text-sm font-semibold z-[60] shadow-xl pointer-events-none
+      z-[60] shadow-xl pointer-events-none
       ${type === "success" ? "bg-[#33907c]" : "bg-red-600"}`}
-    >{message}</div>
+    >
+      <Label size="sm" as="span" className="text-white normal-case tracking-normal">
+        {message}
+      </Label>
+    </div>
   );
 }
-
 
 const BackIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -173,7 +173,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       <div className="w-full max-w-lg bg-[#0d1528] border border-white/10 rounded-2xl flex flex-col overflow-hidden"
         style={{ maxHeight: "80vh", animation: "fadeUp 0.2s ease" }}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
-          <h2 className="text-white font-bold text-base">{title}</h2>
+          <Title size="sm" as="h2">{title}</Title>
           <button type="button" onClick={onClose} className="text-white/30 hover:text-white transition-colors p-1.5">
             <CloseIcon />
           </button>
@@ -185,7 +185,6 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-
 function EmptyState({ icon, label, action }: { icon: React.ReactNode; label: string; action?: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 gap-3">
@@ -193,13 +192,12 @@ function EmptyState({ icon, label, action }: { icon: React.ReactNode; label: str
         style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
         {icon}
       </div>
-      <p className="text-white/30 text-sm">{label}</p>
+      <Body size="sm" subtle>{label}</Body>
       {action}
     </div>
   );
 }
 
-// ─── Selectable list item ─────────────────────────────────────────────────────
 function SelectRow({ isSelected, onClick, children }: {
   isSelected: boolean; onClick: () => void; children: React.ReactNode;
 }) {
@@ -222,7 +220,7 @@ function SelectRow({ isSelected, onClick, children }: {
 
 function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToast }: {
   deptId: number; currentMenuIds: Set<number>;
-  onClose: () => void; onAssigned: (menus: Menu[]) => void;
+  onClose: () => void; onAssigned: () => void;
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
   const [allMenus, setAllMenus] = useState<Menu[]>([]);
@@ -266,10 +264,9 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
     if (selected.size === 0) return;
     setSaving(true);
     try {
-      const ids = [...selected];
-      await api.post(`/departments/${deptId}/menus`, { menu_ids: ids });
-      onAssigned(allMenus.filter(m => selected.has(m.id)));
+      await api.post(`/departments/${deptId}/menus`, { menu_ids: [...selected] });
       showToast(`${selected.size} menu${selected.size > 1 ? "s" : ""} assigned`, "success");
+      onAssigned();
       onClose();
     } catch (err: any) {
       const detail = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.response?.data;
@@ -294,17 +291,17 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
           [1,2,3,4].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)
         ) : errMsg ? (
           <div className="px-4 py-4 rounded-xl space-y-1.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
-            <p className="text-red-400 text-sm font-semibold">Could not load menus</p>
-            <p className="text-red-300/60 text-xs font-mono break-all">{errMsg}</p>
+            <Body size="sm" as="p" className="text-red-400 font-semibold">Could not load menus</Body>
+            <Body size="xs" mono as="p" className="text-red-300/60 break-all">{errMsg}</Body>
           </div>
         ) : available.length === 0 ? (
-          <p className="text-white/30 text-sm text-center py-10">
+          <Body size="sm" subtle as="p" className="text-center py-10">
             {allMenus.filter(m => !currentMenuIds.has(m.id)).length === 0 ? "All menus already assigned." : "No menus match."}
-          </p>
+          </Body>
         ) : (
           <>
             <div className="flex items-center justify-between py-1">
-              <span className="text-white/40 text-xs">{available.length} available</span>
+              <Body size="xs" subtle as="span">{available.length} available</Body>
               <button type="button"
                 onClick={() => selected.size === available.length ? setSelected(new Set()) : setSelected(new Set(available.map(m => m.id)))}
                 className="text-xs font-semibold" style={{ color: "var(--gv-brand)" }}>
@@ -314,8 +311,8 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
             {available.map(menu => (
               <SelectRow key={menu.id} isSelected={selected.has(menu.id)} onClick={() => toggle(menu.id)}>
                 <div className="min-w-0 flex-1">
-                  <p className="text-white text-sm font-semibold truncate">{menu.title || menu.name}</p>
-                  {menu.link && <p className="text-white/35 text-xs truncate mt-0.5">{menu.link}</p>}
+                  <Body size="sm" as="p" className="font-semibold truncate">{menu.title || menu.name}</Body>
+                  {menu.link && <Body size="xs" subtle as="p" className="truncate mt-0.5">{menu.link}</Body>}
                 </div>
               </SelectRow>
             ))}
@@ -336,9 +333,9 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
 }
 
 
-function AssignUserModal({ deptId, currentUserIds, onClose, onAssigned, showToast }: {
-  deptId: number; currentUserIds: Set<number>;
-  onClose: () => void; onAssigned: (users: User[]) => void;
+function AssignUserModal({ deptId, currentUserEmails, onClose, onAssigned, showToast }: {
+  deptId: number; currentUserEmails: Set<string>;
+  onClose: () => void; onAssigned: () => void;
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -373,12 +370,12 @@ function AssignUserModal({ deptId, currentUserIds, onClose, onAssigned, showToas
   }, []);
 
   const available = useMemo(() =>
-    allUsers.filter(u => !currentUserIds.has(u.id))
+    allUsers.filter(u => !currentUserEmails.has(u.email.toLowerCase()))
       .filter(u =>
         u.name.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase()) ||
         u.role.toLowerCase().includes(search.toLowerCase())),
-    [allUsers, search, currentUserIds]);
+    [allUsers, search, currentUserEmails]);
 
   const toggle = (id: number) =>
     setSelected(p => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
@@ -387,10 +384,9 @@ function AssignUserModal({ deptId, currentUserIds, onClose, onAssigned, showToas
     if (selected.size === 0) return;
     setSaving(true);
     try {
-      const ids = [...selected];
-      await api.post(`/departments/${deptId}/assign-users`, { user_ids: ids });
-      onAssigned(allUsers.filter(u => selected.has(u.id)));
+      await api.post(`/departments/${deptId}/assign-users`, { user_ids: [...selected] });
       showToast(`${selected.size} user${selected.size > 1 ? "s" : ""} assigned`, "success");
+      onAssigned();
       onClose();
     } catch (err: any) {
       const detail = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.response?.data;
@@ -415,18 +411,18 @@ function AssignUserModal({ deptId, currentUserIds, onClose, onAssigned, showToas
           [1,2,3,4].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)
         ) : errMsg ? (
           <div className="px-4 py-4 rounded-xl space-y-1.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
-            <p className="text-red-400 text-sm font-semibold">Could not load users</p>
-            <p className="text-red-300/60 text-xs font-mono break-all">{errMsg}</p>
-            <p className="text-white/25 text-xs mt-1">Share this message so the parser can be fixed.</p>
+            <Body size="sm" as="p" className="text-red-400 font-semibold">Could not load users</Body>
+            <Body size="xs" mono as="p" className="text-red-300/60 break-all">{errMsg}</Body>
+            <Body size="xs" subtle as="p" className="mt-1">Share this message so the parser can be fixed.</Body>
           </div>
         ) : available.length === 0 ? (
-          <p className="text-white/30 text-sm text-center py-10">
-            {allUsers.filter(u => !currentUserIds.has(u.id)).length === 0 ? "All users already assigned." : "No users match."}
-          </p>
+          <Body size="sm" subtle as="p" className="text-center py-10">
+            {allUsers.filter(u => !currentUserEmails.has(u.email.toLowerCase())).length === 0 ? "All users already assigned." : "No users match."}
+          </Body>
         ) : (
           <>
             <div className="flex items-center justify-between py-1">
-              <span className="text-white/40 text-xs">{available.length} available</span>
+              <Body size="xs" subtle as="span">{available.length} available</Body>
               <button type="button"
                 onClick={() => selected.size === available.length ? setSelected(new Set()) : setSelected(new Set(available.map(u => u.id)))}
                 className="text-xs font-semibold" style={{ color: "var(--gv-brand)" }}>
@@ -445,8 +441,8 @@ function AssignUserModal({ deptId, currentUserIds, onClose, onAssigned, showToas
                     {inits}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-white text-sm font-semibold truncate">{user.name}</p>
-                    <p className="text-white/40 text-xs truncate">{user.role || user.email}</p>
+                    <Body size="sm" as="p" className="font-semibold truncate">{user.name}</Body>
+                    <Body size="xs" subtle as="p" className="truncate">{user.role || user.email}</Body>
                   </div>
                 </SelectRow>
               );
@@ -473,21 +469,15 @@ export default function DepartmentDetailPage() {
   const params = useParams();
   const deptId = Number(params?.id);
 
-  const [dept, setDept] = useState<DeptDetail | null>(() => {
-    const cached = getCachedDepartment(deptId);
-    if (cached) return { id: cached.id, name: cached.name, description: cached.description };
-    const fromList = getDeptCache()?.find(d => d.id === deptId);
-    return fromList ? { id: fromList.id, name: fromList.name, description: fromList.description } : null;
-  });
-
- 
+  const [dept, setDept] = useState<DeptDetail | null>(null);
   const [menus, setMenus] = useState<Menu[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [deptLoading, setDeptLoading]   = useState(true);
   const [menusLoading, setMenusLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(true);
 
   const [removingMenuId, setRemovingMenuId] = useState<number | null>(null);
-  const [removingUserId, setRemovingUserId] = useState<number | null>(null);
+  const [removingUserEmail, setRemovingUserEmail] = useState<string | null>(null);
   const [showAssignMenu, setShowAssignMenu] = useState(false);
   const [showAssignUser, setShowAssignUser] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -497,88 +487,88 @@ export default function DepartmentDetailPage() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  
-  const load = useCallback(async (silent = false) => {
+  const loadDept = useCallback(async () => {
     if (!deptId) return;
-    if (!silent) {
-      setMenusLoading(true);
-      setUsersLoading(true);
+    setDeptLoading(true);
+    try {
+      const { data } = await api.get(`/departments/${deptId}`);
+      const d = (data?.data ?? data) as any;
+      setDept({ id: d.id, name: d.name, description: d.description });
+    } catch (err: any) {
+      console.warn("[loadDept] failed:", err?.response?.status, err?.response?.data);
+    } finally {
+      setDeptLoading(false);
     }
+  }, [deptId]);
 
-    
-    const menusReq = api.get(`/departments/${deptId}/menus`).catch(e => {
-      console.warn("[load] dept menus failed:", e?.response?.status, e?.response?.data);
-      return null;
-    });
-   
-    const membersReq = api.get(`/departments/${deptId}/members`).catch(e => {
-      console.warn("[load] members failed:", e?.response?.status, e?.response?.data);
-      return null;
-    });
-
-    menusReq.then(res => {
-      if (!res) { setMenusLoading(false); return; }
-      console.log("[menus] full raw response:", JSON.stringify(res.data));
-      const parsed = parseMenus(res.data);
+  const loadMenus = useCallback(async () => {
+    if (!deptId) return;
+    setMenusLoading(true);
+    try {
+      const { data } = await api.get(`/departments/${deptId}/menus`);
+      console.log("[menus] raw response:", JSON.stringify(data));
+      const parsed = parseMenus(data);
       console.log("[menus] parsed:", JSON.stringify(parsed));
       setMenus(parsed);
-      setCachedMenus(deptId, parsed);
-      syncDeptListCounts(deptId, { menusCount: parsed.length });
+    } catch (err: any) {
+      console.warn("[loadMenus] failed:", err?.response?.status, err?.response?.data);
+      showToast("Failed to load menus", "error");
+    } finally {
       setMenusLoading(false);
-    });
+    }
+  }, [deptId, showToast]);
 
-    membersReq.then(res => {
-      if (!res) { setUsersLoading(false); return; }
-      // Always log so we can diagnose
-      console.log("[members] full raw response:", JSON.stringify(res.data));
-      const arr = extractArray(res.data);
+  const loadUsers = useCallback(async () => {
+    if (!deptId) return;
+    setUsersLoading(true);
+    try {
+      const { data } = await api.get(`/departments/${deptId}/members`);
+      console.log("[members] raw response:", JSON.stringify(data));
+      const arr = extractArray(data);
       console.log("[members] extractArray result:", JSON.stringify(arr));
       if (arr[0]) console.log("[members] first item keys:", Object.keys(arr[0]), "value:", JSON.stringify(arr[0]));
-      const resolved = parseUsers(res.data, "/members");
-      console.log("[members] parsed users:", JSON.stringify(resolved));
-      setUsers(resolved);
-      setCachedUsers(deptId, resolved);
-      syncDeptListCounts(deptId, { usersCount: resolved.length });
+      const parsed = parseUsers(data, "/members");
+      console.log("[members] parsed users:", JSON.stringify(parsed));
+      setUsers(parsed);
+    } catch (err: any) {
+      console.warn("[loadUsers] failed:", err?.response?.status, err?.response?.data);
+      showToast("Failed to load members", "error");
+    } finally {
       setUsersLoading(false);
-    });
-  }, [deptId]);
+    }
+  }, [deptId, showToast]);
+
+  const load = useCallback(() => {
+    loadDept();
+    loadMenus();
+    loadUsers();
+  }, [loadDept, loadMenus, loadUsers]);
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Remove menu — optimistic update then re-fetch to confirm
   const removeMenu = async (menu: Menu) => {
     setRemovingMenuId(menu.id);
     try {
       await api.delete(`/departments/${deptId}/menus`, {
         data: { menu_ids: [menu.id] },
       });
-      // Optimistic: remove immediately from UI
-      setMenus(prev => {
-        const updated = prev.filter(m => m.id !== menu.id);
-        setCachedMenus(deptId, updated);
-        syncDeptListCounts(deptId, { menusCount: updated.length });
-        return updated;
-      });
       showToast(`"${menu.title || menu.name}" removed`, "success");
-     
-      load(true);
+      await loadMenus();
     } catch (err: any) {
       console.error("[removeMenu] failed:", err?.response?.status, err?.response?.data);
       const detail = err?.response?.data?.detail ?? err?.response?.data?.message;
       showToast(typeof detail === "string" ? detail : "Failed to remove menu", "error");
-      
-      load(true);
+      await loadMenus();
     } finally {
       setRemovingMenuId(null);
     }
   };
 
-  // ── Remove user
   const removeUser = async (user: User) => {
-    setRemovingUserId(user.id);
+    setRemovingUserEmail(user.email);
     const attempts: Array<() => Promise<unknown>> = [
       () => api.delete(`/departments/${deptId}/members`, { data: { user_ids: [user.id] } }),
-      () => api.delete(`/departments/${deptId}/users`, { data: { user_ids: [user.id] } }),
+      () => api.delete(`/departments/${deptId}/users`,   { data: { user_ids: [user.id] } }),
       () => api.post(`/departments/${deptId}/members/remove`, { user_ids: [user.id] }),
     ];
 
@@ -586,15 +576,9 @@ export default function DepartmentDetailPage() {
     for (const attempt of attempts) {
       try {
         await attempt();
-        setUsers(prev => {
-          const updated = prev.filter(u => u.id !== user.id);
-          setCachedUsers(deptId, updated);
-          syncDeptListCounts(deptId, { usersCount: updated.length });
-          return updated;
-        });
         showToast(`"${user.name}" removed`, "success");
-        setRemovingUserId(null);
-        load(true);
+        await loadUsers();
+        setRemovingUserEmail(null);
         return;
       } catch (err: any) {
         lastErr = err;
@@ -606,36 +590,15 @@ export default function DepartmentDetailPage() {
     console.error("[removeUser] all attempts failed:", lastErr?.response?.status, lastErr?.response?.data);
     const detail = lastErr?.response?.data?.detail ?? lastErr?.response?.data?.message;
     showToast(typeof detail === "string" ? detail : "Failed to remove user — endpoint needs confirming", "error");
-    load(true);
-    setRemovingUserId(null);
+    await loadUsers();
+    setRemovingUserEmail(null);
   };
 
   const assignedMenuIds = useMemo(() => new Set(menus.map(m => m.id)), [menus]);
-  const assignedUserIds = useMemo(() => new Set(users.map(u => u.id)), [users]);
-
-  const handleMenusAssigned = useCallback((newMenus: Menu[]) => {
-    setMenus(prev => {
-      const existing = new Set(prev.map(m => m.id));
-      const updated = [...prev, ...newMenus.filter(m => !existing.has(m.id))];
-      setCachedMenus(deptId, updated);
-      syncDeptListCounts(deptId, { menusCount: updated.length });
-      return updated;
-    });
-   
-    load(true);
-  }, [deptId, load]);
-
-  const handleUsersAssigned = useCallback((newUsers: User[]) => {
-    setUsers(prev => {
-      const existing = new Set(prev.map(u => u.id));
-      const updated = [...prev, ...newUsers.filter(u => !existing.has(u.id))];
-      setCachedUsers(deptId, updated);
-      syncDeptListCounts(deptId, { usersCount: updated.length });
-      return updated;
-    });
-    // Re-fetch to get full user objects from the server
-    load(true);
-  }, [deptId, load]);
+  const assignedUserEmails = useMemo(
+    () => new Set(users.map(u => u.email.toLowerCase()).filter(Boolean)),
+    [users],
+  );
 
   return (
     <div className="space-y-6">
@@ -648,15 +611,21 @@ export default function DepartmentDetailPage() {
             <BackIcon />
           </button>
           <div>
-            <p className="gv-eyebrow mb-0.5">Departments</p>
-            {dept
-              ? <h1 className="text-white text-2xl font-bold leading-tight">{dept.name}</h1>
-              : <div className="h-7 w-48 rounded-lg bg-white/5 animate-pulse" />}
-            {dept?.description && <p className="text-white/40 text-sm mt-1">{dept.description}</p>}
+            <Label size="sm" as="p" className="gv-eyebrow mb-0.5">Departments</Label>
+            {deptLoading ? (
+              <div className="h-7 w-48 rounded-lg bg-white/5 animate-pulse" />
+            ) : dept ? (
+              <Title size="md" as="h1">{dept.name}</Title>
+            ) : (
+              <Title size="md" as="h1">Department #{deptId}</Title>
+            )}
+            {dept?.description && (
+              <Body size="sm" muted className="mt-1">{dept.description}</Body>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 pt-1">
-          <button type="button" onClick={() => load(false)}
+          <button type="button" onClick={load}
             className="gv-btn-outline w-9 h-9 flex items-center justify-center p-0" title="Refresh">
             <RefreshIcon />
           </button>
@@ -683,10 +652,13 @@ export default function DepartmentDetailPage() {
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
               <MenusIcon />
             </div>
-            <span className="text-white font-semibold text-sm">Menus</span>
+            <Body size="sm" as="span" className="font-semibold">Menus</Body>
             {!menusLoading && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold text-white/40"
-                style={{ background: "rgba(255,255,255,0.07)" }}>{menus.length}</span>
+              <Body size="xs" subtle as="span"
+                className="px-2 py-0.5 rounded-full font-bold"
+                style={{ background: "rgba(255,255,255,0.07)" }}>
+                {menus.length}
+              </Body>
             )}
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -710,11 +682,11 @@ export default function DepartmentDetailPage() {
                   <MenusIcon />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-white text-sm font-semibold truncate">{menu.title || menu.name}</p>
+                  <Body size="sm" as="p" className="font-semibold truncate">{menu.title || menu.name}</Body>
                   {menu.link && (
-                    <p className="text-white/35 text-xs truncate mt-0.5 flex items-center gap-1">
+                    <Body size="xs" subtle as="p" className="truncate mt-0.5 flex items-center gap-1">
                       <LinkIcon />{menu.link}
-                    </p>
+                    </Body>
                   )}
                 </div>
                 <button type="button" onClick={() => removeMenu(menu)}
@@ -736,10 +708,13 @@ export default function DepartmentDetailPage() {
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
               <UsersIcon />
             </div>
-            <span className="text-white font-semibold text-sm">Users</span>
+            <Body size="sm" as="span" className="font-semibold">Users</Body>
             {!usersLoading && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold text-white/40"
-                style={{ background: "rgba(255,255,255,0.07)" }}>{users.length}</span>
+              <Body size="xs" subtle as="span"
+                className="px-2 py-0.5 rounded-full font-bold"
+                style={{ background: "rgba(255,255,255,0.07)" }}>
+                {users.length}
+              </Body>
             )}
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
@@ -754,10 +729,10 @@ export default function DepartmentDetailPage() {
                     <PlusIcon /> Assign a user
                   </button>
                 } />
-            ) : users.map(user => {
+            ) : users.map((user, idx) => {
               const inits = user.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
               return (
-                <div key={user.id}
+                <div key={user.email || idx}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
                   style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
@@ -765,14 +740,14 @@ export default function DepartmentDetailPage() {
                     {inits}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-white text-sm font-semibold truncate">{user.name}</p>
-                    <p className="text-white/40 text-xs truncate">{user.role || user.email}</p>
+                    <Body size="sm" as="p" className="font-semibold truncate">{user.name}</Body>
+                    <Body size="xs" subtle as="p" className="truncate">{user.role || user.email}</Body>
                   </div>
                   <button type="button" onClick={() => removeUser(user)}
-                    disabled={removingUserId === user.id}
+                    disabled={removingUserEmail === user.email}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 shrink-0"
                     style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", color: "#f87171" }}>
-                    {removingUserId === user.id ? <SpinnerIcon size={11} /> : <MinusIcon />}
+                    {removingUserEmail === user.email ? <SpinnerIcon size={11} /> : <MinusIcon />}
                     Remove
                   </button>
                 </div>
@@ -785,12 +760,22 @@ export default function DepartmentDetailPage() {
       {toast && <Toast message={toast.message} type={toast.type} />}
 
       {showAssignMenu && (
-        <AssignMenuModal deptId={deptId} currentMenuIds={assignedMenuIds}
-          onClose={() => setShowAssignMenu(false)} onAssigned={handleMenusAssigned} showToast={showToast} />
+        <AssignMenuModal
+          deptId={deptId}
+          currentMenuIds={assignedMenuIds}
+          onClose={() => setShowAssignMenu(false)}
+          onAssigned={loadMenus}
+          showToast={showToast}
+        />
       )}
       {showAssignUser && (
-        <AssignUserModal deptId={deptId} currentUserIds={assignedUserIds}
-          onClose={() => setShowAssignUser(false)} onAssigned={handleUsersAssigned} showToast={showToast} />
+        <AssignUserModal
+          deptId={deptId}
+          currentUserEmails={assignedUserEmails}
+          onClose={() => setShowAssignUser(false)}
+          onAssigned={loadUsers}
+          showToast={showToast}
+        />
       )}
     </div>
   );

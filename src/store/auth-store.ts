@@ -33,17 +33,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
   set({ isLoading: true });
   try {
-    // Step 1: Login — plain axios to bypass interceptor
+    
     const loginRes = await axios.post(
       `${API_BASE_URL}/auth/login`,
       { email, password },
       { headers: { 'Content-Type': 'application/json' } }
     );
 
-    const body = loginRes.data; // { code, data, message }
+    const body = loginRes.data; 
 
-    // Backend always returns HTTP 200, even on failure —
-    // success is signaled by `data` being non-null, not by status code.
     if (!body?.data) {
       throw new Error(body?.message || 'Login failed');
     }
@@ -54,7 +52,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw new Error(body?.message || 'Login failed — no token returned');
     }
 
-    // Step 2: Fetch profile using fresh token — plain axios again
     const meRes = await axios.get(
       `${API_BASE_URL}/auth/me`,
       { headers: { Authorization: `Bearer ${payload.token}` } }
@@ -66,8 +63,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (!meData || !meData.email) {
       throw new Error(meBody?.message || 'Failed to fetch user profile');
     }
-
-    // Map camelCase API fields → snake_case User type
     const user: User = {
       ...meData,
       first_name:   meData.firstName  ?? '',
@@ -76,8 +71,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       phone_no:     meData.phone      ?? '',
       expires_at:   payload.expires_at ?? '',
     };
-
-    // Step 3: Save everything — token, role, full user, and separate expiry cookie
     saveToken(payload.token);
     saveRole(payload.role);
     saveUser(user);

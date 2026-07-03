@@ -1,4 +1,4 @@
-// lib/api.ts
+
 import axios from 'axios';
 import { API_BASE_URL } from './constants';
 import { getToken, clearSession } from './auth';
@@ -20,6 +20,7 @@ api.interceptors.response.use(
   (res) => {
     const body = res.data;
     if (body && typeof body === 'object' && 'code' in body && !body.data) {
+
       return Promise.reject(new Error(body.message || 'Something went wrong'));
     }
     return res;
