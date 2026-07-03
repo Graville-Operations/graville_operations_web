@@ -110,7 +110,7 @@ export default function MenusPage() {
                               <p className="text-sm text-white/80">{sub.title}</p>
                               <p className="text-xs text-white/30">{sub.name} · order {sub.order}{sub.link ? ` · ${sub.link}` : ''}</p>
                             </div>
-                            <span className="text-xs text-white/20 mr-2">{sub.subsubmenus?.length ?? 0} sub-sub</span>
+                            <span className="text-xs text-white/20 mr-2">{(sub as any).subsubmenus?.length ?? 0} sub-sub</span>
                             <button onClick={() => openModal({ type: 'subsubmenu-create', submenuId: sub.id })} className="p-1.5 text-white/30 hover:text-[#33907C] hover:bg-[#33907C]/10 rounded-lg transition-colors">
                               <Plus size={13} />
                             </button>
