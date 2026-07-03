@@ -18,24 +18,18 @@ export function useMenus() {
   const [error, setError] = useState('');
 
   const fetchMenus = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const list = await menusService.list();
-      setMenus(list);
-      setLocalMenus(list);
-    } catch {
-      setLocalMenus([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setMenus]);
-
-  useEffect(() => {
-    if (!isLoaded) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchMenus();
-    }
-  }, [isLoaded, fetchMenus]);
+  try {
+    setIsLoading(true);
+    const list = await menusService.list();
+    const normalized = list.map((m) => ({ ...m, submenus: m.submenus ?? [] }));
+    setMenus(normalized);
+    setLocalMenus(list); // local state can keep the original Menu[] shape with optional submenus
+  } catch {
+    setLocalMenus([]);
+  } finally {
+    setIsLoading(false);
+  }
+}, [setMenus]);
 
   useEffect(() => {
     if (isLoaded && cachedMenus.length > 0) {
