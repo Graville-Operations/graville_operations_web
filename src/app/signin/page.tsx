@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { ROUTES } from '@/lib/routes';
-import { getApiErrorMessage } from '@/lib/errors';
+import { getLoginErrorMessage } from '@/lib/errors';
 
 
 export default function LoginPage() {
@@ -33,7 +33,7 @@ export default function LoginPage() {
     router.replace(ROUTES.home);
   } catch (err: unknown) {
     console.error('Login error:', err);
-    setError(getApiErrorMessage(err));
+    setError(getLoginErrorMessage(err));
     setPassword('');
   }
 };
