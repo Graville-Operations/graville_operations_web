@@ -1,4 +1,4 @@
-// lib/api.ts
+
 import axios from 'axios';
 import { API_BASE_URL } from './constants';
 import { getToken, clearSession } from './auth';
@@ -18,12 +18,9 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => {
-    // Backend always returns HTTP 200, even on failure —
-    // success is signaled by `data` being non-null.
     const body = res.data;
     if (body && typeof body === 'object' && 'code' in body && !body.data) {
-      // Throw a plain Error carrying the real backend message,
-      // so every existing catch(err) block just works.
+
       return Promise.reject(new Error(body.message || 'Something went wrong'));
     }
     return res;

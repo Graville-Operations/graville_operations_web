@@ -63,8 +63,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (!meData || !meData.email) {
       throw new Error(meBody?.message || 'Failed to fetch user profile');
     }
-
-    // Map camelCase API fields → snake_case User type
     const user: User = {
       ...meData,
       first_name:   meData.firstName  ?? '',
@@ -73,8 +71,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       phone_no:     meData.phone      ?? '',
       expires_at:   payload.expires_at ?? '',
     };
-
-    // Step 3: Save everything — token, role, full user, and separate expiry cookie
     saveToken(payload.token);
     saveRole(payload.role);
     saveUser(user);

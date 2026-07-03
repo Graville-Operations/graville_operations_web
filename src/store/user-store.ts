@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface ApiUser {
+export interface ApiUser {
   ref_id: string;
   email: string;
   firstName: string;
