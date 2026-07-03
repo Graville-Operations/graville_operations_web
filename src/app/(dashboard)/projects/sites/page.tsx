@@ -70,7 +70,6 @@ interface SiteAnalytics {
 
 interface SiteDetailExtended extends SiteDetail {
   estimatedValue?: number;
- 
 }
 
 function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null {
