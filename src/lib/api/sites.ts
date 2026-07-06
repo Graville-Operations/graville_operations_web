@@ -3,6 +3,8 @@ import {
   Site, SiteDetail, SiteWorker, AttendanceRecord,
   SiteTask, CreateSitePayload, OverviewKPIs,
 } from '@/types/site';
+import { SiteAnalytics } from '@/types/site-detail';
+import { DashboardMetrics } from '@/types/dashboard';
 
 function unwrapArray<T>(response: unknown): T[] {
   if (Array.isArray(response)) return response as T[];
@@ -56,10 +58,8 @@ export async function fetchAttendanceBySite(siteId: number): Promise<AttendanceR
 
 export async function fetchTasksBySiteId(siteId: number): Promise<SiteTask[]> {
   const { data } = await api.get(`/tasks/list/${siteId}`);
-  // tasks may come as a single object or array
   if (Array.isArray(data))      return data as SiteTask[];
   if (data?.data && Array.isArray(data.data)) return data.data as SiteTask[];
-  // single task wrapped in data
   if (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
     return [data.data as SiteTask];
   }
@@ -69,4 +69,16 @@ export async function fetchTasksBySiteId(siteId: number): Promise<SiteTask[]> {
 export async function fetchOverviewKPIs(): Promise<OverviewKPIs> {
   const { data } = await api.get('/analytics/overview');
   return unwrapObject<OverviewKPIs>(data);
+}
+
+export async function fetchSiteAnalytics(siteId: number | string): Promise<SiteAnalytics | null> {
+  const { data } = await api.get(`/sites/analytics/${siteId}`);
+  if (!data || typeof data !== 'object') return null;
+  const obj = data as Record<string, unknown>;
+  return (obj.data && typeof obj.data === 'object' ? obj.data : data) as SiteAnalytics | null;
+}
+
+export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
+  const { data } = await api.get('/sites/dashboard-metrics');
+  return unwrapObject<DashboardMetrics>(data);
 }
