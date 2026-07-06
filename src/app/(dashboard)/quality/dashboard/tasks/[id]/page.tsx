@@ -1,19 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import api from "@/lib/api";
-import { cacheGet, cacheSet } from "@/lib/persistent-cache";
-import { getTaskHandoff } from "@/lib/task-handoff";
-import { getSite } from "@/lib/sites-cache";
-import { withRetry } from "@/lib/retry";
-import type { Task, SubTask } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { useTaskDetail } from "@/hooks/quality/useTaskDetail";
 import {
   ArrowLeft, Plus, CalendarRange, CheckCircle2, Clock,
   AlertCircle, Layers, ChevronRight, Loader2, Users, WifiOff, RefreshCw,
 } from "lucide-react";
-
-
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   completed: {
@@ -33,107 +25,37 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
   },
 };
 
-function parseList<T>(data: unknown): T[] {
-  if (!data) return [];
-  const d = data as Record<string, unknown>;
-  const arr = d?.items ?? d?.data ?? d?.subtasks ?? data;
-  return Array.isArray(arr) ? arr : [];
-}
+// function formatDate(iso?: string): string {
+//   if (!iso) return "—";
+//   return new Date(iso).toLocaleDateString("en-GB", {
+//     day: "numeric", month: "short", year: "numeric",
+//   });
+// }
 
 function formatDate(iso?: string): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-GB", {
     day: "numeric", month: "short", year: "numeric",
   });
 }
 
-
-
 export default function TaskDetailPage() {
-  const params       = useParams();
-  const router       = useRouter();
-  const searchParams = useSearchParams();
-  const taskId        = Number(params?.id);
-  const siteIdParam   = searchParams.get("site_id");
-  const siteId        = siteIdParam ? Number(siteIdParam) : null;
-
-
-  const [task, setTask]               = useState<Task | null>(null);
-  const [taskMissing, setTaskMissing]  = useState(false);
-  const [subtasks, setSubtasks]        = useState<SubTask[]>([]);
-  const [loadingSubs, setLoadingSubs]  = useState(true);
-  const [subsError, setSubsError]      = useState<string | null>(null);
-  const [offline, setOffline]          = useState(false);
-  const [retryInfo, setRetryInfo]      = useState<{ attempt: number; max: number } | null>(null);
-
-  useEffect(() => {
-    if (!Number.isFinite(taskId)) return;
-    const handed = getTaskHandoff(taskId);
-    if (handed) {
-      setTask(handed);
-    } else {
-      setTaskMissing(true);
-    }
-  }, [taskId]);
-
- 
-  // Auto-retries 3 times
-  const loadSubtasks = useCallback(async () => {
-    const cacheKey = `subtasks:${taskId}`;
-
-    const cached = cacheGet<SubTask[]>(cacheKey);
-    if (cached) {
-      setSubtasks(cached);
-      setLoadingSubs(false);
-    }
-
-    setSubsError(null);
-    setRetryInfo(null);
-
-    try {
-      const list = await withRetry(
-        async () => {
-          const res = await api.get(`/tasks/sub-task/list/${taskId}`);
-          return parseList<SubTask>(res.data?.data ?? res.data);
-        },
-        {
-          retries: 3,
-          delayMs: 5000,
-          onRetry: (attempt, max) => setRetryInfo({ attempt, max }),
-        }
-      );
-      cacheSet(cacheKey, list);
-      setSubtasks(list);
-      setOffline(false);
-    } catch {
-      if (cached) {
-        setOffline(true);
-      } else {
-        setSubsError("Failed to load subtasks.");
-      }
-    } finally {
-      setLoadingSubs(false);
-      setRetryInfo(null);
-    }
-  }, [taskId]);
-
-  useEffect(() => {
-    if (!Number.isFinite(taskId)) return;
-    loadSubtasks();
-  }, [taskId, loadSubtasks]);
-
-  
-  const resolvedSiteId = task?.site_id ?? siteId ?? undefined;
-  const site = resolvedSiteId !== undefined ? getSite(resolvedSiteId) : undefined;
-
-  function goToCreateSubtask() {
-    const sid = resolvedSiteId;
-    router.push(
-      sid !== undefined
-        ? `/quality/dashboard/tasks/${taskId}/subtasks/create?site_id=${sid}`
-        : `/quality/dashboard/tasks/${taskId}/subtasks/create`
-    );
-  }
+  const router = useRouter();
+  const {
+    task,
+    taskMissing,
+    subtasks,
+    loadingSubs,
+    subsError,
+    offline,
+    retryInfo,
+    taskId,
+    site,
+    loadSubtasks,
+    goToCreateSubtask,
+  } = useTaskDetail();
 
   if (!Number.isFinite(taskId)) {
     return (
@@ -143,7 +65,6 @@ export default function TaskDetailPage() {
     );
   }
 
- 
   return (
     <div className="gv-page-dashboard">
       <div className="gv-nav sticky top-0 z-20 px-4 sm:px-6 flex items-center gap-3 flex-wrap">
@@ -165,7 +86,6 @@ export default function TaskDetailPage() {
       </div>
 
       <div className="mx-auto max-w-4xl px-4 sm:px-6 py-6 space-y-6">
-
         {offline && (
           <div className="gv-card flex items-center gap-3 text-sm text-amber-400 border-amber-500/20 bg-amber-500/10 p-3">
             <WifiOff size={15} className="flex-shrink-0" />

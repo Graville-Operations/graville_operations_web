@@ -1,19 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import api from "@/lib/api";
-import { cacheGet, cacheSet, cacheBust } from "@/lib/persistent-cache";
-import { setSites, getAllSites, sitesLoaded, type Site } from "@/lib/sites-cache";
-import { setTaskHandoff } from "@/lib/task-handoff";
-import { withRetry } from "@/lib/retry";
+import { useTasks } from "@/hooks/quality/useTasks";
 import type { Task } from "@/lib/types";
 import {
   Plus, CalendarRange, CheckCircle2, Clock,
   AlertCircle, ChevronRight, Layers, ChevronDown,
   WifiOff, RefreshCw,
 } from "lucide-react";
-
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
   completed: {
@@ -33,20 +26,6 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
   },
 };
 
-function parseList<T>(data: unknown): T[] {
-  if (!data) return [];
-  const d = data as Record<string, unknown>;
-  const arr = d?.items ?? d?.data ?? d?.tasks ?? d?.sites ?? data;
-  return Array.isArray(arr) ? arr : [];
-}
-
-function formatDate(iso?: string): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric",
-  });
-}
-
 const ACCENT_COLORS = [
   "from-violet-500 to-indigo-500",
   "from-sky-500 to-cyan-500",
@@ -56,112 +35,31 @@ const ACCENT_COLORS = [
   "from-fuchsia-500 to-purple-500",
 ];
 
-//Cache
-
-export function bustTaskCache(siteId?: string | number) {
-  if (siteId !== undefined) cacheBust(`tasks:${siteId}`);
-  else cacheBust("tasks:");
+function formatDate(iso?: string): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric",
+  });
 }
 
-
-
 export default function TasksPage() {
-  const router = useRouter();
+  const {
+    tasks,
+    sites,
+    selectedSite,
+    dropdownOpen,
+    loadingTasks,
+    loadingSites,
+    error,
+    offline,
+    retryInfo,
+    setDropdownOpen,
+    selectSite,
+    openTask,
+    goToCreateTask,
+    retry,
+  } = useTasks();
 
-  const [tasks, setTasks]               = useState<Task[]>([]);
-  const [sites, setSitesState]          = useState<Site[]>([]);
-  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-  const [loadingSites, setLoadingSites] = useState(true);
-  const [error, setError]               = useState<string | null>(null);
-  const [offline, setOffline]           = useState(false);
-  const [retryInfo, setRetryInfo]       = useState<{ attempt: number; max: number } | null>(null);
-
-  // ── Loads tasks for a site and retries 3 times in 5secs to fetch 
-  const loadTasks = useCallback(async (site: Site) => {
-    const cacheKey = `tasks:${site.id}`;
-
-    const cached = cacheGet<Task[]>(cacheKey);
-    if (cached) {
-      setTasks(cached);
-      setLoadingTasks(false);
-      setOffline(false);
-    } else {
-      setLoadingTasks(true);
-    }
-
-    setError(null);
-    setRetryInfo(null);
-
-    try {
-      const list = await withRetry(
-        async () => {
-          const res = await api.get(`/tasks/list/${site.id}`);
-          return parseList<Task>(res.data?.data ?? res.data);
-        },
-        {
-          retries: 3,
-          delayMs: 5000,
-          onRetry: (attempt, max) => setRetryInfo({ attempt, max }),
-        }
-      );
-      cacheSet(cacheKey, list);
-      setTasks(list);
-      setOffline(false);
-    } catch {
-      if (!cached) {
-        setError("Failed to load tasks.");
-      } else {
-        setOffline(true);
-      }
-    } finally {
-      setLoadingTasks(false);
-      setRetryInfo(null);
-    }
-  }, []);
-
-  //Load sites into the hash map
-  useEffect(() => {
-      if (sitesLoaded()) {
-      const list = getAllSites();
-      setSitesState(list);
-      if (list.length > 0) {
-        setSelectedSite(list[0]);
-        loadTasks(list[0]);
-      }
-      setLoadingSites(false);
-      return;
-    }
-
-    api.get("/sites/list")
-      .then((res) => {
-        const list = parseList<Site>(res.data?.data ?? res.data);
-        setSites(list); // populate the module-level hash map, keyed by id
-        setSitesState(list);
-        if (list.length > 0) {
-          setSelectedSite(list[0]);
-          loadTasks(list[0]);
-        }
-      })
-      .catch(() => setError("Failed to load sites."))
-      .finally(() => setLoadingSites(false));
-  }, [loadTasks]);
-
-
-  function selectSite(site: Site) {
-    setSelectedSite(site);
-    setDropdownOpen(false);
-    loadTasks(site);
-  }
-
-
-  function openTask(task: Task) {
-    setTaskHandoff(task);
-    router.push(`/quality/dashboard/tasks/${task.id}?site_id=${task.site_id}`);
-  }
-
- 
   return (
     <div className="gv-page-dashboard">
       <div className="gv-nav sticky top-0 z-20 px-6 flex items-center justify-between">
@@ -173,22 +71,12 @@ export default function TasksPage() {
               : `${tasks.length} task${tasks.length !== 1 ? "s" : ""}${selectedSite ? ` · ${selectedSite.name}` : ""}`}
           </p>
         </div>
-        <button
-          onClick={() =>
-            router.push(
-              selectedSite
-                ? `/quality/dashboard/tasks/create?site_id=${selectedSite.id}`
-                : "/quality/dashboard/tasks/create"
-            )
-          }
-          className="gv-btn-brand gap-2 text-sm"
-        >
+        <button onClick={goToCreateTask} className="gv-btn-brand gap-2 text-sm">
           <Plus size={16} /> New Task
         </button>
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-6 space-y-4">
-
         {offline && (
           <div className="gv-card flex items-center gap-3 text-sm text-amber-400 border-amber-500/20 bg-amber-500/10 p-3">
             <WifiOff size={15} className="flex-shrink-0" />
@@ -199,7 +87,7 @@ export default function TasksPage() {
         {/* Site switcher */}
         <div className="relative">
           <button
-            onClick={() => setDropdownOpen((o) => !o)}
+            onClick={() => setDropdownOpen(!dropdownOpen)}
             disabled={loadingSites}
             className="gv-btn-outline flex items-center gap-2 text-sm min-w-52 disabled:opacity-50"
           >
@@ -247,7 +135,7 @@ export default function TasksPage() {
             <AlertCircle size={16} /> {error}
             {selectedSite && (
               <button
-                onClick={() => loadTasks(selectedSite)}
+                onClick={retry}
                 className="ml-auto underline underline-offset-2 hover:text-red-300"
               >
                 Retry
@@ -261,7 +149,7 @@ export default function TasksPage() {
             <Layers size={40} strokeWidth={1} />
             <p className="text-sm">No tasks for {selectedSite.name}</p>
             <button
-              onClick={() => router.push(`/quality/dashboard/tasks/create?site_id=${selectedSite.id}`)}
+              onClick={goToCreateTask}
               className="text-sm text-[var(--gv-brand)] hover:text-[var(--gv-brand-hover)] underline underline-offset-2"
             >
               Create first task
@@ -278,7 +166,7 @@ export default function TasksPage() {
 
         {tasks.length > 0 && (
           <div className="space-y-3">
-            {tasks.map((task, idx) => {
+            {tasks.map((task: Task, idx: number) => {
               const status = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.pending;
               const accent = ACCENT_COLORS[idx % ACCENT_COLORS.length];
               const subtaskCount = task.subtasks?.length ?? 0;
