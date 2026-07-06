@@ -1,47 +1,16 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import api from "@/lib/api";
-import { Title, Subtitle, Label, Body } from "@/components/ui/typography";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Title, Subtitle, Label, Body } from '@/components/ui/typography';
+import { useDepartments } from '@/hooks/department/use-departments';
+import { CreateDepartmentPayload, Department } from '@/types/department';
 
-interface RawDepartment {
-  id: number;
-  name: string;
-  description?: string;
-  menus: number;
-  users: number;
-}
-
-interface Department {
-  id: number;
-  name: string;
-  description: string;
-  menusCount: number;
-  usersCount: number;
-}
-
-export function parseList(data: unknown): any[] {
-  if (Array.isArray(data)) return data;
-  if (data && typeof data === "object") {
-    const d = data as Record<string, unknown>;
-    if (Array.isArray((d.data as any)?.items)) return (d.data as any).items;
-    if (Array.isArray(d.data)) return d.data as any[];
-    for (const key of ["items", "results", "list", "records", "rows", "departments"]) {
-      if (Array.isArray(d[key])) return d[key] as any[];
-    }
-    for (const key of Object.keys(d)) {
-      if (Array.isArray(d[key])) return d[key] as any[];
-    }
-  }
-  return [];
-}
-
-function Toast({ message, type }: { message: string; type: "success" | "error" }) {
+function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
   return (
     <div
       className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white z-[60] shadow-xl pointer-events-none
-        ${type === "success" ? "bg-[#33907c]" : "bg-red-600"}`}
+        ${type === 'success' ? 'bg-[#33907c]' : 'bg-red-600'}`}
     >
       <Label size="sm" as="span" className="text-white normal-case tracking-normal">
         {message}
@@ -91,23 +60,30 @@ const SpinnerIcon = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
-
-function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+function CreateDeptModal({
+  onClose,
+  onSubmit,
+}: {
+  onClose: () => void;
+  /** Delegates the actual creation (and error message extraction) to the hook/service layer. */
+  onSubmit: (payload: CreateDepartmentPayload) => Promise<void>;
+}) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    if (!name.trim()) { setError("Department name is required."); return; }
+    setIsSubmitting(true);
+    setError(null);
     try {
-      setIsSubmitting(true); setError(null);
-      await api.post("/departments/create", { name: name.trim(), description: description.trim() });
-      onCreated(); onClose();
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? err?.response?.data?.message ?? "Failed to create department.";
-      setError(typeof msg === "string" ? msg : JSON.stringify(msg));
-    } finally { setIsSubmitting(false); }
+      await onSubmit({ name, description });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create department.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -117,7 +93,7 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
     >
       <div
         className="w-full max-w-lg bg-[#0d1528] border border-white/10 rounded-2xl flex flex-col overflow-hidden"
-        style={{ animation: "fadeUp 0.22s ease" }}
+        style={{ animation: 'fadeUp 0.22s ease' }}
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-7 py-5 border-b border-white/10">
@@ -125,9 +101,9 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
               style={{
-                background: "color-mix(in srgb, var(--gv-brand) 18%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--gv-brand) 35%, transparent)",
-                color: "var(--gv-brand)",
+                background: 'color-mix(in srgb, var(--gv-brand) 18%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--gv-brand) 35%, transparent)',
+                color: 'var(--gv-brand)',
               }}
             >
               <BuildingIcon />
@@ -151,14 +127,14 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
           <div className="space-y-2">
             <label>
               <Label size="sm" subtle>
-                Department Name{" "}
+                Department Name{' '}
               </Label>
               <span className="text-red-400">*</span>
             </label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleSubmit()}
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               placeholder="e.g. Finance, Operations, Engineering…"
               className="w-full gv-input px-4 py-3 outline-none text-white text-[0.8125rem]"
             />
@@ -199,10 +175,10 @@ function CreateDeptModal({ onClose, onCreated }: { onClose: () => void; onCreate
             onClick={handleSubmit}
             disabled={isSubmitting || !name.trim()}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all disabled:opacity-40 text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium"
-            style={{ background: "var(--gv-brand)", color: "#fff" }}
+            style={{ background: 'var(--gv-brand)', color: '#fff' }}
           >
             {isSubmitting ? <SpinnerIcon /> : <PlusIcon />}
-            {isSubmitting ? "Creating…" : "Create Department"}
+            {isSubmitting ? 'Creating…' : 'Create Department'}
           </button>
         </div>
       </div>
@@ -222,23 +198,23 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
       role="button"
       tabIndex={0}
       onClick={onClick}
-      onKeyDown={e => e.key === "Enter" && onClick()}
+      onKeyDown={e => e.key === 'Enter' && onClick()}
       className="gv-card p-0 overflow-hidden flex flex-col cursor-pointer transition-all"
-      style={{ borderTop: "3px solid var(--gv-brand)", outline: "none" }}
+      style={{ borderTop: '3px solid var(--gv-brand)', outline: 'none' }}
       onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 32px color-mix(in srgb, var(--gv-brand) 22%, transparent)";
+        (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
+        (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 32px color-mix(in srgb, var(--gv-brand) 22%, transparent)';
       }}
       onMouseLeave={e => {
-        (e.currentTarget as HTMLDivElement).style.transform = "";
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "";
+        (e.currentTarget as HTMLDivElement).style.transform = '';
+        (e.currentTarget as HTMLDivElement).style.boxShadow = '';
       }}
     >
       <div className="px-4 pt-4 pb-3 flex-1">
         <div className="flex items-start gap-3">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
-            style={{ background: "color-mix(in srgb, var(--gv-brand) 22%, transparent)", color: "var(--gv-brand)" }}
+            style={{ background: 'color-mix(in srgb, var(--gv-brand) 22%, transparent)', color: 'var(--gv-brand)' }}
           >
             <BuildingIcon />
           </div>
@@ -247,7 +223,7 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
               {dept.name}
             </Subtitle>
             <Body size="sm" muted as="p" className="line-clamp-2 mt-1">
-              {dept.description || "No description provided."}
+              {dept.description || 'No description provided.'}
             </Body>
           </div>
         </div>
@@ -259,10 +235,10 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
         {/* Menus badge */}
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-xl flex-1 justify-center"
-          style={{ background: "color-mix(in srgb, var(--gv-brand) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--gv-brand) 28%, transparent)" }}
+          style={{ background: 'color-mix(in srgb, var(--gv-brand) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--gv-brand) 28%, transparent)' }}
         >
-          <span style={{ color: "var(--gv-brand)" }}><MenusIcon /></span>
-          <Body size="sm" mono as="span" className="font-bold" style={{ color: "var(--gv-brand)" }}>
+          <span style={{ color: 'var(--gv-brand)' }}><MenusIcon /></span>
+          <Body size="sm" mono as="span" className="font-bold" style={{ color: 'var(--gv-brand)' }}>
             {dept.menusCount}
           </Body>
           <Label size="sm" as="span" className="normal-case tracking-normal" subtle>
@@ -272,7 +248,7 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
         {/* Users badge */}
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-xl flex-1 justify-center"
-          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
         >
           <span className="text-white/40"><UsersIcon /></span>
           <Body size="sm" mono as="span" className="font-bold text-white/80">
@@ -289,7 +265,7 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
 
 function SkeletonCard() {
   return (
-    <div className="gv-card p-0 overflow-hidden animate-pulse" style={{ borderTop: "3px solid rgba(255,255,255,0.08)" }}>
+    <div className="gv-card p-0 overflow-hidden animate-pulse" style={{ borderTop: '3px solid rgba(255,255,255,0.08)' }}>
       <div className="px-4 pt-4 pb-3">
         <div className="flex gap-3">
           <div className="w-9 h-9 rounded-lg bg-white/5 shrink-0" />
@@ -309,69 +285,18 @@ function SkeletonCard() {
   );
 }
 
-
 export default function DepartmentsPage() {
   const router = useRouter();
 
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  // All data fetching, filtering, and create logic lives in the hook.
+  const { filtered, isLoading, search, setSearch, toast, createDepartment } = useDepartments();
+
+  // Pure UI state — which modal is open — stays local to the component.
   const [showCreate, setShowCreate] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const showToast = useCallback((message: string, type: "success" | "error") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }, []);
-
-  const fetchDepartments = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const { data } = await api.get("/departments/list");
-      const raw = parseList(data);
-
-      if (raw.length === 0) {
-        console.warn("[Departments] parseList returned [] for response:", data);
-      }
-
-      const mapped: Department[] = raw.map((d: RawDepartment) => ({
-        id: d.id,
-        name: d.name,
-        description: d.description ?? "",
-        menusCount: typeof d.menus === "number" ? d.menus : 0,
-        usersCount: typeof d.users === "number" ? d.users : 0,
-      }));
-
-      setDepartments(mapped);
-    } catch (err: any) {
-      const status = err?.response?.status;
-      const detail = err?.response?.data?.detail ?? err?.response?.data?.message;
-      const message =
-        typeof detail === "string"
-          ? detail
-          : status
-          ? `Failed to load departments (${status})`
-          : "Failed to load departments";
-      console.error("[Departments] list fetch failed:", status, err?.response?.data ?? err?.message);
-      showToast(message, "error");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showToast]);
-
-  useEffect(() => { fetchDepartments(); }, [fetchDepartments]);
-
-  const handleCardClick = useCallback((dept: Department) => {
+  const handleCardClick = (dept: Department) => {
     router.push(`/sections/departments/${dept.id}`);
-  }, [router]);
-
-  const filtered = useMemo(
-    () => departments.filter(d =>
-      d.name.toLowerCase().includes(search.toLowerCase()) ||
-      d.description.toLowerCase().includes(search.toLowerCase()),
-    ),
-    [departments, search],
-  );
+  };
 
   return (
     <div className="space-y-6">
@@ -385,7 +310,7 @@ export default function DepartmentsPage() {
           type="button"
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium text-white"
-          style={{ background: "var(--gv-brand)" }}
+          style={{ background: 'var(--gv-brand)' }}
         >
           <PlusIcon /> Add Department
         </button>
@@ -401,7 +326,7 @@ export default function DepartmentsPage() {
           className="flex-1 bg-transparent outline-none placeholder:text-white/30 text-white text-[0.8125rem]"
         />
         {search && (
-          <button type="button" onClick={() => setSearch("")} className="text-white/30 hover:text-white transition-colors">
+          <button type="button" onClick={() => setSearch('')} className="text-white/30 hover:text-white transition-colors">
             <CloseIcon />
           </button>
         )}
@@ -421,7 +346,7 @@ export default function DepartmentsPage() {
         <div className="text-center py-20">
           <p className="text-4xl mb-3">🏢</p>
           <Body size="sm" muted>
-            {search ? "No departments match your search." : "No departments found."}
+            {search ? 'No departments match your search.' : 'No departments found.'}
           </Body>
           {!search && (
             <button
@@ -429,9 +354,9 @@ export default function DepartmentsPage() {
               onClick={() => setShowCreate(true)}
               className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl mx-auto text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium"
               style={{
-                background: "color-mix(in srgb, var(--gv-brand) 13%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--gv-brand) 27%, transparent)",
-                color: "var(--gv-brand)",
+                background: 'color-mix(in srgb, var(--gv-brand) 13%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--gv-brand) 27%, transparent)',
+                color: 'var(--gv-brand)',
               }}
             >
               <PlusIcon /> Create your first department
@@ -455,10 +380,7 @@ export default function DepartmentsPage() {
       {showCreate && (
         <CreateDeptModal
           onClose={() => setShowCreate(false)}
-          onCreated={() => {
-            showToast("Department created successfully!", "success");
-            fetchDepartments();
-          }}
+          onSubmit={createDepartment}
         />
       )}
     </div>

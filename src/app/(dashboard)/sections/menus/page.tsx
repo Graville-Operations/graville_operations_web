@@ -1,168 +1,41 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import api from '@/lib/api';
-import { useMenuStore } from '@/store/menu-store';
+import { useState } from 'react';
 import {
   ChevronDown, ChevronRight, Plus, Pencil,
   Trash2, X, Check, Layers, List, AlignLeft,
 } from 'lucide-react';
-import { API } from '@/lib/endpoints';
-
-interface SubSubMenu {
-  id: number;
-  name: string;
-  title: string;
-  link?: string | null;
-  order: number;
-}
-
-interface SubMenu {
-  id: number;
-  name: string;
-  title: string;
-  link?: string | null;
-  order: number;
-  subsubmenus?: SubSubMenu[];
-}
-
-interface Menu {
-  id: number;
-  name: string;
-  title: string;
-  link?: string | null;
-  order: number;
-  submenus?: SubMenu[];
-}
-
-type ModalType =
-  | { type: 'menu-create' }
-  | { type: 'menu-edit'; menu: Menu }
-  | { type: 'submenu-create'; menuId: number }
-  | { type: 'submenu-edit'; submenu: SubMenu; menuId: number }
-  | { type: 'subsubmenu-create'; submenuId: number }
-  | { type: 'subsubmenu-edit'; subsubmenu: SubSubMenu; submenuId: number }
-  | null;
+import { useMenus } from '@/hooks/use-menus';
 
 const inputClass =
   'w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm text-white placeholder-white/30';
 const labelClass = 'block text-xs font-medium text-blue-100/70 mb-1 uppercase tracking-wide';
 
-export default function MenusPage() {
-  const { menus: cachedMenus, isLoaded, setMenus, clearMenus } = useMenuStore();
+const modalTitle: Record<string, string> = {
+  'menu-create': 'New Menu',
+  'menu-edit': 'Edit Menu',
+  'submenu-create': 'New Submenu',
+  'submenu-edit': 'Edit Submenu',
+  'subsubmenu-create': 'New Sub-submenu',
+  'subsubmenu-edit': 'Edit Sub-submenu',
+};
 
-  const [menus, setLocalMenus] = useState<Menu[]>(cachedMenus as Menu[]);
-  const [isLoading, setIsLoading] = useState(!isLoaded);
+function toggle(set: Set<number>, id: number): Set<number> {
+  const next = new Set(set);
+  if (next.has(id)) next.delete(id); else next.add(id);
+  return next;
+}
+
+export default function MenusPage() {
+  // All data + CRUD logic lives in the hook. This component only renders.
+  const {
+    menus, isLoading, modal, form, saving, error,
+    setForm, openModal, closeModal, handleSave, handleDelete,
+  } = useMenus();
+
+
   const [openMenus, setOpenMenus] = useState<Set<number>>(new Set());
   const [openSubs, setOpenSubs] = useState<Set<number>>(new Set());
-  const [modal, setModal] = useState<ModalType>(null);
-  const [form, setForm] = useState({ name: '', title: '', link: '', order: '0' });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const fetchMenus = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const { data } = await api.get(API.menus.list);
-      const payload = data?.data ?? data;
-      const list = Array.isArray(payload) ? payload : [];
-      setMenus(list); 
-      setLocalMenus(list);   
-    } catch {
-      setLocalMenus([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setMenus]);
-
-  useEffect(() => {
-    if (!isLoaded) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchMenus();
-    }
-  }, [isLoaded, fetchMenus]);
-
-  useEffect(() => {
-    if (isLoaded && cachedMenus.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLocalMenus(cachedMenus as Menu[]);
-    }
-  }, [isLoaded, cachedMenus]);
-
-  const openModal = (m: ModalType, prefill?: Partial<typeof form>) => {
-    setError('');
-    setForm({ name: '', title: '', link: '', order: '0', ...prefill });
-    setModal(m);
-  };
-
-  const closeModal = () => { setModal(null); setError(''); };
-
-  const invalidateAndRefresh = async () => {
-    clearMenus();
-    await fetchMenus();
-  };
-
-  const handleSave = async () => {
-    if (!modal) return;
-    setSaving(true);
-    setError('');
-    try {
-      const body = {
-        name:  form.name,
-        title: form.title,
-        link:  form.link || null,
-        order: Number(form.order),
-      };
-
-      if (modal.type === 'menu-create')
-        await api.post(API.menus.create, body);
-      else if (modal.type === 'menu-edit')
-        await api.patch(`menus/${modal.menu.id}`, body);
-      else if (modal.type === 'submenu-create')
-        await api.post(API.menus.submenus, { ...body, menu_id: modal.menuId });
-      else if (modal.type === 'submenu-edit')
-        await api.patch(`/menus/submenus/${modal.submenu.id}`, body);
-      else if (modal.type === 'subsubmenu-create')
-        await api.post(API.menus.subsubmenus, { ...body, submenu_id: modal.submenuId });
-      else if (modal.type === 'subsubmenu-edit')
-        await api.patch(`/menus/subsubmenus/${modal.subsubmenu.id}`, body);
-
-      closeModal();
-      await invalidateAndRefresh(); 
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string; message?: string } } };
-      setError(e.response?.data?.detail || e.response?.data?.message || 'Something went wrong');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async (type: 'menu' | 'submenu' | 'subsubmenu', id: number) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
-    try {
-      if (type === 'menu') await api.delete(API.menus.delete(id));
-      else if (type === 'submenu') await api.delete(API.menus.deleteSubmenu(id));
-      else await api.delete(API.menus.deleteSubsubmenu(id));
-      await invalidateAndRefresh();
-    } catch {
-      alert('Failed to delete');
-    }
-  };
-
-  const toggle = (set: Set<number>, id: number): Set<number> => {
-    const next = new Set(set);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  };
-
-  const modalTitle: Record<string, string> = {
-    'menu-create':        'New Menu',
-    'menu-edit':          'Edit Menu',
-    'submenu-create':     'New Submenu',
-    'submenu-edit':       'Edit Submenu',
-    'subsubmenu-create':  'New Sub-submenu',
-    'subsubmenu-edit':    'Edit Sub-submenu',
-  };
 
   return (
     <div className="space-y-6">
@@ -237,7 +110,7 @@ export default function MenusPage() {
                               <p className="text-sm text-white/80">{sub.title}</p>
                               <p className="text-xs text-white/30">{sub.name} · order {sub.order}{sub.link ? ` · ${sub.link}` : ''}</p>
                             </div>
-                            <span className="text-xs text-white/20 mr-2">{sub.subsubmenus?.length ?? 0} sub-sub</span>
+                            <span className="text-xs text-white/20 mr-2">{(sub as any).subsubmenus?.length ?? 0} sub-sub</span>
                             <button onClick={() => openModal({ type: 'subsubmenu-create', submenuId: sub.id })} className="p-1.5 text-white/30 hover:text-[#33907C] hover:bg-[#33907C]/10 rounded-lg transition-colors">
                               <Plus size={13} />
                             </button>
