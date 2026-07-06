@@ -62,9 +62,10 @@ export interface StoreTool {
   status: ToolStatus | string;
   vendor?: string;
   billing_type?: string;
-  hireCost?: number;
+  totalHireCost?: number;
   hire_start_date?: string;
   hire_end_date?: string;
+  is_overdue?: boolean;
 }
 
 
@@ -107,3 +108,16 @@ export type ToolTab = 'all' | 'available' | 'in_use' | 'damaged';
 export type DetailType = 'materials' | 'tools' | null;
 export type StockTab = 'materials' | 'tools';
 export type ActivityTab = 'usage' | 'orders';
+
+
+export type UsageLogStatus = 'draft' | 'submitted' | 'approved' | 'pending_edit' | string;
+
+export interface UsageLog {
+  id: number;
+  site_name: string;
+  date: string;
+  notes: string;
+  materials_count: number;
+  orders_count: number;
+  status?: UsageLogStatus;
+}
