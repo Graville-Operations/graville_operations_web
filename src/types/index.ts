@@ -103,26 +103,26 @@ export interface ClientInvoiceItem {
 
 export interface ClientInvoice {
   id: number;
-  invoice_number: string;
-  invoice_date: string;
-  client_name: string;
-  total_invoice_value: number;
+  invoiceNo: string;
+  invoiceDate: string;
+  clientName: string;
+  total: number;
   notes?: string;
-  site_id: number;
+  site_id?: number;
   created_by?: number;
-  created_at: string;
-  updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
   items: ClientInvoiceItem[];
 }
 
 export interface ClientInvoiceListItem {
   id: number;
-  invoice_number: string;
-  client_name: string;
-  invoice_date: string;
-  total_invoice_value: number;
-  site_id: number;
-  created_at: string;
+  invoiceNo: string;
+  clientName: string;
+  invoiceDate: string;
+  total: number;
+  site_id?: number;
+  createdAt?: string;
 }
 
 export interface Site {

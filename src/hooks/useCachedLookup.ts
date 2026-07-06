@@ -84,9 +84,10 @@ export function useCachedLookup<T>(
 
   useEffect(() => {
     mounted.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData(false);
     return () => { mounted.current = false; };
-  }, [key, enabled]);
+  }, [key, enabled, fetchData]);
 
   const refetch = useCallback(() => fetchData(true), [fetchData]);
 

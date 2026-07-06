@@ -19,12 +19,10 @@ export interface RawInvoice {
   deliveryNo: string | null;
   lpoNo: string | null;
   supplierName: string;
-  invoiceDate: string;   // FormattedDate  → e.g. "3rd May 2026"
+  invoiceDate: string;   
   notes: string | null;
-  // detail endpoint
   createdBy: RawCreatedBy | null;
-  created_at: string;    // FormattedDateTime → e.g. "11:59am, 3rd May 2026"
-  // list endpoint
+  created_at: string;   
   requester: string | null;
   source: string | null;
   updatedAt: string | null;
@@ -60,7 +58,7 @@ export interface Invoice {
   lpo_number: string | null;
   delivery_number: string | null;
   supplier_name: string;
-  invoice_date: string;   // already human-readable string from backend
+  invoice_date: string;   
   total_amount: number;
   amount_paid: number;
   status: string;
@@ -69,7 +67,7 @@ export interface Invoice {
   submitted_by: string | null;
   submitted_by_id: number;
   notes: string | null;
-  created_at: string | null;  // already human-readable string from backend
+  created_at: string | null;  
 }
 
 export function normaliseInvoice(raw: RawInvoice): Invoice {
@@ -79,15 +77,15 @@ export function normaliseInvoice(raw: RawInvoice): Invoice {
     lpo_number:      raw.lpoNo      ?? null,
     delivery_number: raw.deliveryNo ?? null,
     supplier_name:   raw.supplierName,
-    invoice_date:    raw.invoiceDate,          // e.g. "3rd May 2026" — render as-is
+    invoice_date:    raw.invoiceDate,          
     total_amount:    raw.total,
     amount_paid:     raw.amountPaid  ?? 0,
     status:          raw.status      ?? 'PENDING',
-    site:            raw.source      ?? null,  // list sends `source`; detail has none
+    site:            raw.source      ?? null,  
     submitted_by:    raw.requester   ?? raw.createdBy?.name ?? null,
     submitted_by_id: 0,
     notes:           raw.notes       ?? null,
-    created_at:      raw.created_at  ?? raw.updatedAt ?? null, // e.g. "11:59am, 3rd May 2026"
+    created_at:      raw.created_at  ?? raw.updatedAt ?? null, 
     items: (raw.items ?? []).map((item) => ({
       id:          item.id,
       index:       item.index,

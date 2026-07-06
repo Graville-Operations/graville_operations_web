@@ -1,276 +1,39 @@
 'use client';
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth-store';
-import { useMenuStore } from '@/store/menu-store';
-import api from '@/lib/api';
-import { MenuItem } from '@/types';
-import { ChevronDown, ChevronRight, LogOut, User, Bell } from 'lucide-react';
-import { API } from '@/lib/endpoints';
-import { ROUTES } from '@/lib/routes';
-import { formatRole } from '@/lib/utils/format-role';
+
+import { useSidebarMenus } from '@/hooks/layout/useSidebarMenus';
+import { SidebarLogo } from '@/components/layout/sidebar/SidebarLogo';
+import { MenuSkeleton } from '@/components/layout/sidebar/MenuSkeleton';
+import { MenuTree } from '@/components/layout/sidebar/MenuTree';
+import { SidebarFooter } from '@/components/layout/sidebar/SidebarFooter';
 
 export default function Sidebar() {
-  const { menus, isLoaded, setMenus, clearMenus } = useMenuStore();
-  const [isLoading, setIsLoading] = useState(!isLoaded);
-  const [openMenus, setOpenMenus] = useState<Set<number>>(new Set());
-  const pathname = usePathname();
-  const router = useRouter();
-  const { user, role, logout } = useAuthStore();
-
-const fetchMenus = async () => {
-  if (isLoaded) return;
-  try {
-    setIsLoading(true);
-    const { data } = await api.get('auth/me/menus');
-    const menuData = data?.data ?? data;
-    if (!Array.isArray(menuData)) return;
-    const seen = new Set<string>();
-    const unique = menuData.filter((m: MenuItem) => {
-      if (seen.has(m.name)) return false;
-      seen.add(m.name);
-      return true;
-    });
-    setMenus(unique);
-  } catch (error) {
-    console.error('Failed to fetch menus:', error);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-useEffect(() => {
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  fetchMenus();
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
-useEffect(() => {
-  if (menus.length > 0) {
-  }
-}, [pathname, menus]);
-
-  const toggleMenu = (id: number) => {
-  setOpenMenus((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    return next;
-  });
-};
-
-  const handleLogout = () => {
-    clearMenus();
-    logout();
-    router.push(ROUTES.signin);
-  };
-
-  const getMenuHref = (menu: MenuItem): string => {
-    const routeMap: Record<string, string> = {
-    };
-    return menu.link ?? routeMap[menu.name] ?? '#';
-  };
-
-  const isMenuActive = (menu: MenuItem): boolean => {
-    const href = getMenuHref(menu);
-    return pathname === href || pathname.startsWith(href + '/');
-  };
-
-  const isSubActive = (sub: { link?: string | null }): boolean => {
-    const href = sub.link ?? '#';
-    return href !== '#' && (pathname === href || pathname.startsWith(href + '/'));
-  };
-
-  const isSubSubActive = (subsub: { link?: string | null }): boolean => {
-    const href = subsub.link ?? '#';
-    return href !== '#' && (pathname === href || pathname.startsWith(href + '/'));
-  };
+  const {
+    menus, isLoading, openMenus, toggleMenu,
+    user, role, handleLogout,
+    getMenuHref, isMenuActive, isSubActive, isSubSubActive,
+  } = useSidebarMenus();
 
   return (
     <aside className="w-64 shrink-0 flex flex-col h-screen sticky top-0 bg-white/5 backdrop-blur-md [box-shadow:2px_0_0_rgba(255,255,255,0.06),8px_0_32px_rgba(0,0,0,0.6)]">
-      {/* Logo */}
-      <div className="p-5 border-b border-white/10">
-        <Link href="/home" className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#33907C] rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-base">G</span>
-          </div>
-          <div>
-            <p className="font-bold text-white text-sm">Graville Ops</p>
-            <p className="text-xs text-white/40">Management System</p>
-          </div>
-        </Link>
-      </div>
+      <SidebarLogo />
 
-      {/* Nav */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {isLoading ? (
-          <div className="space-y-2 pt-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-10 bg-white/5 rounded-lg animate-pulse" />
-            ))}
-          </div>
+          <MenuSkeleton />
         ) : (
-          menus.map((menu) => (
-            <div key={menu.id}>
-              {menu.submenus && menu.submenus.length > 0 ? (
-                <>
-                  {/* Parent with submenus — tap to open/close */}
-                  <button
-                    onClick={() => toggleMenu(menu.id)}
-                    className={`group flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
-                      isMenuActive(menu)
-                        ? 'bg-[#33907C]/20 text-[#33907C]'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <span className="flex-1 text-left">{menu.title}</span>
-                    <ChevronDown
-                      size={14}
-                      className={`transition-transform duration-200 shrink-0 ${
-                        openMenus.has(menu.id) ? 'rotate-180' : ''
-                      } ${isMenuActive(menu) ? 'text-[#33907C]' : 'text-white/40 group-hover:text-white/60'}`}
-                    />
-                  </button>
-
-                  {/* Submenus — only show when toggled open */}
-                  {openMenus.has(menu.id) && (
-                    <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
-                      {menu.submenus
-                        .sort((a, b) => a.order - b.order)
-                        .map((sub) => (
-                          <div key={sub.id}>
-                            {sub.subsubmenus && sub.subsubmenus.length > 0 ? (
-                              <div>
-                                {/* Submenu with children */}
-                                <div className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
-                                  isSubActive(sub)
-                                    ? 'bg-[#33907C]/20 text-[#33907C] font-medium'
-                                    : 'text-white/50 hover:bg-white/10 hover:text-white'
-                                }`}>
-                                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" />
-                                  {sub.link ? (
-                                    <Link href={sub.link} className="flex-1 text-left">
-                                      {sub.title}
-                                    </Link>
-                                  ) : (
-                                    <span className="flex-1 text-left">{sub.title}</span>
-                                  )}
-                                  <button
-                                    onClick={() => toggleMenu(sub.id)}
-                                    className="p-0.5 shrink-0"
-                                  >
-                                    <ChevronDown
-                                      size={12}
-                                      className={`transition-transform duration-200 opacity-50 ${
-                                        openMenus.has(sub.id) ? 'rotate-180' : ''
-                                      }`}
-                                    />
-                                  </button>
-                                </div>
-
-                                {/* Sub-submenus */}
-                                {openMenus.has(sub.id) && (
-                                  <div className="ml-3 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
-                                    {sub.subsubmenus
-                                      .sort((a, b) => a.order - b.order)
-                                      .map((subsub) => (
-                                        <Link
-                                          key={subsub.id}
-                                          href={subsub.link ?? '#'}
-                                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors duration-150 ${
-                                            isSubSubActive(subsub)
-                                              ? 'bg-[#33907C] text-white font-medium'
-                                              : 'text-white/40 hover:bg-white/10 hover:text-white'
-                                          }`}
-                                        >
-                                          <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
-                                          {subsub.title}
-                                        </Link>
-                                      ))}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              /* Regular submenu — use link from database */
-                              <Link
-                                href={sub.link ?? '#'}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
-                                  isSubActive(sub)
-                                    ? 'bg-[#33907C] text-white font-medium'
-                                    : 'text-white/50 hover:bg-white/10 hover:text-white'
-                                }`}
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 shrink-0" />
-                                {sub.title}
-                              </Link>
-                            )}
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                /* Single link — no submenus */
-                <Link
-                  href={getMenuHref(menu)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
-                    isMenuActive(menu)
-                      ? 'bg-[#33907C] text-white'
-                      : 'text-white/70 hover:bg-white/10 ehover:text-white'
-                  }`}
-                >
-                  <ChevronRight size={14} className="shrink-0 opacity-40" />
-                  <span className="flex-1">{menu.title}</span>
-                </Link>
-              )}
-            </div>
-          ))
+          <MenuTree
+            menus={menus}
+            openMenus={openMenus}
+            onToggle={toggleMenu}
+            getMenuHref={getMenuHref}
+            isMenuActive={isMenuActive}
+            isSubActive={isSubActive}
+            isSubSubActive={isSubSubActive}
+          />
         )}
       </nav>
 
-      {/* Notification + User + Logout */}
-      <div className="p-3 border-t border-white/10 space-y-1">
-        {/* Notifications */}
-        <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors duration-150">
-          <div className="relative">
-            <Bell size={16} />
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-          </div>
-          <span>Notifications</span>
-        </button>
-
-        {/* Profile */}
-        <Link
-          href="/account"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors duration-150"
-        >
-          <div className="w-7 h-7 bg-[#33907C] rounded-full flex items-center justify-center shrink-0">
-            <span className="text-white text-xs font-bold">
-              {user?.first_name?.[0]}{user?.last_name?.[0]}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white truncate">
-              {user?.first_name} {user?.last_name}
-            </p>
-            <p className="text-xs text-white/40 truncate">{formatRole(role ?? undefined)}</p>
-          </div>
-          <User size={14} className="shrink-0 opacity-40" />
-        </Link>
-
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors duration-150"
-        >
-          <LogOut size={16} />
-          Logout
-        </button>
-      </div>
+      <SidebarFooter user={user} role={role} onLogout={handleLogout} />
     </aside>
   );
 }

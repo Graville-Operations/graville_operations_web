@@ -25,3 +25,16 @@ export function formatDateTime(dateStr?: string | null): string {
     minute: '2-digit',
   });
 }
+export const parseBackendDate = (dateStr: string): string => {
+  if (!dateStr) return '';
+  try {
+    const cleaned = dateStr.replace(/(\d+)(st|nd|rd|th)/i, '$1');
+    const date = new Date(cleaned);
+    if (isNaN(date.getTime())) return '';
+    return date.toISOString().split('T')[0];
+  } catch {
+    return '';
+  }
+};
+
+export const todayISO = (): string => new Date().toISOString().split('T')[0];

@@ -31,60 +31,62 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   login: async (email, password) => {
-    set({ isLoading: true });
-    try {
-      // Step 1: Login — plain axios to bypass interceptor
-      const loginRes = await axios.post(
-        `${API_BASE_URL}/auth/login`,
-        { email, password },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
+  set({ isLoading: true });
+  try {
+    
+    const loginRes = await axios.post(
+      `${API_BASE_URL}/auth/login`,
+      { email, password },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
-      const payload = loginRes.data?.data ?? loginRes.data;
+    const body = loginRes.data; 
 
-      if (!payload?.token) {
-        throw new Error('Login failed — no token returned');
-      }
-
-      // Step 2: Fetch profile using fresh token — plain axios again
-      const meRes = await axios.get(
-        `${API_BASE_URL}/auth/me`,
-        { headers: { Authorization: `Bearer ${payload.token}` } }
-      );
-
-      const meData = meRes.data?.data ?? meRes.data;
-
-      if (!meData || !meData.email) {
-        throw new Error('Failed to fetch user profile');
-      }
-
-      // Map camelCase API fields → snake_case User type
-      const user: User = {
-        ...meData,
-        first_name:   meData.firstName  ?? '',
-        last_name:    meData.lastName   ?? '',
-        account_type: meData.role       ?? '',
-        phone_no:     meData.phone      ?? '',
-        expires_at:   payload.expires_at ?? '',
-      };
-
-      // Step 3: Save everything — token, role, full user, and separate expiry cookie
-      saveToken(payload.token);
-      saveRole(payload.role);
-      saveUser(user);
-      saveExpiresAt(payload.expires_at ?? ''); // ✅ readable by middleware
-
-      set({
-        token: payload.token,
-        role:  payload.role,
-        user,
-        isLoading: false,
-      });
-    } catch (error) {
-      set({ isLoading: false });
-      throw error;
+    if (!body?.data) {
+      throw new Error(body?.message || 'Login failed');
     }
-  },
+
+    const payload = body.data;
+
+    if (!payload?.token) {
+      throw new Error(body?.message || 'Login failed — no token returned');
+    }
+
+    const meRes = await axios.get(
+      `${API_BASE_URL}/auth/me`,
+      { headers: { Authorization: `Bearer ${payload.token}` } }
+    );
+
+    const meBody = meRes.data;
+    const meData = meBody?.data;
+
+    if (!meData || !meData.email) {
+      throw new Error(meBody?.message || 'Failed to fetch user profile');
+    }
+    const user: User = {
+      ...meData,
+      first_name:   meData.firstName  ?? '',
+      last_name:    meData.lastName   ?? '',
+      account_type: meData.role       ?? '',
+      phone_no:     meData.phone      ?? '',
+      expires_at:   payload.expires_at ?? '',
+    };
+    saveToken(payload.token);
+    saveRole(payload.role);
+    saveUser(user);
+    saveExpiresAt(payload.expires_at ?? '');
+
+    set({
+      token: payload.token,
+      role:  payload.role,
+      user,
+      isLoading: false,
+    });
+  } catch (error) {
+    set({ isLoading: false });
+    throw error;
+  }
+},
 
   logout: () => {
     clearSession();
