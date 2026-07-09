@@ -1,7 +1,7 @@
 
 import axios from 'axios';
 
-export function getLoginErrorMessage(err: unknown): string {
+export function getLoginErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
     if (!err.response) return 'Network error. Check your internet connection.';
     const data = err.response.data;

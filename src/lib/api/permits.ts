@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import axios from "axios";
 import api from "@/lib/api";
-import { getApiErrorMessage } from "@/lib/errors";
 import {
   PermitListItem,
   PermitDetail,
@@ -8,12 +8,17 @@ import {
   PendingApprovalItem,
   CreatePermitPayload,
 } from "@/types/permits";
+
 export function resolveErrorMessage(err: unknown, fallback: string): string {
-  const axiosMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-  return axiosMessage || getApiErrorMessage(err, fallback);
+  if (axios.isAxiosError(err)) {
+    if (!err.response) return "Network error. Check your internet connection.";
+    const data = err.response.data;
+    if (typeof data?.message === "string") return data.message;
+    return `${fallback} (${err.response.status}).`;
+  }
+  if (err instanceof Error) return err.message;
+  return fallback;
 }
-
-
 function unwrap<T>(data: unknown): T {
   return ((data as { data?: unknown })?.data ?? data) as T;
 }
@@ -30,7 +35,28 @@ export async function fetchMyPermits(): Promise<PermitListItem[]> {
   const { data } = await api.get("/permits/my-pemits");
   return unwrapList<PermitListItem>(data);
 }
+interface FetchAllPermitsParams {
+  skip?: number;
+  limit?: number;
+  status?: string;
+}
 
+interface FetchAllPermitsResult {
+  items: PermitListItem[];
+  total: number;
+  skip: number;
+}
+
+export async function fetchAllPermits(params: FetchAllPermitsParams = {}): Promise<FetchAllPermitsResult> {
+  const { skip = 0, limit = 20, status } = params;
+  const { data } = await api.get("/permits/all", {
+    params: { skip, limit, ...(status ? { status } : {}) },
+  });
+  const payload = unwrap<{ items?: PermitListItem[]; total?: number } | PermitListItem[]>(data);
+  const items = Array.isArray(payload) ? payload : payload?.items ?? [];
+  const total = Array.isArray(payload) ? items.length : payload?.total ?? items.length;
+  return { items, total, skip };
+}
 export async function fetchPermitDetail(id: number): Promise<PermitDetail | null> {
   const { data } = await api.get(`/permits/get/${id}`);
   return (data?.data as PermitDetail) ?? null;
@@ -44,7 +70,6 @@ export async function fetchPermitDetailsBatch(ids: number[]): Promise<Record<num
         const detail = await fetchPermitDetail(id);
         if (detail) cache[id] = detail;
       } catch {
-        /* skip silently — a single failed detail shouldn't break the list */
       }
     })
   );

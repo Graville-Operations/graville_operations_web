@@ -6,15 +6,9 @@ import { PermitCategory, PermitDetail } from "@/types/permits";
 import { ApiUser } from "@/types";
 import { submitPermit, resolveErrorMessage } from "@/lib/api/permits";
 import { SelectedApprover, toggleApproverIn } from "@/lib/utils/approvers";
+import { autoResize } from "@/lib/utils/textarea";
 import { ApproverSelect } from "./ApproverSelect";
 import { StatusBadge } from "./shared/StatusBadge";
-
-/** Auto-resizes a textarea to fit its content — call on every onChange */
-function autoResize(el: HTMLTextAreaElement | null) {
-  if (!el) return;
-  el.style.height = "auto";
-  el.style.height = `${el.scrollHeight}px`;
-}
 
 interface DraftEditModalProps {
   permit: PermitDetail;
@@ -34,10 +28,6 @@ export function DraftEditModal({ permit, categories, users, onClose, onSubmitted
     description: permit.description ?? "",
     categoryId: String(permit.categoryId ?? ""),
   });
-
-  // Backend returns approval.approver as a plain name string, not a user id —
-  // we synthesize a stable local id (index) since we're not re-picking who's
-  // selected from a fresh user list here, just displaying/toggling.
   const [selectedApprovers, setSelectedApprovers] = useState<SelectedApprover[]>(() =>
     (permit.approvals ?? [])
       .sort((a, b) => a.step_order - b.step_order)
