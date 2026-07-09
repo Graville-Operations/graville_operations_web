@@ -32,13 +32,17 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; clas
 //   });
 // }
 
-function formatDate(iso?: string): string {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  if (isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric",
-  });
+// function formatDate(iso?: string): string {
+//   if (!iso) return "—";
+//   const date = new Date(iso);
+//   if (isNaN(date.getTime())) return "—";
+//   return date.toLocaleDateString("en-GB", {
+//     day: "numeric", month: "short", year: "numeric",
+//   });
+// }
+
+function formatDate(dateStr?: string): string {
+  return dateStr || "—";
 }
 
 export default function TaskDetailPage() {

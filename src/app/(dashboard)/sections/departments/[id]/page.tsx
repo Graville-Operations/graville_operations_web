@@ -298,7 +298,7 @@ export default function DepartmentDetailPage() {
   const params = useParams();
   const deptId = Number(params?.id);
 
-  // All data fetching and mutation logic lives in the hook.
+
   const {
     dept, menus, users,
     deptLoading, menusLoading, usersLoading,
@@ -309,7 +309,7 @@ export default function DepartmentDetailPage() {
     assignedMenuIds, assignedUserEmails,
   } = useDepartmentDetail(deptId);
 
-  // Pure UI state — which modal is open — stays local to the component.
+  
   const [showAssignMenu, setShowAssignMenu] = useState(false);
   const [showAssignUser, setShowAssignUser] = useState(false);
 

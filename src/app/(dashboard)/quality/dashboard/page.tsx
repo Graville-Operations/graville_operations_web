@@ -35,11 +35,8 @@ const ACCENT_COLORS = [
   "from-fuchsia-500 to-purple-500",
 ];
 
-function formatDate(iso?: string): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric",
-  });
+function formatDate(dateStr?: string): string {
+  return dateStr || "—";
 }
 
 export default function TasksPage() {
