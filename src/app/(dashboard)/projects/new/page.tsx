@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createSite } from '@/lib/api/sites';
-import { CreateSitePayload, ProjectStatus, SiteStatus } from '@/types/site';
-import { ArrowLeft, Plus, X, Loader2, AlertCircle, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader2, AlertCircle } from 'lucide-react';
+import { ProjectStatus, SiteStatus } from '@/types/site';
+import { useNewProjectForm } from '@/hooks/projects/useNewProjectForm';
+import { Field } from '@/components/shared/Field';
+import { Section } from '@/components/shared/Section';
+import { DatePicker } from '@/components/projects/DatePicker';
 
 const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
   { value: 'PLANNING',    label: 'Planning' },
@@ -21,304 +22,11 @@ const SITE_STATUS_OPTIONS: { value: SiteStatus; label: string }[] = [
   { value: 'CLOSED',   label: 'Closed' },
 ];
 
-const MONTH_NAMES = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
-];
-const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-
-function DatePicker({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  disabled?: boolean;
-}) {
-  const today = new Date();
-  const [open, setOpen]         = useState(false);
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const selected = value ? new Date(value + 'T00:00:00') : null;
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  const prevMonth = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
-    else setViewMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
-    else setViewMonth(m => m + 1);
-  };
-
-  const firstDay  = new Date(viewYear, viewMonth, 1).getDay();
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const cells: (number | null)[] = [
-    ...Array(firstDay).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
-  while (cells.length % 7 !== 0) cells.push(null);
-
-  const selectDay = (day: number) => {
-    const mm = String(viewMonth + 1).padStart(2, '0');
-    const dd = String(day).padStart(2, '0');
-    onChange(`${viewYear}-${mm}-${dd}`);
-    setOpen(false);
-  };
-
-  const isSelected = (day: number) =>
-    selected &&
-    selected.getFullYear() === viewYear &&
-    selected.getMonth()    === viewMonth &&
-    selected.getDate()     === day;
-
-  const isToday = (day: number) =>
-    today.getFullYear() === viewYear &&
-    today.getMonth()    === viewMonth &&
-    today.getDate()     === day;
-
-  const displayValue = selected
-    ? selected.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    : '';
-
-  return (
-    <div ref={wrapRef} className="relative w-full">
-      <div
-        className="gv-input w-full flex items-center justify-between cursor-pointer select-none"
-        style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto' }}
-        onClick={() => !disabled && setOpen(o => !o)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
-      >
-        <span style={{ color: displayValue ? '#fff' : 'var(--gv-text-subtle)' }}>
-          {displayValue || 'Pick a date'}
-        </span>
-        <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--gv-text-muted)' }} />
-      </div>
-
-      {open && (
-        <div
-          className="absolute z-50 mt-2 rounded-xl p-4 w-72"
-          style={{
-            background: 'rgba(13,21,40,0.95)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--gv-glass-border)',
-            boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
-          }}
-        >
-
-          <div className="flex items-center justify-between mb-3">
-            <button
-              type="button"
-              onClick={prevMonth}
-              className="p-1 rounded-lg transition-colors"
-              style={{ color: 'var(--gv-text-muted)' }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            <span className="text-sm font-semibold text-white">
-              {MONTH_NAMES[viewMonth]} {viewYear}
-            </span>
-
-            <button
-              type="button"
-              onClick={nextMonth}
-              className="p-1 rounded-lg transition-colors"
-              style={{ color: 'var(--gv-text-muted)' }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-7 mb-1">
-            {DAY_NAMES.map(d => (
-              <div key={d} className="text-center text-xs font-medium py-1"
-                style={{ color: 'var(--gv-text-subtle)' }}>
-                {d}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-y-0.5">
-            {cells.map((day, i) => {
-              if (day === null) return <div key={`e-${i}`} />;
-
-              const sel   = isSelected(day);
-              const todayFlag = isToday(day);
-
-              return (
-                <button
-                  key={`d-${day}`}
-                  type="button"
-                  onClick={() => selectDay(day)}
-                  className="flex items-center justify-center rounded-lg text-sm h-8 w-8 mx-auto transition-all"
-                  style={{
-                    background: sel
-                      ? '#33907C'
-                      : todayFlag
-                      ? 'rgba(51,144,124,0.15)'
-                      : 'transparent',
-                    color: sel
-                      ? '#fff'
-                      : todayFlag
-                      ? '#33907C'
-                      : 'var(--gv-text-muted)',
-                    fontWeight: sel || todayFlag ? 600 : 400,
-                    border: todayFlag && !sel ? '1px solid rgba(51,144,124,0.4)' : '1px solid transparent',
-                  }}
-                  onMouseEnter={e => {
-                    if (!sel) e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                  }}
-                  onMouseLeave={e => {
-                    if (!sel) e.currentTarget.style.background = todayFlag ? 'rgba(51,144,124,0.15)' : 'transparent';
-                  }}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-
-          {value && (
-            <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
-              <button
-                type="button"
-                onClick={() => { onChange(''); setOpen(false); }}
-                className="w-full text-xs py-1.5 rounded-lg transition-colors"
-                style={{ color: 'var(--gv-text-muted)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#fca5a5')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
-              >
-                Clear date
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Field({ label, required, hint, children }: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="gv-label">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-      {children}
-      {hint && <p className="text-xs mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{hint}</p>}
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="gv-card space-y-4">
-      <p className="gv-eyebrow">{title}</p>
-      {children}
-    </div>
-  );
-}
-
-
-interface FormState {
-  name: string;
-  location: string;
-  project_status: ProjectStatus | '';
-  site_status: SiteStatus;
-  description: string;
-  tender_name: string;
-  inquiring_entity: string;
-  completion_date: string;
-  latitude: string;
-  longitude: string;
-  tagInput: string;
-  tags: string[];
-}
-
-const EMPTY: FormState = {
-  name: '', location: '', project_status: '', site_status: 'ACTIVE',
-  description: '', tender_name: '', inquiring_entity: '',
-  completion_date: '', latitude: '', longitude: '', tagInput: '', tags: [],
-};
-
 export default function NewProjectPage() {
-  const router                      = useRouter();
-  const [form, setForm]             = useState<FormState>(EMPTY);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-
-  const set = (key: keyof FormState) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => setForm((p) => ({ ...p, [key]: e.target.value }));
-
-  const addTag = () => {
-    const tag = form.tagInput.trim();
-    if (!tag || form.tags.includes(tag)) return;
-    setForm((p) => ({ ...p, tags: [...p.tags, tag], tagInput: '' }));
-  };
-
-  const removeTag = (tag: string) =>
-    setForm((p) => ({ ...p, tags: p.tags.filter((t) => t !== tag) }));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name.trim())    { setError('Site name is required.');      return; }
-    if (!form.project_status) { setError('Project status is required.'); return; }
-
-    setSubmitting(true);
-    setError(null);
-
-    const payload: CreateSitePayload = {
-      name:           form.name.trim(),
-      project_status: form.project_status as ProjectStatus,
-      site_status:    form.site_status,
-      ...(form.location         && { location:         form.location }),
-      ...(form.description      && { description:      form.description }),
-      ...(form.tender_name      && { tender_name:      form.tender_name }),
-      ...(form.inquiring_entity && { inquiring_entity: form.inquiring_entity }),
-      ...(form.completion_date  && { completion_date:  form.completion_date }),
-      ...(form.latitude         && { latitude:         parseFloat(form.latitude) }),
-      ...(form.longitude        && { longitude:        parseFloat(form.longitude) }),
-      ...(form.tags.length > 0  && { tags:             form.tags }),
-    };
-
-    try {
-      await createSite(payload);
-      router.push('/projects/dashboard');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create project. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const { form, set, setField, addTag, removeTag, handleSubmit, submitting, error } = useNewProjectForm();
 
   return (
-    <div className="gv-page-dashboard max-w-2xl mx-auto px-4 pb-16 pt-6">
+    <div className="gv-page-dashboard max-w-4xl mx-auto px-4 pb-16 pt-6">
 
       <Link href="/projects/dashboard"
         className="inline-flex items-center gap-1.5 text-sm mb-6 transition-colors"
@@ -381,7 +89,7 @@ export default function NewProjectPage() {
             <Field label="Completion date">
               <DatePicker
                 value={form.completion_date}
-                onChange={(v) => setForm((p) => ({ ...p, completion_date: v }))}
+                onChange={(v) => setField('completion_date', v)}
                 disabled={submitting}
               />
             </Field>
@@ -395,22 +103,17 @@ export default function NewProjectPage() {
               value={form.description} onChange={set('description')} disabled={submitting} />
           </Field>
         </Section>
+
         <Section title="Entity Details">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Tenderer">
-              <input
-                className="gv-input w-full"
-                placeholder="e.g. Tender #2024-001"
-                value={form.tender_name}
-                onChange={set('tender_name')}
-                disabled={submitting}
-              />
-            </Field>
-            <Field label="Longitude" hint="Decimal degrees, e.g. 36.8219">
-              <input type="number" step="any" className="gv-input" placeholder="36.8219"
-                value={form.longitude} onChange={set('longitude')} disabled={submitting} />
-            </Field>
-          </div>
+          <Field label="Tenderer">
+            <input
+              className="gv-input w-full"
+              placeholder="e.g. Tender #2024-001"
+              value={form.tender_name}
+              onChange={set('tender_name')}
+              disabled={submitting}
+            />
+          </Field>
         </Section>
 
         <Section title="Tags">
