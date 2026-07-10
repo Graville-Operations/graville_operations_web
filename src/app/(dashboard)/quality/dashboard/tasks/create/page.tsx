@@ -1,104 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import api from "@/lib/api";
-import { cacheBust } from "@/lib/persistent-cache";
-import { setSites, getAllSites, sitesLoaded, type Site } from "@/lib/sites-cache";
+import { useRouter } from "next/navigation";
+import { useCreateTask } from "@/hooks/quality/useCreateTask";
 import { ArrowLeft, CalendarRange, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 
-interface FormState {
-  name: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-}
-
-function parseList<T>(data: unknown): T[] {
-  if (!data) return [];
-  const d = data as Record<string, unknown>;
-  const arr = d?.items ?? d?.data ?? d?.sites ?? data;
-  return Array.isArray(arr) ? arr : [];
+function formatDateRangeSummary(start: string, end: string): string | null {
+  if (!start || !end) return null;
+  return `${new Date(start).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} → ${new Date(end).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
 }
 
 export default function CreateTaskPage() {
-  const router       = useRouter();
-  const searchParams = useSearchParams();
-  const preSelectedSiteId = searchParams.get("site_id");
+  const router = useRouter();
+  const {
+    form,
+    sites,
+    selectedSite,
+    siteDropdownOpen,
+    loadingSites,
+    submitting,
+    error,
+    setField,
+    selectSite,
+    toggleSiteDropdown,
+    handleSubmit,
+  } = useCreateTask();
 
-  const [form, setForm]             = useState<FormState>({ name: "", description: "", start_date: "", end_date: "" });
-  const [sites, setSitesState]      = useState<Site[]>([]);
-  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  const [siteDropdownOpen, setSiteDropdownOpen] = useState(false);
-  const [loadingSites, setLoadingSites] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-
-  // ── Load sites from the shared hash map cache, else fetch once ────────────
-  useEffect(() => {
-    if (sitesLoaded()) {
-      const list = getAllSites();
-      setSitesState(list);
-      if (preSelectedSiteId) {
-        const found = list.find((s) => s.id === Number(preSelectedSiteId));
-        if (found) setSelectedSite(found);
-      }
-      setLoadingSites(false);
-      return;
-    }
-
-    api.get("/sites/list")
-      .then((res) => {
-        const list = parseList<Site>(res.data?.data ?? res.data);
-        setSites(list);
-        setSitesState(list);
-        if (preSelectedSiteId) {
-          const found = list.find((s) => s.id === Number(preSelectedSiteId));
-          if (found) setSelectedSite(found);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingSites(false));
-  }, [preSelectedSiteId]);
-
-  function set(field: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  }
-
-  async function handleSubmit() {
-    if (!form.name.trim())  { setError("Task name is required"); return; }
-    if (!selectedSite)      { setError("Please select a site"); return; }
-    if (!form.start_date)   { setError("Start date is required"); return; }
-    if (!form.end_date)     { setError("End date is required"); return; }
-
-    setSubmitting(true);
-    setError(null);
-    try {
-   
-      await api.post("/tasks/task/create", {
-        name:        form.name.trim(),
-        description: form.description.trim() || undefined,
-        site_id:     selectedSite.id,
-        start_date:  form.start_date,
-        end_date:    form.end_date,
-      });
-      cacheBust(`tasks:${selectedSite.id}`);
-      router.back();
-    } catch (e: unknown) {
-      const msg =
-        (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        (e as Error)?.message ?? "Failed to create task";
-      setError(msg);
-      setSubmitting(false);
-    }
-  }
-
-  const dateRangeSummary =
-    form.start_date && form.end_date
-      ? `${new Date(form.start_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} → ${new Date(form.end_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
-      : null;
-
+  const dateRangeSummary = formatDateRangeSummary(form.start_date, form.end_date);
   const canSubmit = !submitting && !!form.name.trim() && !!selectedSite && !!form.start_date && !!form.end_date;
 
   return (
@@ -119,14 +46,14 @@ export default function CreateTaskPage() {
 
         <div>
           <label className="gv-label">Name <span className="text-red-400">*</span></label>
-          <input value={form.name} onChange={set("name")} placeholder="e.g. SubStructure Works" className="gv-input" />
+          <input value={form.name} onChange={setField("name")} placeholder="e.g. SubStructure Works" className="gv-input" />
         </div>
 
         <div>
           <label className="gv-label">Description</label>
           <textarea
             value={form.description}
-            onChange={set("description")}
+            onChange={setField("description")}
             placeholder="Brief description of the task…"
             rows={4}
             className="gv-input resize-none"
@@ -137,7 +64,7 @@ export default function CreateTaskPage() {
           <label className="gv-label">Site <span className="text-red-400">*</span></label>
           <div className="relative">
             <button
-              onClick={() => setSiteDropdownOpen((o) => !o)}
+              onClick={toggleSiteDropdown}
               className="gv-input flex items-center justify-between text-left"
             >
               <span className={selectedSite ? "text-[var(--gv-text-primary)]" : "text-[var(--gv-text-faint)]"}>
@@ -150,7 +77,7 @@ export default function CreateTaskPage() {
                 {sites.map((site) => (
                   <button
                     key={site.id}
-                    onClick={() => { setSelectedSite(site); setSiteDropdownOpen(false); }}
+                    onClick={() => selectSite(site)}
                     className={`gv-dropdown-item ${selectedSite?.id === site.id ? "gv-dropdown-item--active" : ""}`}
                   >
                     {site.name}
@@ -170,11 +97,11 @@ export default function CreateTaskPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <span className="gv-eyebrow block mb-1.5">Start date</span>
-                <input type="date" value={form.start_date} onChange={set("start_date")} className="gv-input [color-scheme:dark]" />
+                <input type="date" value={form.start_date} onChange={setField("start_date")} className="gv-input [color-scheme:dark]" />
               </div>
               <div>
                 <span className="gv-eyebrow block mb-1.5">End date</span>
-                <input type="date" value={form.end_date} min={form.start_date} onChange={set("end_date")} className="gv-input [color-scheme:dark]" />
+                <input type="date" value={form.end_date} min={form.start_date} onChange={setField("end_date")} className="gv-input [color-scheme:dark]" />
               </div>
             </div>
             {dateRangeSummary && (

@@ -1,5 +1,6 @@
 "use client";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Check, ArrowRight, Send, ArrowLeft } from "lucide-react";
@@ -29,10 +30,6 @@ function unwrapArray<T>(response: unknown): T[] {
   return [];
 }
 
-/**
- * Auto-resizes a textarea to fit its content.
- * Call on every onChange and once on mount via a ref callback.
- */
 function autoResize(el: HTMLTextAreaElement | null) {
   if (!el) return;
   el.style.height = "auto";
@@ -56,8 +53,7 @@ function Shimmer({ className = "", style = {} }: { className?: string; style?: R
     </div>
   );
 }
-
-/** Safely format any date string — returns "—" instead of "Invalid Date" */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function fmtDate(val: string | null | undefined): string {
   if (!val) return "—";
   const d = new Date(val);
@@ -164,7 +160,6 @@ export default function CreatePermitPage() {
           </p>
         </div>
         <div className="flex gap-3 pt-2">
-          {/* ✅ Fixed route: /permits/my-permits */}
           <button onClick={() => router.push("/permits/my-permits")}
             className="gv-btn-brand px-6 py-2.5 rounded-xl text-sm font-semibold">
             View My Permits
@@ -215,8 +210,6 @@ export default function CreatePermitPage() {
           </div>
         </div>
       </div>
-
-      {/* ─── Form step ──────────────────────────────────────────────────── */}
       {step === "form" && (
         <div className="gv-card space-y-6 p-8 md:p-10">
           {error && (
@@ -254,7 +247,7 @@ export default function CreatePermitPage() {
           <div>
             <label className="gv-eyebrow mb-1 block">Category *</label>
             {categories.length === 0 ? (
-              <Shimmer className="h-[46px] w-full" />
+              <Shimmer className="h-11.5 w-full" />
             ) : (
               <select value={form.categoryId}
                 onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
@@ -271,7 +264,7 @@ export default function CreatePermitPage() {
           <div ref={approverRef} className="relative">
             <label className="gv-eyebrow mb-1 block">Approvers *</label>
             {users.length === 0 ? (
-              <Shimmer className="h-[46px] w-full" />
+              <Shimmer className="h-11.5 w-full" />
             ) : (
               <button type="button" onClick={() => setApproverOpen((p) => !p)}
                 className="gv-input w-full text-sm py-3 flex items-center justify-between"
@@ -327,8 +320,6 @@ export default function CreatePermitPage() {
           </button>
         </div>
       )}
-
-      {/* ─── Confirm step ───────────────────────────────────────────────── */}
       {step === "confirm" && createdPermit && (
         <div className="space-y-4">
           {error && (
@@ -347,13 +338,11 @@ export default function CreatePermitPage() {
               { label: "Status",      value: "Draft — will become Submitted after you confirm" },
             ].map(({ label, value }) => (
               <div key={label}>
-                <p className="gv-eyebrow text-[10px] mb-0.5">{label}</p>
+                <p className="gv-eyebrow text-label-sm mb-0.5">{label}</p>
                 <p className="text-sm" style={{ color: label === "Status" ? "#fbbf24" : "var(--gv-text-primary)" }}>{value}</p>
               </div>
             ))}
           </div>
-
-          {/* ✅ Approvers — plain name list, no step numbers */}
           <div className="gv-card space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#33907c" }}>Approvers</p>
             {selectedApprovers.map((a) => (
