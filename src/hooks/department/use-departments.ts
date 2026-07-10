@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { departmentsService } from '@/lib/api/departments-service';
 import { getApiErrorMessage } from '@/lib/api/api-error';
+import { getDeptCache, setDeptCache, bustDeptCache } from '@/lib/departments-cache'; // adjust path to wherever that file lives
 import { CreateDepartmentPayload, Department, RawDepartment, ToastState } from '@/types/department';
 
 function mapDepartment(d: RawDepartment): Department {
@@ -53,9 +54,14 @@ export function useDepartments() {
       throw new Error('Department name is required.');
     }
     try {
+      // await departmentsService.create(payload);
+      // showToast('Department created successfully!', 'success');
+      // await fetchDepartments();
+
       await departmentsService.create(payload);
       showToast('Department created successfully!', 'success');
-      await fetchDepartments();
+      bustDeptCache();
+      fetchDepartments({ force: true }); // not awaited — modal closes immediately, list updates in the background
     } catch (err) {
       throw new Error(getApiErrorMessage(err, 'Failed to create department.'));
     }

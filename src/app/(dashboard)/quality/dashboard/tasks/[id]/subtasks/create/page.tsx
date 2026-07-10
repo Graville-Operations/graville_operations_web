@@ -1,105 +1,31 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import api from "@/lib/api";
-import type { Worker } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { useCreateSubtask } from "@/hooks/quality/useCreateSubtask";
 import {
   ArrowLeft, Loader2, AlertCircle, Users, Search, Check, UserCircle2,
 } from "lucide-react";
 
-interface FormState {
-  name: string;
-  description: string;
-}
-
-function parseWorkers(data: unknown): Worker[] {
-  if (!data) return [];
-  const arr =
-    (data as Record<string, unknown>)?.items ??
-    (data as Record<string, unknown>)?.data ??
-    (data as Record<string, unknown>)?.workers ??
-    data;
-  return Array.isArray(arr) ? arr : [];
-}
-
 export default function CreateSubtaskPage() {
-  const params       = useParams();
-  const router        = useRouter();
-  const searchParams  = useSearchParams();
-  const taskId         = Number(params?.id);
-  const siteIdParam    = searchParams.get("site_id");
-  const siteId         = siteIdParam ? Number(siteIdParam) : null;
+  const router = useRouter();
+  const {
+    form,
+    workers,
+    loadingWorkers,
+    workersError,
+    selectedWorkers,
+    workerSearch,
+    setWorkerSearch,
+    submitting,
+    error,
+    taskId,
+    setField,
+    toggleWorker,
+    handleSubmit,
+    filterWorkers,
+  } = useCreateSubtask();
 
-  const [form, setForm]                 = useState<FormState>({ name: "", description: "" });
-  const [workers, setWorkers]            = useState<Worker[]>([]);
-  const [loadingWorkers, setLoadingWorkers] = useState(true);
-  const [workersError, setWorkersError]  = useState<string | null>(null);
-  const [selectedWorkers, setSelectedWorkers] = useState<number[]>([]);
-  const [workerSearch, setWorkerSearch]  = useState("");
-  const [submitting, setSubmitting]      = useState(false);
-  const [error, setError]                = useState<string | null>(null);
-
- 
-  const loadWorkers = useCallback(async () => {
-    if (siteId === null) {
-      setLoadingWorkers(false);
-      setWorkersError("Missing site context — open this screen from the task page.");
-      return;
-    }
-    try {
-      const res = await api.get(`/workers/list-by-id/${siteId}`);
-      setWorkers(parseWorkers(res.data?.data ?? res.data));
-      setWorkersError(null);
-    } catch {
-      setWorkersError("Failed to load workers.");
-    } finally {
-      setLoadingWorkers(false);
-    }
-  }, [siteId]);
-
-  useEffect(() => {
-    if (!Number.isFinite(taskId)) return;
-    loadWorkers();
-  }, [loadWorkers, taskId]);
-
-  function set(field: keyof FormState) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  }
-
-  function toggleWorker(id: number) {
-    setSelectedWorkers((prev) =>
-      prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id]
-    );
-  }
-
-  async function handleSubmit() {
-    if (!form.name.trim()) { setError("Subtask name is required"); return; }
-
-    setSubmitting(true);
-    setError(null);
-    try {
-        await api.post("/tasks/sub-task/create", {
-        name:        form.name.trim(),
-        description: form.description.trim() || undefined,
-        task_id:     taskId,
-        worker_ids:  selectedWorkers, // [] is valid — DTO defaults to []
-      });
-      router.back();
-    } catch (e: unknown) {
-      const msg =
-        (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        (e as Error)?.message ??
-        "Failed to create subtask";
-      setError(msg);
-      setSubmitting(false);
-    }
-  }
-
-  const filtered = workerSearch.trim()
-    ? workers.filter((w) => w.name.toLowerCase().includes(workerSearch.toLowerCase()))
-    : workers;
+  const filtered = filterWorkers(workers);
 
   if (!Number.isFinite(taskId)) {
     return (
@@ -125,30 +51,27 @@ export default function CreateSubtaskPage() {
           </div>
         )}
 
-        {/* Name */}
         <div>
           <label className="gv-label">Name <span className="text-red-400">*</span></label>
           <input
             value={form.name}
-            onChange={set("name")}
+            onChange={setField("name")}
             placeholder="e.g. Foundation Inspection"
             className="gv-input"
           />
         </div>
 
-        {/* Description */}
         <div>
           <label className="gv-label">Description</label>
           <textarea
             value={form.description}
-            onChange={set("description")}
+            onChange={setField("description")}
             placeholder="Details about this subtask…"
             rows={3}
             className="gv-input resize-none"
           />
         </div>
 
-        {/* Assign Workers */}
         <div>
           <label className="gv-label flex items-center gap-1.5">
             <Users size={12} />
@@ -157,7 +80,6 @@ export default function CreateSubtaskPage() {
           </label>
 
           <div className="gv-card overflow-hidden p-0">
-            {/* Search bar */}
             <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--gv-glass-border)]">
               <Search size={14} className="text-[var(--gv-text-faint)] flex-shrink-0" />
               <input
@@ -173,7 +95,6 @@ export default function CreateSubtaskPage() {
               )}
             </div>
 
-            {/* Worker list */}
             <div className="max-h-64 overflow-y-auto">
               {loadingWorkers ? (
                 <div className="flex items-center justify-center py-10 text-[var(--gv-text-subtle)] gap-2 text-sm">
@@ -235,7 +156,6 @@ export default function CreateSubtaskPage() {
           </div>
         </div>
 
-        {/* Submit — full width on all breakpoints, wraps content responsively */}
         <button
           onClick={handleSubmit}
           disabled={submitting || !form.name.trim()}
