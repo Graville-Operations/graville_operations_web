@@ -40,6 +40,11 @@ export const API = {
     detail: (id: number) => `/invoices/details/${id}`,
     create: "/invoices/create",
   },
+  subcontractorInvoices: {
+    all: "/subcontractor-invoices/all",
+    detail: (id: number) => `/subcontractor-invoices/details/${id}`,
+    create: "/subcontractor-invoices/create",
+  },
   workers: {
     listBySite: (siteId: number) => `/workers/list-by-id/${siteId}`,
     detail: (id: number) => `/workers/details/${id}`,
@@ -50,6 +55,20 @@ export const API = {
   sites: {
     list: "/sites/list",
     create: "/sites/create",
+    detail: (id: number) => `/sites/${id}`,
+    analytics: (id: number | string) => `/sites/analytics/${id}`,
+    dashboardMetrics: "/sites/dashboard-metrics",
+  },
+  attendance: {
+    summary: "/attendance/summary",
+    analytics: "/attendance/analytics",
+    checkIn: "/attendance/check-in",
+  },
+  tasks: {
+    listBySite: (siteId: number) => `/tasks/list/${siteId}`,
+  },
+  analytics: {
+    overview: "/analytics/overview",
   },
   departments: {
     list: "/departments/list",
@@ -60,7 +79,7 @@ export const API = {
     materials: (siteId: number) => `/store/materials/${siteId}/all`,
     tools: (siteId: number) => `/store/tools/${siteId}/all`,
     dailyUsageAll: '/daily-usage/all',
-    dailyUsage:    (usageId: number) => `/daily-usage/${usageId}`,
+    dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
   },
 } as const;
