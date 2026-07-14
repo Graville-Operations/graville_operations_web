@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import api from "@/lib/api";
+import { API } from "@/lib/endpoints";
 import {
   PermitListItem,
   PermitDetail,
@@ -32,9 +33,11 @@ function unwrapList<T>(data: unknown): T[] {
 }
 
 export async function fetchMyPermits(): Promise<PermitListItem[]> {
-  const { data } = await api.get("/permits/my-pemits");
+  // Endpoint path intentionally matches backend's "my-pemits" typo — see endpoints.ts.
+  const { data } = await api.get(API.permits.myPermits);
   return unwrapList<PermitListItem>(data);
 }
+
 interface FetchAllPermitsParams {
   skip?: number;
   limit?: number;
@@ -49,7 +52,7 @@ interface FetchAllPermitsResult {
 
 export async function fetchAllPermits(params: FetchAllPermitsParams = {}): Promise<FetchAllPermitsResult> {
   const { skip = 0, limit = 20, status } = params;
-  const { data } = await api.get("/permits/all", {
+  const { data } = await api.get(API.permits.all, {
     params: { skip, limit, ...(status ? { status } : {}) },
   });
   const payload = unwrap<{ items?: PermitListItem[]; total?: number } | PermitListItem[]>(data);
@@ -57,8 +60,9 @@ export async function fetchAllPermits(params: FetchAllPermitsParams = {}): Promi
   const total = Array.isArray(payload) ? items.length : payload?.total ?? items.length;
   return { items, total, skip };
 }
+
 export async function fetchPermitDetail(id: number): Promise<PermitDetail | null> {
-  const { data } = await api.get(`/permits/get/${id}`);
+  const { data } = await api.get(API.permits.get(id));
   return (data?.data as PermitDetail) ?? null;
 }
 
@@ -77,22 +81,23 @@ export async function fetchPermitDetailsBatch(ids: number[]): Promise<Record<num
 }
 
 export async function createPermit(payload: CreatePermitPayload) {
-  const { data } = await api.post("/permits/create", payload);
+  const { data } = await api.post(API.permits.create, payload);
   if (data?.code !== 200) throw new Error(data?.message || "Failed to create permit.");
   return data.data;
 }
 
 export async function submitPermit(id: number) {
-  const { data } = await api.post(`/permits/submit/${id}`, {});
+  const { data } = await api.post(API.permits.submit(id), {});
   if (data?.code !== 200) throw new Error(data?.message || "Failed to submit permit.");
   return data;
 }
+
 export async function takePermitAction(
   id: number,
   status: "APPROVED" | "REJECTED",
   comment?: string | null
 ) {
-  const { data } = await api.post(`/permits/take-action/${id}`, {
+  const { data } = await api.post(API.permits.takeAction(id), {
     status,
     comment: comment || null,
   });
@@ -101,7 +106,7 @@ export async function takePermitAction(
 }
 
 export async function fetchPendingApprovals(): Promise<PendingApprovalItem[]> {
-  const { data } = await api.get("/permits/pending");
+  const { data } = await api.get(API.permits.pending);
   return unwrapList<PendingApprovalItem>(data);
 }
 
@@ -115,21 +120,21 @@ export function normaliseCategory(r: any): PermitCategory {
 }
 
 export async function fetchCategories(): Promise<PermitCategory[]> {
-  const { data } = await api.get("/permits/categories");
+  const { data } = await api.get(API.permits.categories);
   return unwrapList<any>(data).map(normaliseCategory);
 }
 
 export async function createCategory(input: { name: string; description: string | null }) {
-  await api.post("/permits/category/create", input);
+  await api.post(API.permits.createCategory, input);
 }
 
 export async function updateCategory(
   id: number,
   input: Partial<{ name: string; description: string | null; is_active: boolean }>
 ) {
-  await api.patch(`/permits/category/${id}`, input);
+  await api.patch(API.permits.updateCategory(id), input);
 }
 
 export async function deactivateCategory(id: number) {
-  await api.patch(`/permits/category/${id}`, { is_active: false });
+  await api.patch(API.permits.updateCategory(id), { is_active: false });
 }

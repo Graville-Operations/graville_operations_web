@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { API } from '@/lib/endpoints';
 import { CompanyInvoice, RawCompanyInvoice, normaliseCompanyInvoice } from '@/types/company_invoices';
 import { RawPaginatedResponse } from '@/types/invoice';
 
@@ -14,13 +15,13 @@ export async function fetchCompanyInvoices(
   if (filters.startDate) params.start_date = filters.startDate;
   if (filters.endDate)   params.end_date   = filters.endDate;
 
-  const { data } = await api.get('/company-invoices/all', { params });
+  const { data } = await api.get(API.companyInvoices.all, { params });
   const res = data as RawPaginatedResponse<RawCompanyInvoice>;
   return res?.data?.items ?? [];
 }
 
 export async function fetchCompanyInvoiceDetail(id: string): Promise<CompanyInvoice> {
-  const { data } = await api.get(`/company-invoices/details/${id}`);
+  const { data } = await api.get(API.companyInvoices.detail(Number(id)));
   return normaliseCompanyInvoice((data?.data ?? data) as RawCompanyInvoice);
 }
 
@@ -38,5 +39,5 @@ export interface CreateCompanyInvoicePayload {
 }
 
 export async function createCompanyInvoice(payload: CreateCompanyInvoicePayload): Promise<void> {
-  await api.post('/company-invoices/create', payload);
+  await api.post(API.companyInvoices.create, payload);
 }
