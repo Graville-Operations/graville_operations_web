@@ -6,6 +6,7 @@ import { useUsers } from '@/hooks/users/useUsers';
 import { useUserDetail } from '@/hooks/users/useUserDetail';
 import { UsersTable } from '@/components/users/UsersTable';
 import { UserDetailModal } from '@/components/users/UserDetailModal';
+import { ROUTES } from '@/lib/routes';
 
 export default function UsersPage() {
   const { filtered, search, setSearch, isLoading } = useUsers();
@@ -19,7 +20,7 @@ export default function UsersPage() {
           <p className="text-sm text-blue-200/60">{filtered.length} users found</p>
         </div>
         <Link
-          href="/users/new"
+          href={ROUTES.users.new}
           className="flex items-center gap-2 bg-[#33907C] text-white px-4 py-2 rounded-xl hover:bg-[#2a7a69] transition-colors text-sm font-medium"
         >
           <UserPlus size={16} />

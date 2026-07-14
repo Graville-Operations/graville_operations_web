@@ -8,6 +8,7 @@ import { SearchInput } from '@/components/finance/client-invoices/SearchInput';
 import { SiteFilterDropdown } from '@/components/finance/client-invoices/SiteFilterDropdown';
 import { DateFilterDropdown } from '@/components/finance/client-invoices/DateFilterDropdown';
 import { ClientInvoicesTable } from '@/components/finance/client-invoices/ClientInvoicesTable';
+import { ROUTES } from '@/lib/routes';
 
 export default function ClientInvoicesPage() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export default function ClientInvoicesPage() {
             {total} total invoices
           </p>
         </div>
-        <Link href="/finance/invoice/client/new" className="gv-btn-brand gap-2 text-sm">
+        <Link href={ROUTES.finance.invoice.client.new} className="gv-btn-brand gap-2 text-sm">
           <Plus size={16} />
           New Invoice
         </Link>
@@ -84,7 +85,7 @@ export default function ClientInvoicesPage() {
       <ClientInvoicesTable
         invoices={filtered}
         isLoading={isLoading}
-        onSelect={(id) => router.push(`/finance/invoice/client/${id}`)}
+        onSelect={(id) => router.push(ROUTES.finance.invoice.client.detail(String(id)))}
       />
     </div>
   );

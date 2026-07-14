@@ -19,7 +19,7 @@ export const menusService = {
     return api.post(API.menus.create, body);
   },
   async updateMenu(id: number, body: MenuPayload) {
-    return api.patch(`menus/${id}`, body);
+    return api.patch(API.menus.update(id), body);
   },
   async deleteMenu(id: number) {
     return api.delete(API.menus.delete(id));
@@ -30,7 +30,7 @@ export const menusService = {
     return api.post(API.menus.submenus, { ...body, menu_id: menuId });
   },
   async updateSubmenu(id: number, body: MenuPayload) {
-    return api.patch(`/menus/submenus/${id}`, body);
+    return api.patch(API.menus.updateSubmenu(id), body);
   },
   async deleteSubmenu(id: number) {
     return api.delete(API.menus.deleteSubmenu(id));
@@ -41,7 +41,7 @@ export const menusService = {
     return api.post(API.menus.subsubmenus, { ...body, submenu_id: submenuId });
   },
   async updateSubsubmenu(id: number, body: MenuPayload) {
-    return api.patch(`/menus/subsubmenus/${id}`, body);
+    return api.patch(API.menus.updateSubsubmenu(id), body);
   },
   async deleteSubsubmenu(id: number) {
     return api.delete(API.menus.deleteSubsubmenu(id));

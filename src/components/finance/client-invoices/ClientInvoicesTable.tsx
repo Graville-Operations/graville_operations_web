@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Receipt } from 'lucide-react';
 import { ClientInvoiceListItem } from '@/types/client-invoice';
+import { ROUTES } from '@/lib/routes';
 
 interface ClientInvoicesTableProps {
   invoices: ClientInvoiceListItem[];
@@ -26,7 +27,7 @@ export function ClientInvoicesTable({ invoices, isLoading, onSelect }: ClientInv
           <Receipt size={40} className="opacity-30" />
           <p className="text-sm">No invoices found</p>
           <Link
-            href="/finance/invoice/client/new"
+            href={ROUTES.finance.invoice.client.new}
             className="text-xs mt-1 hover:underline"
             style={{ color: 'var(--gv-brand)' }}
           >

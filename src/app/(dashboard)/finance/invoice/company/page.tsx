@@ -6,7 +6,8 @@ import { useCompanyInvoices } from '@/hooks/company-invoices/useCompanyInvoices'
 import SearchInput from '@/components/finance/suppliers/SearchInput';
 import CompanyDateFilterDropdown from '@/components/finance/company/DateFilterDropdown';
 import CompanyInvoicesTable from '@/components/finance/company/CompanyInvoicesTable';
-import CompanyInvoiceCards from '@/components/finance/company/CompanyInvoiceCards';            
+import CompanyInvoiceCards from '@/components/finance/company/CompanyInvoiceCards';
+import { ROUTES } from '@/lib/routes';
 
 export default function CompanyInvoicesPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function CompanyInvoicesPage() {
     hasFilter,
   } = useCompanyInvoices();
 
-  const goToCreate = () => router.push('/finance/invoice/company/create');
+  const goToCreate = () => router.push(ROUTES.finance.invoice.company.create);
 
   return (
     <div className="space-y-6">

@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/permits";
 import { PermitCategory, CreatePermitPayload } from "@/types/permits";
 import { SelectedApprover, toggleApproverIn } from "@/lib/utils/approvers";
+import { ROUTES } from "@/lib/routes";
 
 interface CreatedPermit {
   id: number;
@@ -97,7 +98,7 @@ export function useCreatePermit() {
   };
 
   const goBack = () => (step === "confirm" ? setStep("form") : router.back());
-  const viewMyPermits = () => router.push("/permits/my-permits");
+  const viewMyPermits = () => router.push(ROUTES.permits.mine);
 
   const selectedCategory = categories.find((c) => c.id === Number(form.categoryId));
 

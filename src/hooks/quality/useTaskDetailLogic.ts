@@ -10,6 +10,7 @@ import {
   setCachedSubtasks,
 } from "@/lib/api/tasks-service";
 import type { TaskDetailState } from "./useTaskDetailState";
+import { ROUTES } from "@/lib/routes";
 
 export function useTaskDetailLogic(state: TaskDetailState) {
   const params = useParams();
@@ -82,8 +83,8 @@ export function useTaskDetailLogic(state: TaskDetailState) {
   const goToCreateSubtask = useCallback(() => {
     router.push(
       resolvedSiteId !== undefined
-        ? `/quality/dashboard/tasks/${taskId}/subtasks/create?site_id=${resolvedSiteId}`
-        : `/quality/dashboard/tasks/${taskId}/subtasks/create`
+        ? `${ROUTES.quality.subtaskCreate(String(taskId))}?site_id=${resolvedSiteId}`
+        : ROUTES.quality.subtaskCreate(String(taskId))
     );
   }, [router, taskId, resolvedSiteId]);
 
