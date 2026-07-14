@@ -3,7 +3,7 @@ import { statusOrder } from '@/components/stores/statusOrder';
 import type { UsageLog } from '@/types/store';
 
 export function UsageTile({ log, onClick }: { log: UsageLog; onClick: () => void }) {
-  const status = statusOrder[log.status];
+  const status = statusOrder(log.status);
 
   return (
     <button

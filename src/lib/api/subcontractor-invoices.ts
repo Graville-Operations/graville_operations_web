@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { API } from '@/lib/endpoints';
 import type {
   SubcontractorInvoiceListItem,
   SubcontractorInvoiceDetail,
@@ -22,7 +23,7 @@ export async function fetchSubcontractorInvoices(
   const params: Record<string, any> = { skip, limit };
   if (siteId) params.site_id = siteId;
 
-  const { data } = await api.get('/subcontractor-invoices/all', { params });
+  const { data } = await api.get(API.subcontractorInvoices.all, { params });
   const items: SubcontractorInvoiceListItem[] = data?.data?.items ?? [];
   const total: number = data?.data?.total ?? items.length;
   return { items, total };
@@ -31,12 +32,12 @@ export async function fetchSubcontractorInvoices(
 export async function fetchSubcontractorInvoiceDetail(
   id: number,
 ): Promise<SubcontractorInvoiceDetail> {
-  const { data } = await api.get(`/subcontractor-invoices/details/${id}`);
+  const { data } = await api.get(API.subcontractorInvoices.detail(id));
   return data?.data ?? data;
 }
 
 export async function createSubcontractorInvoice(
   payload: NewSubcontractorInvoicePayload,
 ): Promise<void> {
-  await api.post('/subcontractor-invoices/create', payload);
+  await api.post(API.subcontractorInvoices.create, payload);
 }

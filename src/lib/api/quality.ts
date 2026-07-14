@@ -48,7 +48,7 @@ export async function fetchSiteTasks(
 ): Promise<Task[]> {
   return withRetry(
     async () => {
-      const res = await api.get(API.tasks.list(siteId));
+      const res = await api.get(API.tasks.listBySite(siteId));
       return parseList<Task>(res.data?.data ?? res.data);
     },
     { retries: 3, delayMs: 5000, onRetry }
@@ -73,7 +73,7 @@ export async function fetchSubtasks(
 ): Promise<SubTask[]> {
   return withRetry(
     async () => {
-      const res = await api.get(API.tasks.subtasks.list(taskId));
+      const res = await api.get(API.tasks.listSubtasksByTask(taskId));
       return parseList<SubTask>(res.data?.data ?? res.data);
     },
     { retries: 3, delayMs: 5000, onRetry }
@@ -88,7 +88,7 @@ export interface CreateSubtaskPayload {
 }
 
 export async function createSubtask(payload: CreateSubtaskPayload): Promise<void> {
-  await api.post(API.tasks.subtasks.create, payload);
+  await api.post(API.tasks.createSubtask, payload);
 }
 
 export async function fetchWorkersForSite(siteId: number): Promise<Worker[]> {

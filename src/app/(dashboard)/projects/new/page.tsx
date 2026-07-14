@@ -7,6 +7,7 @@ import { useNewProjectForm } from '@/hooks/projects/useNewProjectForm';
 import { Field } from '@/components/shared/Field';
 import { Section } from '@/components/shared/Section';
 import { DatePicker } from '@/components/projects/DatePicker';
+import { ROUTES } from '@/lib/routes';
 
 const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
   { value: 'PLANNING',    label: 'Planning' },
@@ -28,7 +29,7 @@ export default function NewProjectPage() {
   return (
     <div className="gv-page-dashboard max-w-4xl mx-auto px-4 pb-16 pt-6">
 
-      <Link href="/projects/dashboard"
+      <Link href={ROUTES.projects.dashboard}
         className="inline-flex items-center gap-1.5 text-sm mb-6 transition-colors"
         style={{ color: 'var(--gv-text-muted)' }}
         onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
@@ -147,7 +148,7 @@ export default function NewProjectPage() {
         </Section>
 
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link href="/projects/dashboard">
+          <Link href={ROUTES.projects.dashboard}>
             <button type="button" className="gv-btn-outline" disabled={submitting}>
               Cancel
             </button>

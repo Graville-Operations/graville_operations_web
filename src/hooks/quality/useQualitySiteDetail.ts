@@ -11,13 +11,12 @@ export function useQualitySiteDetail() {
   const params = useParams();
   const siteId = Number(params.siteId);
 
-  const [site, setSite]                 = useState<SiteDetail | null>(null);
-  const [tasks, setTasks]               = useState<Task[]>([]);
-  const [loadingSite, setLoadingSite]   = useState(true);
+  const [site, setSite]             = useState<SiteDetail | null>(null);
+  const [tasks, setTasks]           = useState<Task[]>([]);
+  const [loadingSite, setLoadingSite] = useState(true);
   const [loadingTasks, setLoadingTasks] = useState(true);
-  const [error, setError]               = useState<string | null>(null);
-  const [offline, setOffline]           = useState(false);
-  const [retryInfo, setRetryInfo]       = useState<{ attempt: number; max: number } | null>(null);
+  const [error, setError]           = useState<string | null>(null);
+  const [tasksError, setTasksError] = useState<string | null>(null);
 
   const loadSite = useCallback(async () => {
     try {
@@ -31,21 +30,21 @@ export function useQualitySiteDetail() {
   }, [siteId]);
 
   const loadTasks = useCallback(async () => {
-    setRetryInfo(null);
+    setTasksError(null);
+    setLoadingTasks(true);
     try {
-      const list = await fetchSiteTasks(siteId, (attempt, max) => setRetryInfo({ attempt, max }));
+      const list = await fetchSiteTasks(siteId);
       setTasks(list);
-      setOffline(false);
     } catch {
-      setOffline(true);
+      setTasksError('Failed to load tasks.');
     } finally {
       setLoadingTasks(false);
-      setRetryInfo(null);
     }
   }, [siteId]);
 
   useEffect(() => {
     if (!siteId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSite();
     loadTasks();
   }, [siteId, loadSite, loadTasks]);
@@ -72,8 +71,7 @@ export function useQualitySiteDetail() {
     loadingSite,
     loadingTasks,
     error,
-    offline,
-    retryInfo,
+    tasksError,
     loadSite,
     loadTasks,
     openTask,

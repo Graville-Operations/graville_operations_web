@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { API } from '@/lib/endpoints';
 import {
   Site, SiteDetail, SiteWorker, AttendanceRecord,
   SiteTask, CreateSitePayload, OverviewKPIs,
@@ -32,32 +33,36 @@ function unwrapObject<T>(response: unknown): T {
 }
 
 export async function fetchSites(): Promise<Site[]> {
-  const { data } = await api.get('/sites/list');
+  const { data } = await api.get(API.sites.list);
   return unwrapArray<Site>(data);
 }
 
 export async function fetchSiteById(siteId: number): Promise<SiteDetail> {
-  const { data } = await api.get(`/sites/${siteId}`);
+  const { data } = await api.get(API.sites.detail(siteId));
   return unwrapObject<SiteDetail>(data);
 }
 
 export async function createSite(payload: CreateSitePayload): Promise<Site> {
-  const { data } = await api.post('/sites/create', payload);
+  const { data } = await api.post(API.sites.create, payload);
   return unwrapObject<Site>(data);
 }
 
 export async function fetchWorkersBySite(siteId: number): Promise<SiteWorker[]> {
-  const { data } = await api.get(`/workers/list-by-id/${siteId}`);
+  const { data } = await api.get(API.workers.listBySite(siteId));
   return unwrapArray<SiteWorker>(data);
 }
 
+// Same backend endpoint as fetchAttendanceSummary() in attendance.ts, called
+// here without a date range — backend defaults start/end to today when omitted.
 export async function fetchAttendanceBySite(siteId: number): Promise<AttendanceRecord[]> {
-  const { data } = await api.get(`/attendance/summary/${siteId}`);
+  const { data } = await api.get(API.attendance.summary, {
+    params: { site_id: siteId },
+  });
   return unwrapArray<AttendanceRecord>(data);
 }
 
 export async function fetchTasksBySiteId(siteId: number): Promise<SiteTask[]> {
-  const { data } = await api.get(`/tasks/list/${siteId}`);
+  const { data } = await api.get(API.tasks.listBySite(siteId));
   if (Array.isArray(data))      return data as SiteTask[];
   if (data?.data && Array.isArray(data.data)) return data.data as SiteTask[];
   if (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
@@ -67,18 +72,18 @@ export async function fetchTasksBySiteId(siteId: number): Promise<SiteTask[]> {
 }
 
 export async function fetchOverviewKPIs(): Promise<OverviewKPIs> {
-  const { data } = await api.get('/analytics/overview');
+  const { data } = await api.get(API.analytics.overview);
   return unwrapObject<OverviewKPIs>(data);
 }
 
 export async function fetchSiteAnalytics(siteId: number | string): Promise<SiteAnalytics | null> {
-  const { data } = await api.get(`/sites/analytics/${siteId}`);
+  const { data } = await api.get(API.sites.analytics(siteId));
   if (!data || typeof data !== 'object') return null;
   const obj = data as Record<string, unknown>;
   return (obj.data && typeof obj.data === 'object' ? obj.data : data) as SiteAnalytics | null;
 }
 
 export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
-  const { data } = await api.get('/sites/dashboard-metrics');
+  const { data } = await api.get(API.sites.dashboardMetrics);
   return unwrapObject<DashboardMetrics>(data);
 }

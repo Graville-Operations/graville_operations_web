@@ -1,6 +1,6 @@
-
 import axios from 'axios';
 import { API_BASE_URL } from './constants';
+import { API } from './endpoints';
 import { getToken, clearSession } from './auth';
 
 const api = axios.create({
@@ -27,7 +27,7 @@ api.interceptors.response.use(
   },
   (error) => {
     const url = error.config?.url ?? '';
-    const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/verify-otp');
+    const isAuthRoute = url.includes(API.auth.login) || url.includes(API.auth.verifyOtp);
 
     if (error.response?.status === 401 && !isAuthRoute) {
       clearSession();
@@ -38,5 +38,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
-

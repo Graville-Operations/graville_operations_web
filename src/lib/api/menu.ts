@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { API } from '@/lib/endpoints';
 import { MenuItem } from '@/types';
 
 function unwrap<T>(data: unknown): T {
@@ -15,7 +16,7 @@ function dedupeByName(menus: MenuItem[]): MenuItem[] {
 }
 
 export async function fetchSidebarMenus(): Promise<MenuItem[]> {
-  const { data } = await api.get('auth/me/menus');
+  const { data } = await api.get(API.auth.meMenus);
   const menuData = unwrap<MenuItem[]>(data);
   if (!Array.isArray(menuData)) return [];
   return dedupeByName(menuData);

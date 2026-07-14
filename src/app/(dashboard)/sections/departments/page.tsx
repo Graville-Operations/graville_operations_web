@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Title, Subtitle, Label, Body } from '@/components/ui/typography';
 import { useDepartments } from '@/hooks/department/use-departments';
 import { CreateDepartmentPayload, Department } from '@/types/department';
+import { ROUTES } from '@/lib/routes';
 
 function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
   return (
@@ -295,7 +296,7 @@ export default function DepartmentsPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   const handleCardClick = (dept: Department) => {
-    router.push(`/sections/departments/${dept.id}`);
+    router.push(ROUTES.sections.departments.detail(String(dept.id)));
   };
 
   return (

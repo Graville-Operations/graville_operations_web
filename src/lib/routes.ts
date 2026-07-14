@@ -11,22 +11,30 @@ export const ROUTES = {
     imports:'/users/import',
   },
   finance: {
-    home:     '/finance',
-    invoices: '/finance/invoice/supplier',
-    new:      '/finance/invoices/new',
-    dashboard: '/finance/dashboard',
+    home: '/finance',
     templates: '/finance/templates',
-    invoiceClient:     '/finance/invoice/client',
-    invoiceCompany:    '/finance/invoice/company',
-    invoiceContractor: '/finance/invoice/contractor',
+    invoice: {
+      client: {
+        list: '/finance/invoice/client',
+        new:  '/finance/invoice/client/new',
+        detail: (id: string) => `/finance/invoice/client/${id}`,
+      },
+      company: {
+        list: '/finance/invoice/company',
+        create: '/finance/invoice/company/create',
+        detail: (id: string) => `/finance/invoice/company/${id}`,
+      },
+      contractor: '/finance/invoice/contractor',
+      supplier: {
+        list: '/finance/invoice/supplier',
+        detail: (id: string) => `/finance/invoice/supplier/${id}`,
+      },
+    },
   },
   projects: {
     dashboard: '/projects/dashboard',
     new:       '/projects/new',
     sites:     '/projects/sites',
-  },
-  quality: {
-    dashboard: '/quality/dashboard',
   },
   permits: {
     all:              '/permits/all',
@@ -35,18 +43,30 @@ export const ROUTES = {
     myPermits:        '/permits/my-permits',
   },
   sections: {
-    departments: '/sections/departments',
-    menus:       '/sections/menus',
+    departments: {
+      list: '/sections/departments',
+      detail: (id: string) => `/sections/departments/${id}`,
+    },
+    menus: '/sections/menus',
   },
   stores: {
-    dashboard: '/stores/dasboard', 
-    stocks:    '/stores/stocks',
-    materials: (siteId: number) => `/stores/materials/${siteId}`,
-    tools:     (siteId: number) => `/stores/tools/${siteId}`,
-    orders:    '/stores/orders',
-    orderDetail: (usageId: number) => `/stores/orders/${usageId}`,
+    dashboard: '/stores/dasboard',
+    materials: {
+      detail: (siteId: string) => `/stores/materials/${siteId}`,
+    },
+    tools: {
+      detail: (siteId: string) => `/stores/tools/${siteId}`,
+    },
+    orders: {
+      list: '/stores/orders',
+      detail: (usageId: string) => `/stores/orders/${usageId}`,
+    },
+    stocks: '/stores/stocks',
   },
-  workers:    '/workers',
-  store:      '/store',
-  department: '/department',
+  quality: {
+    dashboard: '/quality/dashboard',
+    taskDetail: (id: string) => `/quality/dashboard/tasks/${id}`,
+    taskCreate: '/quality/dashboard/tasks/create',
+    subtaskCreate: (taskId: string) => `/quality/dashboard/tasks/${taskId}/subtasks/create`,
+  },
 } as const;

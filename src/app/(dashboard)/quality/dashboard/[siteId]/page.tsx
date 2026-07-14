@@ -4,7 +4,6 @@ import { ChevronLeft, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import EmptyState from '@/components/ui/emptystate';
 import { useQualitySiteDetail } from '@/hooks/quality/useQualitySiteDetail';
-import OfflineBanner from '@/components/quality/OfflineBanner';
 import SiteInfoCard from '@/components/quality/SiteInfoCard';
 import TasksList from '@/components/quality/TasksList';
 
@@ -15,7 +14,7 @@ export default function QualitySiteDetailPage() {
     loadingSite,
     loadingTasks,
     error,
-    offline,
+    tasksError,
     loadSite,
     loadTasks,
     openTask,
@@ -31,8 +30,8 @@ export default function QualitySiteDetailPage() {
     return (
       <div className="gv-page-dashboard">
         <div className="mx-auto max-w-6xl px-6 py-6 space-y-4">
-          <div className="h-8 w-48 rounded-lg bg-(--gv-glass-bg) animate-pulse" />
-          <div className="h-40 rounded-2xl bg-(--gv-glass-bg) animate-pulse" />
+          <div className="h-8 w-48 rounded-lg bg-[var(--gv-glass-bg)] animate-pulse" />
+          <div className="h-40 rounded-2xl bg-[var(--gv-glass-bg)] animate-pulse" />
         </div>
       </div>
     );
@@ -57,9 +56,9 @@ export default function QualitySiteDetailPage() {
           <ChevronLeft size={16} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-(--gv-text-primary) tracking-tight truncate">{site.name}</h1>
+          <h1 className="text-xl font-bold text-[var(--gv-text-primary)] tracking-tight truncate">{site.name}</h1>
         </div>
-        <button onClick={goToCreateTask} className="gv-btn-brand gap-2 text-sm shrink-0">
+        <button onClick={goToCreateTask} className="gv-btn-brand gap-2 text-sm flex-shrink-0">
           <Plus size={16} /> Add Task
         </button>
       </div>
@@ -67,26 +66,21 @@ export default function QualitySiteDetailPage() {
       <div className="mx-auto max-w-6xl px-6 py-6 space-y-6">
         <SiteInfoCard site={site} onUpdateBQ={handleUpdateBQ} />
 
-        {offline && (
-          <OfflineBanner message="Tasks failed to load — check your connection." onRetry={loadTasks} />
-        )}
-
         <div>
-          <h2 className="text-sm font-semibold text-(--gv-text-primary) mb-3">
+          <h2 className="text-sm font-semibold text-[var(--gv-text-primary)] mb-3">
             Tasks
-            {!loadingTasks && (
-              <span className="text-xs text-(--gv-text-subtle) font-normal">
-                {' '}· {tasks.length}
-              </span>
+            {!loadingTasks && !tasksError && (
+              <span className="text-xs text-[var(--gv-text-subtle)] font-normal"> · {tasks.length}</span>
             )}
           </h2>
           <TasksList
             tasks={tasks}
             loading={loadingTasks}
-            offline={offline}
+            error={tasksError}
             siteName={site.name}
             onSelect={openTask}
             onCreateNew={goToCreateTask}
+            onRetry={loadTasks}
           />
         </div>
       </div>

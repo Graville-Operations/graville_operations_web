@@ -6,6 +6,7 @@ import { Site } from '@/types';
 import { ClientInvoiceItemDraft, NewClientInvoiceForm } from '@/types/client-invoice';
 import { fetchSites, createClientInvoice } from '@/lib/api/client-invoices';
 import { todayISO } from '@/lib/utils/date';
+import { ROUTES } from '@/lib/routes';
 
 const emptyItem = (): ClientInvoiceItemDraft => ({
   particulars: '',
@@ -85,7 +86,7 @@ export function useNewClientInvoiceForm() {
     setIsLoading(true);
     try {
       await createClientInvoice(form, items);
-      router.push('/finance/invoice/client');
+      router.push(ROUTES.finance.invoice.client.list);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; detail?: string } } };
       setError(

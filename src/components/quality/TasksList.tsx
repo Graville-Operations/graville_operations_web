@@ -8,13 +8,22 @@ import TaskListItem from './TaskListItem';
 interface TasksListProps {
   tasks: Task[];
   loading: boolean;
-  offline: boolean;
+  error: string | null;
   siteName: string;
   onSelect: (task: Task) => void;
   onCreateNew: () => void;
+  onRetry: () => void;
 }
 
-export default function TasksList({ tasks, loading, offline, siteName, onSelect, onCreateNew }: TasksListProps) {
+export default function TasksList({
+  tasks,
+  loading,
+  error,
+  siteName,
+  onSelect,
+  onCreateNew,
+  onRetry,
+}: TasksListProps) {
   if (loading && tasks.length === 0) {
     return (
       <div className="space-y-3">
@@ -25,7 +34,18 @@ export default function TasksList({ tasks, loading, offline, siteName, onSelect,
     );
   }
 
-  if (!loading && !offline && tasks.length === 0) {
+  if (!loading && error && tasks.length === 0) {
+    return (
+      <EmptyState
+        fullScreen={false}
+        title="Couldn't load tasks"
+        description={error}
+        action={{ label: 'Retry', onClick: onRetry }}
+      />
+    );
+  }
+
+  if (!loading && !error && tasks.length === 0) {
     return (
       <EmptyState
         fullScreen={false}

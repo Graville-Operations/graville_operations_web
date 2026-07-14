@@ -1,11 +1,12 @@
 export const API = {
   auth: {
-    login: "/auth/login",
-    me: "/auth/me",
-    logout: "/auth/logout",
-    changePassword: "/auth/change-password",
-    verifyOtp: "/auth/verify-otp",
-  },
+  login: "/auth/login",
+  me: "/auth/me",
+  logout: "/auth/logout",
+  changePassword: "/auth/change-password",
+  verifyOtp: "/auth/verify-otp",
+  meMenus: "/auth/me/menus",
+},
   users: {
     list: "/users/list",
     create: "/users/create",
@@ -57,6 +58,16 @@ export const API = {
     createCategory: "/permits/category/create",
     updateCategory: (id: number) => `/permits/category/${id}`,
   },
+  clientInvoices: {
+  all: "/client-invoices/all",
+  detail: (id: number | string) => `/client-invoices/details/${id}`,
+  create: "/client-invoices/create",
+},
+  subcontractorInvoices: {
+    all: "/subcontractor-invoices/all",
+    detail: (id: number) => `/subcontractor-invoices/details/${id}`,
+    create: "/subcontractor-invoices/create",
+  },
   workers: {
     listBySite: (siteId: number) => `/workers/list-by-id/${siteId}`,
     detail: (id: number) => `/workers/details/${id}`,
@@ -68,25 +79,39 @@ export const API = {
     list: "/sites/list",
     create: "/sites/create",
     detail: (id: number) => `/sites/${id}`,
+    analytics: (id: number | string) => `/sites/analytics/${id}`,
+    dashboardMetrics: "/sites/dashboard-metrics",
   },
-  tasks: {
-    list: (siteId: number) => `/tasks/list/${siteId}`,
-    create: "/tasks/task/create",
-    subtasks: {
-      list: (taskId: number) => `/tasks/sub-task/list/${taskId}`,
-      create: "/tasks/sub-task/create",
-    },
+  attendance: {
+    summary: "/attendance/summary",
+    analytics: "/attendance/analytics",
+    checkIn: "/attendance/check-in",
+  },
+ tasks: {
+  listBySite: (siteId: number) => `/tasks/list/${siteId}`,
+  create: "/tasks/task/create",
+  update: (taskId: number) => `/tasks/task/update/${taskId}`,
+  listSubtasksByTask: (taskId: number) => `/tasks/sub-task/list/${taskId}`,
+  createSubtask: "/tasks/sub-task/create",
+  updateSubtask: (subtaskId: number) => `/tasks/sub-task/update/${subtaskId}`,
+},
+  analytics: {
+    overview: "/analytics/overview",
   },
   departments: {
-    list: "/departments/list",
-    create: "/departments/create",
-  },
+  list: "/departments/list",
+  create: "/departments/create",
+  detail: (id: number) => `/departments/${id}`,
+  menus: (id: number) => `/departments/${id}/menus`,
+  members: (id: number) => `/departments/${id}/members`,
+  assignUsers: (id: number) => `/departments/${id}/assign-users`,
+},
   stores: {
     summary: (siteId: number) => `/store/site/${siteId}`,
     materials: (siteId: number) => `/store/materials/${siteId}/all`,
     tools: (siteId: number) => `/store/tools/${siteId}/all`,
     dailyUsageAll: '/daily-usage/all',
-    dailyUsage:    (usageId: number) => `/daily-usage/${usageId}`,
+    dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
   },
 } as const;

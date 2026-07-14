@@ -11,6 +11,7 @@ import { StockSummaryBadges } from '@/components/stores/StockSummaryBadges';
 import { StockToolbar } from '@/components/stores/StockToolbar';
 import { StockErrorState } from '@/components/stores/StockErrorState';
 import { getStockStatCards } from '@/components/stores/statCards';
+import { ROUTES } from '@/lib/routes';
 
 export default function StockRegistersPage() {
   const router = useRouter();
@@ -27,8 +28,8 @@ export default function StockRegistersPage() {
   const statCards = useMemo(() => {
     if (!summary || !resolvedSiteId) return [];
     return getStockStatCards(summary, damagedTools, {
-      toMaterials: () => router.push(`/stores/materials/${resolvedSiteId}`),
-      toTools:     () => router.push(`/stores/tools/${resolvedSiteId}`),
+      toMaterials: () => router.push(ROUTES.stores.materials.detail(String(resolvedSiteId))),
+      toTools:     () => router.push(ROUTES.stores.tools.detail(String(resolvedSiteId))),
     });
   }, [summary, resolvedSiteId, damagedTools, router]);
 
