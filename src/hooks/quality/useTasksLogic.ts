@@ -12,6 +12,7 @@ import {
   setCachedTasks,
 } from "@/lib/api/tasks-service";
 import type { TasksState } from "./useTasksState";
+import { ROUTES } from "@/lib/routes";
 
 export function useTasksLogic(state: TasksState) {
   const router = useRouter();
@@ -101,7 +102,7 @@ export function useTasksLogic(state: TasksState) {
   const openTask = useCallback(
     (task: Task) => {
       setTaskHandoff(task);
-      router.push(`/quality/dashboard/tasks/${task.id}?site_id=${task.site_id}`);
+      router.push(`${ROUTES.quality.taskDetail(String(task.id))}?site_id=${task.site_id}`);
     },
     [router]
   );
@@ -109,8 +110,8 @@ export function useTasksLogic(state: TasksState) {
   const goToCreateTask = useCallback(() => {
     router.push(
       selectedSite
-        ? `/quality/dashboard/tasks/create?site_id=${selectedSite.id}`
-        : "/quality/dashboard/tasks/create"
+        ? `${ROUTES.quality.taskCreate}?site_id=${selectedSite.id}`
+        : ROUTES.quality.taskCreate
     );
   }, [router, selectedSite]);
 

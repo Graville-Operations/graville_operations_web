@@ -6,6 +6,7 @@ import { useRoles } from '@/hooks/users/useRoles';
 import { RolesGrid } from '@/components/users/RolesGrid';
 import { RoleFormModal } from '@/components/users/RoleFormModal';
 import { ShimmerStyle } from '@/components/shared/Shimmer';
+import { ROUTES } from '@/lib/routes';
 
 export default function RolesPage() {
   const {
@@ -26,7 +27,7 @@ export default function RolesPage() {
 
           <div className="flex items-center gap-2">
             <Link
-              href="/users/roles/assign"
+              href={ROUTES.users.assign}
               className="flex items-center gap-2 border border-white/20 text-white/70 hover:text-white hover:bg-white/10 px-4 py-2 rounded-xl transition-colors text-sm font-medium"
             >
               <UserCog size={16} />

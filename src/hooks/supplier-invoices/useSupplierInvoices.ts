@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Invoice, normaliseInvoice } from '@/types/invoice';
 import { fetchSites, fetchSupplierInvoices, Site } from '@/lib/api/supplier-invoices';
+import { ROUTES } from '@/lib/routes';
 
 export function useSupplierInvoices() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export function useSupplierInvoices() {
           invoice_date:   inv.invoice_date ?? '',
         })
       );
-      router.push(`/finance/invoice/supplier/${inv.id}`);
+      router.push(ROUTES.finance.invoice.supplier.detail(String(inv.id)));
     },
     [router]
   );

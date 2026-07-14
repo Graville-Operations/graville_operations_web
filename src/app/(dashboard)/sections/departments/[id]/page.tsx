@@ -7,6 +7,7 @@ import { useDepartmentDetail } from '@/hooks/department/use-department-detail';
 import { useAssignMenus } from '@/hooks/department/use-assign-menus';
 import { useAssignUsers } from '@/hooks/department/use-assign-users';
 import { Menu, User } from '@/types/department-detail';
+import { ROUTES } from '@/lib/routes';
 
 function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
   return (
@@ -319,7 +320,7 @@ export default function DepartmentDetailPage() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
-          <button type="button" onClick={() => router.push('/sections/departments')}
+          <button type="button" onClick={() => router.push(ROUTES.sections.departments.list)}
             className="gv-btn-outline w-9 h-9 flex items-center justify-center p-0 shrink-0">
             <BackIcon />
           </button>

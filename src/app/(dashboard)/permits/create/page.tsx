@@ -1,34 +1,8 @@
 "use client";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
 import { ChevronDown, Check, ArrowRight, Send, ArrowLeft } from "lucide-react";
-import api from "@/lib/api";
-import { PermitCategory, CreatePermitPayload } from "@/types/permits";
-
-interface ApiUser { id: number; firstName: string; lastName: string; }
-interface SelectedApprover { userId: number; name: string; stepOrder: number; }
-interface CreatedPermit {
-  id: number; title: string; description: string;
-  status: string; permitCategory: string; currentStep: number;
-}
-
-function unwrapArray<T>(response: unknown): T[] {
-  if (Array.isArray(response)) return response as T[];
-  if (response && typeof response === "object") {
-    const obj = response as Record<string, unknown>;
-    if (obj.data && typeof obj.data === "object") {
-      const inner = obj.data as Record<string, unknown>;
-      if (Array.isArray(inner.items))   return inner.items   as T[];
-      if (Array.isArray(inner.results)) return inner.results as T[];
-    }
-    if (Array.isArray(obj.data))    return obj.data    as T[];
-    if (Array.isArray(obj.items))   return obj.items   as T[];
-    if (Array.isArray(obj.results)) return obj.results as T[];
-  }
-  return [];
-}
+import { useCreatePermit } from "@/hooks/permits/useCreatePermit";
 
 function autoResize(el: HTMLTextAreaElement | null) {
   if (!el) return;
@@ -53,29 +27,23 @@ function Shimmer({ className = "", style = {} }: { className?: string; style?: R
     </div>
   );
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function fmtDate(val: string | null | undefined): string {
-  if (!val) return "—";
-  const d = new Date(val);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export default function CreatePermitPage() {
-  const router = useRouter();
-  const [step, setStep]             = useState<"form" | "confirm">("form");
-  const [categories, setCategories] = useState<PermitCategory[]>([]);
-  const [users, setUsers]           = useState<ApiUser[]>([]);
-  const [creating, setCreating]     = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted]   = useState(false);
-  const [error, setError]           = useState<string | null>(null);
+  const {
+    step, setStep,
+    categories, users,
+    creating, submitting, submitted,
+    error, form, setForm,
+    selectedApprovers, toggleApprover,
+    createdPermit, selectedCategory,
+    handleCreate, handleSubmit, reset,
+    goBack, viewMyPermits,
+  } = useCreatePermit();
+
+  // Pure UI state — dropdown open/closed — stays local to the component.
   const [approverOpen, setApproverOpen] = useState(false);
-  const [selectedApprovers, setSelectedApprovers] = useState<SelectedApprover[]>([]);
-  const [createdPermit, setCreatedPermit] = useState<CreatedPermit | null>(null);
   const approverRef = useRef<HTMLDivElement>(null);
-  const descRef     = useRef<HTMLTextAreaElement>(null);
-  const [form, setForm] = useState({ title: "", description: "", categoryId: "" });
+  const descRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -85,66 +53,6 @@ export default function CreatePermitPage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [catsRes, usersRes] = await Promise.all([
-          api.get("/permits/categories"),
-          api.get("/users/list"),
-        ]);
-        setCategories(unwrapArray<PermitCategory>(catsRes.data));
-        const up = usersRes.data?.data ?? usersRes.data;
-        setUsers(Array.isArray(up) ? up : up?.items ?? []);
-      } catch (e) { console.error(e); }
-    })();
-  }, []);
-
-  const toggleApprover = (user: ApiUser) => {
-    setSelectedApprovers((prev) => {
-      const exists = prev.find((a) => a.userId === user.id);
-      if (exists) return prev.filter((a) => a.userId !== user.id).map((a, i) => ({ ...a, stepOrder: i + 1 }));
-      return [...prev, { userId: user.id, name: `${user.firstName} ${user.lastName}`, stepOrder: prev.length + 1 }];
-    });
-  };
-
-  const handleCreate = async () => {
-    setError(null);
-    if (!form.title.trim())             return setError("Title is required.");
-    if (!form.categoryId)               return setError("Please select a category.");
-    if (selectedApprovers.length === 0) return setError("Please select at least one approver.");
-    try {
-      setCreating(true);
-      const payload: CreatePermitPayload = {
-        title:       form.title.trim(),
-        description: form.description.trim() || null,
-        category_id: Number(form.categoryId),
-        approvers:   selectedApprovers.map((a) => ({ approver_id: a.userId, step_order: a.stepOrder })),
-      };
-      const { data } = await api.post("/permits/create", payload);
-      if (data?.code !== 200) throw new Error(data?.message || "Failed to create permit.");
-      setCreatedPermit(data.data);
-      setStep("confirm");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to create permit.");
-    } finally { setCreating(false); }
-  };
-
-  const handleSubmit = async () => {
-    if (!createdPermit) return;
-    try {
-      setSubmitting(true);
-      const { data } = await api.post(`/permits/submit/${createdPermit.id}`, {});
-      if (data?.code !== 200) throw new Error(data?.message || "Failed to submit.");
-      setSubmitted(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to submit.");
-    } finally { setSubmitting(false); }
-  };
-
-  const selectedCategory = categories.find((c) => c.id === Number(form.categoryId));
 
   if (submitted) {
     return (
@@ -160,16 +68,12 @@ export default function CreatePermitPage() {
           </p>
         </div>
         <div className="flex gap-3 pt-2">
-          <button onClick={() => router.push("/permits/my-permits")}
+          <button onClick={viewMyPermits}
             className="gv-btn-brand px-6 py-2.5 rounded-xl text-sm font-semibold">
             View My Permits
           </button>
           <button
-            onClick={() => {
-              setStep("form"); setSubmitted(false); setCreatedPermit(null);
-              setForm({ title: "", description: "", categoryId: "" });
-              setSelectedApprovers([]); setError(null);
-            }}
+            onClick={reset}
             className="px-6 py-2.5 rounded-xl text-sm font-semibold"
             style={{ background: "var(--gv-glass-bg)", color: "var(--gv-text-muted)", border: "1px solid var(--gv-glass-border)" }}>
             Create Another
@@ -185,7 +89,7 @@ export default function CreatePermitPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => step === "confirm" ? setStep("form") : router.back()}
+          onClick={goBack}
           className="p-2 rounded-xl"
           style={{ background: "var(--gv-glass-bg)", border: "1px solid var(--gv-glass-border)", color: "var(--gv-text-muted)" }}>
           <ArrowLeft size={16} />
@@ -210,6 +114,7 @@ export default function CreatePermitPage() {
           </div>
         </div>
       </div>
+
       {step === "form" && (
         <div className="gv-card space-y-6 p-8 md:p-10">
           {error && (
@@ -320,6 +225,7 @@ export default function CreatePermitPage() {
           </button>
         </div>
       )}
+
       {step === "confirm" && createdPermit && (
         <div className="space-y-4">
           {error && (

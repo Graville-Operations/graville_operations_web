@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { API } from "@/lib/endpoints";
 import { cacheGet, cacheSet, cacheBust } from "@/lib/persistent-cache";
 import { withRetry } from "@/lib/retry";
 import type { Task, SubTask, Worker } from "@/lib/types";
@@ -42,7 +43,7 @@ export async function fetchTasksForSite(
 ): Promise<Task[]> {
   return withRetry(
     async () => {
-      const res = await api.get(`/tasks/list/${siteId}`);
+      const res = await api.get(API.tasks.listBySite(Number(siteId)));
       return parseList<Task>(res.data?.data ?? res.data);
     },
     {
@@ -54,7 +55,7 @@ export async function fetchTasksForSite(
 }
 
 export async function fetchSites(): Promise<Site[]> {
-  const res = await api.get("/sites/list");
+  const res = await api.get(API.sites.list);
   return parseList<Site>(res.data?.data ?? res.data);
 }
 
@@ -67,7 +68,7 @@ export interface CreateTaskPayload {
 }
 
 export async function createTask(payload: CreateTaskPayload): Promise<void> {
-  await api.post("/tasks/task/create", {
+  await api.post(API.tasks.create, {
     name: payload.name,
     description: payload.description || undefined,
     site_id: payload.site_id,
@@ -106,7 +107,7 @@ export async function fetchSubtasksForTask(
 ): Promise<SubTask[]> {
   return withRetry(
     async () => {
-      const res = await api.get(`/tasks/sub-task/list/${taskId}`);
+      const res = await api.get(API.tasks.listSubtasksByTask(taskId));
       return parseList<SubTask>(res.data?.data ?? res.data);
     },
     {
@@ -118,7 +119,7 @@ export async function fetchSubtasksForTask(
 }
 
 export async function fetchWorkersBySite(siteId: number): Promise<Worker[]> {
-  const res = await api.get(`/workers/list-by-id/${siteId}`);
+  const res = await api.get(API.workers.listBySite(siteId));
   return parseList<Worker>(res.data?.data ?? res.data);
 }
 
@@ -130,7 +131,7 @@ export interface CreateSubtaskPayload {
 }
 
 export async function createSubtask(payload: CreateSubtaskPayload): Promise<void> {
-  await api.post("/tasks/sub-task/create", {
+  await api.post(API.tasks.createSubtask, {
     name: payload.name,
     description: payload.description || undefined,
     task_id: payload.task_id,

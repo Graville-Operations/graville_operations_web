@@ -7,6 +7,7 @@ import { ActivityDateRangeFilter } from '@/components/stores/ActivityDateRangeFi
 import { ActivityTileSkeletonGrid } from '@/components/stores/ActivityTileSkeleton';
 import { ActivityErrorState, ActivityListEmptyState } from '@/components/stores/ActivityStates';
 import { UsageTile } from '@/components/stores/UsageTile';
+import { ROUTES } from '@/lib/routes';
 
 export default function StoreActivityPage() {
   const router = useRouter();
@@ -77,7 +78,7 @@ export default function StoreActivityPage() {
             <UsageTile
               key={log.id}
               log={log}
-              onClick={() => router.push(`/stores/orders/${log.id}`)}
+              onClick={() => router.push(ROUTES.stores.orders.detail(String(log.id)))}
             />
           ))}
         </div>

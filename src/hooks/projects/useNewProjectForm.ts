@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSite } from '@/lib/api/sites';
 import { CreateSitePayload, ProjectStatus, SiteStatus } from '@/types/site';
+import { ROUTES } from '@/lib/routes';
 
 export interface NewProjectFormState {
   name: string;
@@ -69,7 +70,7 @@ export function useNewProjectForm() {
 
     try {
       await createSite(payload);
-      router.push('/projects/dashboard');
+      router.push(ROUTES.projects.dashboard);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create project. Please try again.');
     } finally {

@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { API } from '@/lib/endpoints';
 import { Site } from '@/types';
 import {
   ClientInvoiceListItem,
@@ -17,17 +18,17 @@ function unwrapList<T>(data: unknown): T[] {
   return (payload as { items?: T[] })?.items ?? [];
 }
 
-// NOTE: check lib/api/sites.ts first — it likely already exports a sites
-// fetcher. If so, delete this and import that instead of duplicating.
+// NOTE: duplicates fetchSites in lib/api/sites.ts — consider importing
+// that one instead of keeping a separate copy here.
 export async function fetchSites(limit = 100): Promise<Site[]> {
-  const { data } = await api.get(`/sites/list?limit=${limit}`);
+  const { data } = await api.get(API.sites.list, { params: { limit } });
   return unwrapList<Site>(data);
 }
 
 export async function fetchClientInvoices(siteId?: number): Promise<{ items: ClientInvoiceListItem[]; total: number }> {
-  let url = '/client-invoices/all?limit=100';
-  if (siteId) url += `&site_id=${siteId}`;
-  const { data } = await api.get(url);
+  const params: Record<string, any> = { limit: 100 };
+  if (siteId) params.site_id = siteId;
+  const { data } = await api.get(API.clientInvoices.all, { params });
   const payload = unwrap<{ items?: ClientInvoiceListItem[]; total?: number } | ClientInvoiceListItem[]>(data);
   const items = Array.isArray(payload) ? payload : payload?.items ?? [];
   const total = Array.isArray(payload) ? items.length : payload?.total ?? items.length;
@@ -35,7 +36,7 @@ export async function fetchClientInvoices(siteId?: number): Promise<{ items: Cli
 }
 
 export async function fetchClientInvoiceDetail(id: string | number): Promise<ClientInvoiceDetail> {
-  const { data } = await api.get(`/client-invoices/details/${id}`);
+  const { data } = await api.get(API.clientInvoices.detail(id));
   return (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) ? data.data : data;
 }
 
@@ -43,7 +44,7 @@ export async function createClientInvoice(
   form: NewClientInvoiceForm,
   items: ClientInvoiceItemDraft[]
 ): Promise<void> {
-  await api.post('/client-invoices/create', {
+  await api.post(API.clientInvoices.create, {
     invoice_number: form.invoice_number,
     invoice_date: form.invoice_date,
     client_name: form.client_name,

@@ -2,16 +2,7 @@ import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { ApiUser } from '@/types';
 import { Department, Role, NewUserFormState } from '@/types/users';
-import {  RoleFormState } from '@/types/users';
-
-// NOTE: these two department endpoints aren't in the central `API` object
-// yet (lib/endpoints.ts). Worth adding DEPARTMENTS.list / DEPARTMENTS.assignUsers
-// there next time you're in that file, to keep every route in one place.
-const DEPARTMENTS_LIST_ENDPOINT = '/departments/list';
-const departmentAssignUsersEndpoint = (departmentId: number | string) =>
-    `/departments/${departmentId}/assign-users`;
-const roleAssignEndpoint = (roleId: number, userId: number) => `/roles/${roleId}/assign/${userId}`;
-
+import { RoleFormState } from '@/types/users';
 
 function unwrap<T>(data: unknown): T {
   const payload = (data as { data?: unknown })?.data ?? data;
@@ -45,7 +36,7 @@ export async function fetchRoles(): Promise<Role[]> {
 }
 
 export async function fetchDepartments(): Promise<Department[]> {
-  const { data } = await api.get(DEPARTMENTS_LIST_ENDPOINT, { params: { skip: 0, limit: 100 } });
+  const { data } = await api.get(API.departments.list, { params: { skip: 0, limit: 100 } });
   return unwrapList<Department>(data);
 }
 
@@ -69,8 +60,9 @@ export async function assignUserToDepartment(
   departmentId: number | string,
   userIds: number[]
 ): Promise<void> {
-  await api.post(departmentAssignUsersEndpoint(departmentId), { user_ids: userIds });
+  await api.post(API.departments.assignUsers(departmentId as number), { user_ids: userIds });
 }
+
 export async function createRole(payload: RoleFormState): Promise<void> {
   await api.post(API.roles.create, payload);
 }
@@ -84,5 +76,5 @@ export async function deleteRole(id: number): Promise<void> {
 }
 
 export function assignRoleToUser(roleId: number, userId: number) {
-  return api.post(roleAssignEndpoint(roleId, userId));
+  return api.post(API.roles.assign(roleId, userId));
 }
