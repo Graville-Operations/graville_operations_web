@@ -3,6 +3,7 @@
 import type { Task } from '@/lib/types';
 import { getAccentColor } from '@/lib/utils/task-status';
 import EmptyState from '@/components/ui/emptystate';
+import { Bone } from '@/components/shared/Shimmer';
 import TaskListItem from './TaskListItem';
 
 interface TasksListProps {
@@ -28,7 +29,14 @@ export default function TasksList({
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-2xl bg-(--gv-glass-bg) animate-pulse" />
+          <div key={i} className="gv-card flex items-center gap-4 p-4">
+            <Bone w="40px" h="40px" style={{ borderRadius: '0.75rem' }} />
+            <div className="flex-1 min-w-0 space-y-2">
+              <Bone w="45%" h="0.85rem" />
+              <Bone w="65%" h="0.7rem" />
+            </div>
+            <Bone w="72px" h="1.4rem" style={{ borderRadius: '9999px' }} />
+          </div>
         ))}
       </div>
     );

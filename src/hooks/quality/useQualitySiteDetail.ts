@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { setTaskHandoff } from '@/lib/task-handoff';
+import { getSite } from '@/lib/sites-cache';
 import type { Task } from '@/lib/types';
 import { fetchSiteDetail, fetchSiteTasks, SiteDetail } from '@/lib/api/quality';
 
@@ -10,6 +11,7 @@ export function useQualitySiteDetail() {
   const router = useRouter();
   const params = useParams();
   const siteId = Number(params.siteId);
+  const cachedSite = getSite(siteId);
 
   const [site, setSite]             = useState<SiteDetail | null>(null);
   const [tasks, setTasks]           = useState<Task[]>([]);
@@ -19,6 +21,8 @@ export function useQualitySiteDetail() {
   const [tasksError, setTasksError] = useState<string | null>(null);
 
   const loadSite = useCallback(async () => {
+    setLoadingSite(true);
+    setError(null);
     try {
       const full = await fetchSiteDetail(siteId);
       setSite(full);
@@ -67,6 +71,7 @@ export function useQualitySiteDetail() {
   return {
     siteId,
     site,
+    cachedSite,
     tasks,
     loadingSite,
     loadingTasks,
