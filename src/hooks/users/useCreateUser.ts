@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/user-store';
 import { ROUTES } from '@/lib/routes';
 import { Role, Department, NewUserFormState } from '@/types/users';
-import { DEFAULT_NEW_USER_PASSWORD } from '@/lib/users-constants';
 import { fetchRoles, fetchDepartments, createUser, assignUserToDepartment } from '@/lib/api/users';
 
 const initialForm: NewUserFormState = {
@@ -13,7 +12,6 @@ const initialForm: NewUserFormState = {
   last_name:     '',
   email:         '',
   phone_no:      '',
-  password:      DEFAULT_NEW_USER_PASSWORD,
   role_id:       '',
   department_id: '',
   site_ids:      null,

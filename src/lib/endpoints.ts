@@ -40,6 +40,7 @@ export const API = {
     all: "/invoices/all",
     detail: (id: number) => `/invoices/details/${id}`,
     create: "/invoices/create",
+    summary: "/invoices/summary",
   },
   clientInvoices: {
   all: "/client-invoices/all",

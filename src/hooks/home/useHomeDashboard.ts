@@ -5,7 +5,9 @@ import { useUserStore } from '@/store/user-store';
 import { useInvoiceStore } from '@/store/invoice-store';
 import api from '@/lib/api';
 import { fetchOverviewKPIs } from '@/lib/api/sites';
+import { fetchInvoiceSummary } from '@/lib/api/invoices';
 import { OverviewKPIs } from '@/types/site';
+import { InvoiceSummaryItem } from '@/types/invoice-summary';
 import { API } from '@/lib/endpoints';
 
 export function useHomeDashboard() {
@@ -19,6 +21,9 @@ export function useHomeDashboard() {
 
   const [kpis, setKpis] = useState<OverviewKPIs | null>(null);
   const [kpisLoading, setKpisLoading] = useState(true);
+
+  const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummaryItem[]>([]);
+  const [invoiceSummaryLoading, setInvoiceSummaryLoading] = useState(true);
 
   useEffect(() => {
     const stopPolling = startPolling();
@@ -36,6 +41,11 @@ export function useHomeDashboard() {
       .catch(() => setKpis(null))
       .finally(() => setKpisLoading(false));
 
+    fetchInvoiceSummary()
+      .then((res) => setInvoiceSummary(res))
+      .catch(() => setInvoiceSummary([]))
+      .finally(() => setInvoiceSummaryLoading(false));
+
     if (!usersLoaded) {
       api.get(API.users.list)
         .then(({ data }) => {
@@ -52,5 +62,6 @@ export function useHomeDashboard() {
     recentUsers, usersLoading,
     recentInvoices, invoicesLoading,
     kpis, kpisLoading,
+    invoiceSummary, invoiceSummaryLoading,
   };
 }

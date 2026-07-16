@@ -46,7 +46,6 @@ export async function createUser(form: NewUserFormState): Promise<{ id: number }
     last_name:     form.last_name,
     email:         form.email,
     phone_no:      form.phone_no || null,
-    password:      form.password,
     role_id:       Number(form.role_id),
     department_id: form.department_id ? Number(form.department_id) : null,
     site_ids:      form.site_ids,
