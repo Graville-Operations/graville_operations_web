@@ -47,25 +47,23 @@ export function usePermitsList() {
       } catch (err) {
         console.error(err);
       } finally {
-        // Show the list immediately — don't wait for detail pre-fetches
         setIsLoading(false);
       }
     })();
   }, []);
-
-  // Pre-fetch permit details in the background after the list renders.
-  // This runs without blocking the UI — tapping a row opens instantly once cached.
   useEffect(() => {
     if (permits.length === 0) return;
     let cancelled = false;
     (async () => {
-      const cache = await fetchPermitDetailsBatch(permits.map((p) => p.id));
-      if (!cancelled) setDetailCache(cache);
+      try {
+        const cache = await fetchPermitDetailsBatch(permits.map((p) => p.id));
+        if (!cancelled) setDetailCache(cache);
+      } catch (err) {
+        console.error("Failed to prefetch permit details:", err);
+      }
     })();
     return () => { cancelled = true; };
   }, [permits]);
-
-  /** Only called after a successful submit — refreshes the list so Draft → Pending */
   const refresh = async () => {
     try {
       const list = await fetchMyPermits();
@@ -95,7 +93,7 @@ export function usePermitsList() {
   ];
   const openPermit = (permit: PermitListItem) => {
     const detail = detailCache[permit.id];
-    if (!detail) return; // still loading silently, shouldn't normally happen
+    if (!detail) return; 
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     detail.status === "Draft" ? setDraftEdit(detail) : setSelected(detail);
   };
@@ -113,4 +111,4 @@ export function usePermitsList() {
     totalCount: permits.length,
     openPermit, refresh,
   };
-}
+} 

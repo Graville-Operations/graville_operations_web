@@ -41,6 +41,23 @@ export const API = {
     detail: (id: number) => `/invoices/details/${id}`,
     create: "/invoices/create",
   },
+  companyInvoices: {
+    all: "/company-invoices/all",
+    detail: (id: number) => `/company-invoices/details/${id}`,
+    create: "/company-invoices/create",
+  },
+  permits: {
+    myPermits: "/permits/my-pemits",
+    all: "/permits/all",
+    get: (id: number) => `/permits/get/${id}`,
+    create: "/permits/create",
+    submit: (id: number) => `/permits/submit/${id}`,
+    takeAction: (id: number) => `/permits/take-action/${id}`,
+    pending: "/permits/pending",
+    categories: "/permits/categories",
+    createCategory: "/permits/category/create",
+    updateCategory: (id: number) => `/permits/category/${id}`,
+  },
   clientInvoices: {
   all: "/client-invoices/all",
   detail: (id: number | string) => `/client-invoices/details/${id}`,
@@ -58,7 +75,7 @@ export const API = {
     skills: "/workers/skills",
     createSkill: "/workers/skills/create",
   },
-  sites: {
+ sites: {
     list: "/sites/list",
     create: "/sites/create",
     detail: (id: number) => `/sites/${id}`,

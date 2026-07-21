@@ -19,13 +19,13 @@ export function usePendingApprovals() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectComment, setRejectComment] = useState("");
+  const [approveComment, setApproveComment] = useState("");
 
   const fetchPending = async () => {
     try {
       setIsLoading(true);
       const list = await fetchPendingApprovals();
       setApprovals(list);
-      // Pre-fetch all permit details so clicking a row opens instantly
       const details = await fetchPermitDetailsBatch(list.map((item) => item.permit_id));
       setPermitCache(details);
     } catch (err) {
@@ -57,6 +57,7 @@ export function usePendingApprovals() {
     setActionError(null);
     setShowRejectModal(false);
     setRejectComment("");
+    setApproveComment("");
   };
 
   const takeAction = async (action: "APPROVED" | "REJECTED", commentText?: string) => {
@@ -74,7 +75,7 @@ export function usePendingApprovals() {
     }
   };
 
-  const approve = () => takeAction("APPROVED");
+  const approve = () => takeAction("APPROVED", approveComment);
   const openReject = () => { setRejectComment(""); setShowRejectModal(true); };
   const confirmReject = () => takeAction("REJECTED", rejectComment);
   const cancelReject = () => { setShowRejectModal(false); setRejectComment(""); };
@@ -84,6 +85,7 @@ export function usePendingApprovals() {
     selected, openDetail, closeDetail,
     actionLoading, actionError,
     showRejectModal, rejectComment, setRejectComment,
+    approveComment, setApproveComment,
     approve, openReject, confirmReject, cancelReject,
   };
 }
