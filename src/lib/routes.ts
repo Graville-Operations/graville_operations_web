@@ -42,6 +42,9 @@ export const ROUTES = {
     myPendingPermits: '/permits/my-pending-permits',
     myPermits:        '/permits/my-permits',
   },
+  workers: {
+    dashboard: '/workers/dashboard',
+  },
   sections: {
     departments: {
       list: '/sections/departments',
