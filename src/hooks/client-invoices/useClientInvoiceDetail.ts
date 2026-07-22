@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchClientInvoiceDetail } from '@/lib/api/client-invoices';
-import { ClientInvoiceDetail, InvoicePreview } from '@/types/client-invoice';
+import {
+  fetchClientInvoiceDetail,
+  updateClientInvoiceStatus,
+  recordClientInvoicePayment,
+  RecordPaymentPayload,
+} from '@/lib/api/client-invoices';
+import { ClientInvoiceDetail, InvoicePreview, InvoicePaymentStatus } from '@/types/client-invoice';
 import { generateInvoicePDF } from '@/lib/utils/generate-invoice-pdf';
 
 const TIMEOUT_MS = 10_000;
@@ -16,6 +21,8 @@ export function useClientInvoiceDetail() {
   const [error, setError] = useState<string | null>(null);
   const [retryIn, setRetryIn] = useState<number | null>(null);
   const [preview, setPreview] = useState<InvoicePreview>({});
+  const [rejecting, setRejecting] = useState(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
 
   const resolvedRef = useRef(false);
   const cancelledRef = useRef(false);
@@ -130,5 +137,39 @@ export function useClientInvoiceDetail() {
     }
   };
 
-  return { id, invoice, isLoading, isExporting, error, retryIn, preview, load, handleDownload };
+  const handleReject = useCallback(async () => {
+    if (!invoice) return;
+    setRejecting(true);
+    try {
+      const result = await updateClientInvoiceStatus(invoice.id, InvoicePaymentStatus.REJECTED);
+      setInvoice((prev) => (prev ? { ...prev, paymentStatus: result.payment_status } : prev));
+    } finally {
+      setRejecting(false);
+    }
+  }, [invoice]);
+
+  const handleRecordPayment = useCallback(async (payload: RecordPaymentPayload) => {
+    if (!invoice) return;
+    setPaymentSubmitting(true);
+    try {
+      const result = await recordClientInvoicePayment(invoice.id, payload);
+      setInvoice((prev) =>
+        prev
+          ? {
+              ...prev,
+              paymentStatus: result.payment_status,
+              totalPaid: result.total_paid,
+              remainingBalance: result.remaining_balance,
+            }
+          : prev
+      );
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  }, [invoice]);
+
+  return {
+    id, invoice, isLoading, isExporting, error, retryIn, preview, load, handleDownload,
+    rejecting, paymentSubmitting, handleReject, handleRecordPayment,
+  };
 }

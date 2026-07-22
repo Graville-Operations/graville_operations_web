@@ -1,7 +1,15 @@
 export const ROUTES = {
   home:     '/home',
   signin:   '/signin',
+  forgotPassword: '/signin/forgot-password',
   account:  '/account',
+  public: {
+    landing:  '/',
+    about:    '/about',
+    services: '/services',
+    contact:  '/contact',
+    demo:     '/demo',
+  },
   users: {
     dashboard: '/users/dashboard',
     new:    '/users/new',
@@ -69,3 +77,27 @@ export const ROUTES = {
     subtaskCreate: (taskId: string) => `/quality/dashboard/tasks/${taskId}/subtasks/create`,
   },
 } as const;
+
+export const AUTH_ROUTES = [
+  ROUTES.signin,
+  ROUTES.forgotPassword,
+];
+
+export const PUBLIC_ROUTES = [
+  ROUTES.public.landing,
+  ROUTES.public.about,
+  ROUTES.public.services,
+  ROUTES.public.contact,
+  ROUTES.public.demo,
+];
+
+export const PROTECTED_PREFIX = [
+  '/home',
+  '/users',
+  '/finance',
+  '/workers',
+  '/projects',
+  '/store',
+  '/department',
+  '/account',
+];

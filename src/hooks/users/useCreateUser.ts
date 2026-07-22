@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/user-store';
 import { ROUTES } from '@/lib/routes';
-import { Role, Department, NewUserFormState } from '@/types/users';
-import { fetchRoles, fetchDepartments, createUser, assignUserToDepartment } from '@/lib/api/users';
+import { Department, NewUserFormState } from '@/types/users';
+import { fetchDepartments, createUser, assignUserToDepartment } from '@/lib/api/users';
+import { useRoles } from '@/hooks/users/useRoles';
 
 const initialForm: NewUserFormState = {
   first_name:    '',
@@ -20,14 +21,13 @@ const initialForm: NewUserFormState = {
 export function useCreateUser() {
   const router = useRouter();
   const { clearUsers } = useUserStore();
-  const [roles, setRoles] = useState<Role[]>([]);
+  const { roles } = useRoles(); // now cached via useCachedLookup
   const [departments, setDepartments] = useState<Department[]>([]);
   const [form, setForm] = useState<NewUserFormState>(initialForm);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchRoles().then(setRoles).catch((err) => console.error('Failed to fetch roles:', err));
     fetchDepartments().then(setDepartments).catch((err) => console.error('Failed to fetch departments:', err));
   }, []);
 

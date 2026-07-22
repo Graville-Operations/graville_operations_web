@@ -3,13 +3,14 @@ import { API } from '@/lib/endpoints';
 import { ApiUser } from '@/types';
 import { Department, Role, NewUserFormState } from '@/types/users';
 import { RoleFormState } from '@/types/users';
+import { clearCachedLookup } from '@/hooks/useCachedLookup';
 
-function unwrap<T>(data: unknown): T {
+export function unwrap<T>(data: unknown): T {
   const payload = (data as { data?: unknown })?.data ?? data;
   return payload as T;
 }
 
-function unwrapList<T>(data: unknown): T[] {
+export function unwrapList<T>(data: unknown): T[] {
   const payload = unwrap<T[] | { items?: T[] }>(data);
   if (Array.isArray(payload)) return payload;
   return (payload as { items?: T[] })?.items ?? [];
@@ -52,6 +53,9 @@ export async function createUser(form: NewUserFormState): Promise<{ id: number }
   });
 
   const id: number = created?.data?.id ?? created?.id ?? created?.user?.id;
+
+  clearCachedLookup(API.users.list);
+
   return { id };
 }
 
@@ -60,20 +64,25 @@ export async function assignUserToDepartment(
   userIds: number[]
 ): Promise<void> {
   await api.post(API.departments.assignUsers(departmentId as number), { user_ids: userIds });
+  clearCachedLookup(API.users.list);
 }
 
 export async function createRole(payload: RoleFormState): Promise<void> {
   await api.post(API.roles.create, payload);
+  clearCachedLookup(API.roles.list);
 }
 
 export async function updateRole(id: number, payload: RoleFormState): Promise<void> {
   await api.patch(API.roles.update(id), payload);
+  clearCachedLookup(API.roles.list);
 }
 
 export async function deleteRole(id: number): Promise<void> {
   await api.delete(API.roles.delete(id));
+  clearCachedLookup(API.roles.list);
 }
 
 export function assignRoleToUser(roleId: number, userId: number) {
+  clearCachedLookup(API.users.list); // a user's role changed — user list view may show it
   return api.post(API.roles.assign(roleId, userId));
 }

@@ -52,6 +52,11 @@ export const API = {
     detail: (id: number) => `/subcontractor-invoices/details/${id}`,
     create: "/subcontractor-invoices/create",
   },
+  companyInvoices: {
+    all: "/company-invoices/all",
+    detail: (id: number | string) => `/company-invoices/details/${id}`,
+    create: "/company-invoices/create",
+  },
   workers: {
     listBySite: (siteId: number) => `/workers/list-by-id/${siteId}`,
     detail: (id: number) => `/workers/details/${id}`,
@@ -97,5 +102,13 @@ export const API = {
     dailyUsageAll: '/daily-usage/all',
     dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
+  },
+ invoiceActions: {
+    updateStatus: (invoiceType: string, invoiceId: number | string) =>
+      `/invoices/${invoiceType}/${invoiceId}/status`,
+    recordPayment: (invoiceType: string, invoiceId: number | string) =>
+      `/invoices/${invoiceType}/${invoiceId}/payments`,
+    paymentHistory: (invoiceType: string, invoiceId: number | string) =>
+      `/invoices/${invoiceType}/${invoiceId}/payments`,
   },
 } as const;

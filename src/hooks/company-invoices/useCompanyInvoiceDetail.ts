@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { CompanyInvoice } from '@/types/company_invoices';
-import { fetchCompanyInvoiceDetail } from '@/lib/api/company-invoices';
+import { CompanyInvoice, InvoicePaymentStatus } from '@/types/company_invoices';
+import {
+  fetchCompanyInvoiceDetail,
+  updateCompanyInvoiceStatus,
+  recordCompanyInvoicePayment,
+  RecordPaymentPayload,
+} from '@/lib/api/company-invoices';
 import { generateInvoicePDF } from '@/lib/utils/generate-invoice-pdf';
 
 const previewKey = (id: string) => `cinv_${id}`;
@@ -12,6 +17,8 @@ export function useCompanyInvoiceDetail(id: string | undefined) {
   const [loading, setLoading]             = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [downloading, setDownloading]     = useState(false);
+  const [rejecting, setRejecting]                 = useState(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -22,17 +29,20 @@ export function useCompanyInvoiceDetail(id: string | undefined) {
         const partial = JSON.parse(cached);
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setInvoice({
-          id:             Number(id),
-          invoice_number: partial.invoice_number,
-          invoiced_by:    partial.invoiced_by,
-          invoice_date:   partial.invoice_date,
-          total:          partial.total,
-          source:         null,
-          requester:      null,
-          notes:          null,
-          created_at:     null,
-          updated_at:     null,
-          items:          [],
+          id:                Number(id),
+          invoice_number:    partial.invoice_number,
+          invoiced_by:       partial.invoiced_by,
+          invoice_date:      partial.invoice_date,
+          total:             partial.total,
+          payment_status:    partial.payment_status ?? InvoicePaymentStatus.PENDING,
+          total_paid:        null,
+          remaining_balance: null,
+          source:            null,
+          requester:         null,
+          notes:             null,
+          created_at:        null,
+          updated_at:        null,
+          items:             [],
         });
         setLoading(false);
       } catch {
@@ -82,5 +92,46 @@ export function useCompanyInvoiceDetail(id: string | undefined) {
     }
   }, [invoice]);
 
-  return { invoice, loading, detailLoading, downloading, handleDownload };
+  const handleReject = useCallback(async () => {
+    if (!invoice) return;
+    setRejecting(true);
+    try {
+      const result = await updateCompanyInvoiceStatus(invoice.id, InvoicePaymentStatus.REJECTED);
+      setInvoice((prev) => (prev ? { ...prev, payment_status: result.payment_status } : prev));
+    } finally {
+      setRejecting(false);
+    }
+  }, [invoice]);
+
+  const handleRecordPayment = useCallback(async (payload: RecordPaymentPayload) => {
+    if (!invoice) return;
+    setPaymentSubmitting(true);
+    try {
+      const result = await recordCompanyInvoicePayment(invoice.id, payload);
+      setInvoice((prev) =>
+        prev
+          ? {
+              ...prev,
+              payment_status:    result.payment_status,
+              total_paid:        result.total_paid,
+              remaining_balance: result.remaining_balance,
+            }
+          : prev
+      );
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  }, [invoice]);
+
+  return {
+    invoice,
+    loading,
+    detailLoading,
+    downloading,
+    handleDownload,
+    rejecting,
+    paymentSubmitting,
+    handleReject,
+    handleRecordPayment,
+  };
 }

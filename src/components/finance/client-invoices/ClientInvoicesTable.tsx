@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Receipt } from 'lucide-react';
 import { ClientInvoiceListItem } from '@/types/client-invoice';
 import { ROUTES } from '@/lib/routes';
+import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge';
+import { InvoicePaymentStatus } from '@/types/company_invoices';
 
 interface ClientInvoicesTableProps {
   invoices: ClientInvoiceListItem[];
@@ -43,7 +45,7 @@ export function ClientInvoicesTable({ invoices, isLoading, onSelect }: ClientInv
             }}
           >
             <tr>
-              {['Invoice No.', 'Client', 'Date', 'Amount (KES)'].map((h) => (
+              {['Invoice No.', 'Client', 'Date', 'Amount (KES)', 'Status'].map((h) => (
                 <th
                   key={h}
                   className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider"
@@ -82,6 +84,9 @@ export function ClientInvoicesTable({ invoices, isLoading, onSelect }: ClientInv
                   <span className="text-sm font-semibold" style={{ color: 'var(--gv-brand)' }}>
                     {inv.total?.toLocaleString() ?? '—'}
                   </span>
+                </td>
+                <td className="px-6 py-4">
+                  <PaymentStatusBadge status={inv.paymentStatus ?? InvoicePaymentStatus.PENDING} />
                 </td>
               </tr>
             ))}
