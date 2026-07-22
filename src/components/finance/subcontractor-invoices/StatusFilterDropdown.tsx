@@ -1,19 +1,24 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
-import type { SiteOption } from '@/types/subcontractor-invoice';
 
 const SELECT_BG = '#0f1f2e';
 
-interface SiteFilterDropdownProps {
-  sites: SiteOption[];
+const STATUS_OPTIONS = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'PARTIALLY_PAID', label: 'Partially Paid' },
+  { value: 'PAID', label: 'Paid' },
+  { value: 'REJECTED', label: 'Rejected' },
+];
+
+interface StatusFilterDropdownProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-export function SiteFilterDropdown({ sites, value, onChange }: SiteFilterDropdownProps) {
+export function StatusFilterDropdown({ value, onChange }: StatusFilterDropdownProps) {
   return (
-    <div className="relative min-w-45">
+    <div className="relative min-w-40">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -24,15 +29,15 @@ export function SiteFilterDropdown({ sites, value, onChange }: SiteFilterDropdow
                    cursor-pointer"
       >
         <option value="" style={{ backgroundColor: SELECT_BG, color: '#fff' }}>
-          All Sites
+          All Statuses
         </option>
-        {sites.map((s) => (
+        {STATUS_OPTIONS.map((s) => (
           <option
-            key={s.id}
-            value={String(s.id)}
+            key={s.value}
+            value={s.value}
             style={{ backgroundColor: SELECT_BG, color: '#fff' }}
           >
-            {s.name}
+            {s.label}
           </option>
         ))}
       </select>

@@ -5,10 +5,12 @@ import { Plus, X } from 'lucide-react';
 import { useSubcontractorInvoices } from '@/hooks/subcontractor-invoices/useSubcontractorInvoices';
 import { SearchInput } from '@/components/finance/subcontractor-invoices/SearchInput';
 import { SiteFilterDropdown } from '@/components/finance/subcontractor-invoices/SiteFilterDropdown';
+import { StatusFilterDropdown } from '@/components/finance/subcontractor-invoices/StatusFilterDropdown';
 import { DateFilterDropdown } from '@/components/finance/subcontractor-invoices/DateFilterDropdown';
 import { SubcontractorInvoicesTable } from '@/components/finance/subcontractor-invoices/SubcontractorInvoicesTable';
 import { NewInvoiceModal } from '@/components/finance/subcontractor-invoices/NewInvoiceModal';
 import { InvoiceDetailView } from '@/components/finance/subcontractor-invoices/InvoiceDetailView';
+import type { SubcontractorInvoiceListItem } from '@/types/subcontractor-invoice';
 
 export default function SubcontractorInvoicesPage() {
   const {
@@ -20,6 +22,8 @@ export default function SubcontractorInvoicesPage() {
     setSearch,
     siteFilter,
     setSiteFilter,
+    statusFilter,
+    setStatusFilter,
     dateMode,
     setDateMode,
     dateFilter,
@@ -35,11 +39,17 @@ export default function SubcontractorInvoicesPage() {
     refetch,
   } = useSubcontractorInvoices();
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<SubcontractorInvoiceListItem | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
 
-  if (selectedId !== null) {
-    return <InvoiceDetailView invoiceId={selectedId} onBack={() => setSelectedId(null)} />;
+  if (selectedInvoice !== null) {
+    return (
+      <InvoiceDetailView
+        invoiceId={selectedInvoice.id}
+        initialData={selectedInvoice}
+        onBack={() => setSelectedInvoice(null)}
+      />
+    );
   }
 
   return (
@@ -74,6 +84,8 @@ export default function SubcontractorInvoicesPage() {
 
             <SiteFilterDropdown sites={sites} value={siteFilter} onChange={setSiteFilter} />
 
+            <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
+
             <DateFilterDropdown
               dateMode={dateMode}
               setDateMode={setDateMode}
@@ -103,7 +115,7 @@ export default function SubcontractorInvoicesPage() {
           <SubcontractorInvoicesTable
             invoices={filtered}
             isLoading={isLoading}
-            onSelect={setSelectedId}
+            onSelect={setSelectedInvoice}
           />
         </div>
       </div>
