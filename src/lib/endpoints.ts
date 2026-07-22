@@ -46,13 +46,6 @@ export const API = {
     detail: (id: number) => `/company-invoices/details/${id}`,
     create: "/company-invoices/create",
   },
-
-invoiceActions: {
-    updateStatus:    (type: string, id: number) => `/invoices/${type}/${id}/status`,
-    recordPayment:   (type: string, id: number) => `/invoices/${type}/${id}/payments`,
-    paymentHistory:  (type: string, id: number) => `/invoices/${type}/${id}/payments`,
-  },
-
   permits: {
     myPermits: "/permits/my-pemits",
     all: "/permits/all",

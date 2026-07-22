@@ -13,7 +13,7 @@ interface SiteFilterDropdownProps {
 
 export function SiteFilterDropdown({ sites, value, onChange }: SiteFilterDropdownProps) {
   return (
-    <div className="relative min-w-45">
+    <div className="relative min-w-[180px]">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
