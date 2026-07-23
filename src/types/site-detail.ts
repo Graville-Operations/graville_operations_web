@@ -1,4 +1,3 @@
-
 import { SiteDetail, AttendanceRecord } from './site';
 
 export interface RawSite {
@@ -54,4 +53,11 @@ export interface SiteAnalytics {
 
 export interface SiteDetailExtended extends SiteDetail {
   estimatedValue?: number;
+}
+
+export interface FieldOperator {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
 }

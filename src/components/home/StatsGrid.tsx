@@ -1,9 +1,9 @@
-import {
-  Users, TrendingUp, Building2, Briefcase, Landmark, Receipt, FileText,
-} from 'lucide-react';
+// src/components/home/StatsGrid.tsx
+import { Users, TrendingUp, Building2 } from 'lucide-react';
 import { OverviewKPIs } from '@/types/site';
 import { InvoiceSummaryItem } from '@/types/invoice-summary';
 import { ROUTES } from '@/lib/routes';
+import { INVOICE_SUMMARY_CONFIG, INVOICE_SUMMARY_ORDER } from '@/lib/invoice-summary-config';
 import { StatCard } from './StatCard';
 import { InvoiceSummaryStatCard } from './InvoiceSummaryStatCard';
 
@@ -19,18 +19,22 @@ function getSummary(items: InvoiceSummaryItem[], id: string): InvoiceSummaryItem
     id,
     name: '',
     pendingAmount: 0,
-    totalPendingInvoices: 0,
+    pendingCount: 0,
+    partiallyPaidInvoiceTotal: 0,
+    partiallyPaidAmountPaid: 0,
+    partiallyPaidBalanceDue: 0,
+    partiallyPaidCount: 0,
     paidAmount: 0,
-    totalPaidInvoices: 0,
+    paidCount: 0,
+    rejectedAmount: 0,
+    rejectedCount: 0,
+    totalInvoiceCount: 0,
+    totalAmountPaid: 0,
+    totalRemainingBalance: 0,
   };
 }
 
 export function StatsGrid({ kpis, loading, invoiceSummary, invoiceSummaryLoading }: StatsGridProps) {
-  const supplier = getSummary(invoiceSummary, 'supplier-invoice');
-  const company = getSummary(invoiceSummary, 'company-invoice');
-  const client = getSummary(invoiceSummary, 'client-invoice');
-  const subcontractor = getSummary(invoiceSummary, 'subcontractor-invoice');
-
   const baseStats = [
     {
       label: 'Total Sites',
@@ -65,62 +69,34 @@ export function StatsGrid({ kpis, loading, invoiceSummary, invoiceSummaryLoading
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {baseStats.map((stat) => (
-        <StatCard key={stat.label} {...stat} loading={loading} />
-      ))}
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {INVOICE_SUMMARY_ORDER.map((id) => {
+          const summary = getSummary(invoiceSummary, id);
+          const config = INVOICE_SUMMARY_CONFIG[id];
 
-      <InvoiceSummaryStatCard
-        name="Supplier Invoices"
-        icon={Briefcase}
-        iconBg="rgba(251,146,60,0.20)"
-        iconColor="#fb923c"
-        pendingAmount={supplier.pendingAmount}
-        totalPendingInvoices={supplier.totalPendingInvoices}
-        paidAmount={supplier.paidAmount}
-        totalPaidInvoices={supplier.totalPaidInvoices}
-        href={ROUTES.finance.invoice.supplier.list}
-        loading={invoiceSummaryLoading}
-      />
+          return (
+            <InvoiceSummaryStatCard
+              key={id}
+              name={config.label}
+              icon={config.icon}
+              iconBg={config.iconBg}
+              iconColor={config.iconColor}
+              totalAmountPaid={summary.totalAmountPaid}
+              totalRemainingBalance={summary.totalRemainingBalance}
+              totalInvoiceCount={summary.totalInvoiceCount}
+              href={ROUTES.homeInvoices.detail(id)}
+              loading={invoiceSummaryLoading}
+            />
+          );
+        })}
+      </div>
 
-      <InvoiceSummaryStatCard
-        name="Company Invoices"
-        icon={Landmark}
-        iconBg="rgba(96,165,250,0.20)"
-        iconColor="#60a5fa"
-        pendingAmount={company.pendingAmount}
-        totalPendingInvoices={company.totalPendingInvoices}
-        paidAmount={company.paidAmount}
-        totalPaidInvoices={company.totalPaidInvoices}
-        href={ROUTES.finance.invoice.company.list}
-        loading={invoiceSummaryLoading}
-      />
-
-      <InvoiceSummaryStatCard
-        name="Client Invoices"
-        icon={Receipt}
-        iconBg="rgba(51,144,124,0.20)"
-        iconColor="#33907c"
-        pendingAmount={client.pendingAmount}
-        totalPendingInvoices={client.totalPendingInvoices}
-        paidAmount={client.paidAmount}
-        totalPaidInvoices={client.totalPaidInvoices}
-        href={ROUTES.finance.invoice.client.list}
-        loading={invoiceSummaryLoading}
-      />
-
-      <InvoiceSummaryStatCard
-        name="Subcontractor Invoices"
-        icon={FileText}
-        iconBg="rgba(167,139,250,0.20)"
-        iconColor="#a78bfa"
-        pendingAmount={subcontractor.pendingAmount}
-        totalPendingInvoices={subcontractor.totalPendingInvoices}
-        paidAmount={subcontractor.paidAmount}
-        totalPaidInvoices={subcontractor.totalPaidInvoices}
-        href={ROUTES.finance.invoice.contractor}
-        loading={invoiceSummaryLoading}
-      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {baseStats.map((stat) => (
+          <StatCard key={stat.label} {...stat} loading={loading} />
+        ))}
+      </div>
     </div>
   );
 }
