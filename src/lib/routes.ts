@@ -42,6 +42,16 @@ export const ROUTES = {
   projects: {
     dashboard: '/projects/dashboard',
     new:       '/projects/new',
+    sites:     '/projects/sites',
+  },
+  permits: {
+    all:              '/permits/all',
+    create:           '/permits/create',
+    myPendingPermits: '/permits/my-pending-permits',
+    myPermits:        '/permits/my-permits',
+  },
+  workers: {
+    dashboard: '/workers/dashboard',
   },
   sections: {
     departments: {
@@ -63,12 +73,6 @@ export const ROUTES = {
       detail: (usageId: string) => `/stores/orders/${usageId}`,
     },
     stocks: '/stores/stocks',
-  },
-  permits: {
-    create: '/permits/create',
-    myPending: '/permits/my-pending-permits',
-    mine: '/permits/my-permits',
-    all: '/permits/all',
   },
   quality: {
     dashboard: '/quality/dashboard',

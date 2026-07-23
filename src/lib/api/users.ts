@@ -31,9 +31,18 @@ export async function fetchUserDepartments(id: number): Promise<Department[]> {
   return unwrapList<Department>(data);
 }
 
-export async function fetchRoles(): Promise<Role[]> {
+const ROLES_CACHE_KEY = 'gv:roles';
+
+export async function fetchRoles(forceRefresh = false): Promise<Role[]> {
+  if (!forceRefresh) {
+    const cached = cacheGet<Role[]>(ROLES_CACHE_KEY);
+    if (cached) return cached;
+  }
+
   const { data } = await api.get(API.roles.list);
-  return unwrapList<Role>(data);
+  const roles = unwrapList<Role>(data);
+  cacheSet(ROLES_CACHE_KEY, roles);
+  return roles;
 }
 
 export async function fetchDepartments(): Promise<Department[]> {
@@ -70,19 +79,54 @@ export async function assignUserToDepartment(
 export async function createRole(payload: RoleFormState): Promise<void> {
   await api.post(API.roles.create, payload);
   clearCachedLookup(API.roles.list);
+  cacheBust(ROLES_CACHE_KEY);
 }
 
 export async function updateRole(id: number, payload: RoleFormState): Promise<void> {
   await api.patch(API.roles.update(id), payload);
   clearCachedLookup(API.roles.list);
+  cacheBust(ROLES_CACHE_KEY);
 }
 
 export async function deleteRole(id: number): Promise<void> {
   await api.delete(API.roles.delete(id));
   clearCachedLookup(API.roles.list);
+  cacheBust(ROLES_CACHE_KEY);
 }
 
 export function assignRoleToUser(roleId: number, userId: number) {
   clearCachedLookup(API.users.list); // a user's role changed — user list view may show it
   return api.post(API.roles.assign(roleId, userId));
+}
+
+interface CacheEntry<T> {
+  data: T;
+}
+
+export function cacheGet<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const entry: CacheEntry<T> = JSON.parse(raw);
+    return entry.data;
+  } catch {
+    return null;
+  }
+}
+
+export function cacheSet<T>(key: string, data: T): void {
+  try {
+    const entry: CacheEntry<T> = { data };
+    localStorage.setItem(key, JSON.stringify(entry));
+  } catch {
+
+  }
+}
+
+export function cacheBust(prefix: string): void {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith(prefix))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {}
 }

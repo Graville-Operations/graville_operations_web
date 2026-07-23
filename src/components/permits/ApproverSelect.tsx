@@ -10,7 +10,6 @@ interface ApproverSelectProps {
   selected: SelectedApprover[];
   onToggle: (user: ApiUser) => void;
   loading?: boolean;
-  /** Extra classes appended to the trigger button, e.g. "py-3" on the create page. */
   buttonClassName?: string;
 }
 

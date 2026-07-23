@@ -19,6 +19,8 @@ export function useSubcontractorInvoices() {
   const [sites, setSites] = useState<SiteOption[]>([]);
   const [siteFilter, setSiteFilter] = useState('');
 
+  const [statusFilter, setStatusFilter] = useState('');
+
   const [search, setSearch] = useState('');
 
   const [dateMode, setDateMode] = useState<DateMode>('single');
@@ -36,6 +38,7 @@ export function useSubcontractorInvoices() {
       setIsLoading(true);
       const { items: list, total: fetchedTotal } = await fetchSubcontractorInvoices({
         siteId: siteFilter || undefined,
+        paymentStatus: statusFilter || undefined,
       });
       setTotal(fetchedTotal);
 
@@ -56,9 +59,11 @@ export function useSubcontractorInvoices() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadInvoices();
 
-  }, [siteFilter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteFilter, statusFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -104,12 +109,13 @@ export function useSubcontractorInvoices() {
     setSearch('');
     clearDateFilter();
     setSiteFilter('');
+    setStatusFilter('');
   };
 
   const hasDateFilter = dateMode === 'single' ? !!dateFilter : !!(dateFrom || dateTo);
   const hasFilters = useMemo(
-    () => !!(search || hasDateFilter || siteFilter),
-    [search, hasDateFilter, siteFilter],
+    () => !!(search || hasDateFilter || siteFilter || statusFilter),
+    [search, hasDateFilter, siteFilter, statusFilter],
   );
 
   return {
@@ -122,6 +128,8 @@ export function useSubcontractorInvoices() {
     setSearch,
     siteFilter,
     setSiteFilter,
+    statusFilter,
+    setStatusFilter,
     dateMode,
     setDateMode,
     dateFilter,
@@ -139,6 +147,33 @@ export function useSubcontractorInvoices() {
   };
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Fetches one invoice's detail (for its createdBy) with a couple of retries
+// on failure — a dropped request from a flaky connection shouldn't
+// permanently leave a real submitter looking blank in the table.
+async function fetchCreatedByWithRetry(
+  invoiceId: number,
+  attempts = 3,
+): Promise<{ id: number; createdBy?: SubcontractorInvoiceListItem['createdBy'] }> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      const detail = await fetchSubcontractorInvoiceDetail(invoiceId);
+      return { id: invoiceId, createdBy: detail.createdBy };
+    } catch (err) {
+      lastErr = err;
+      if (attempt < attempts - 1) {
+        await delay(400 * (attempt + 1)); // 400ms, then 800ms
+      }
+    }
+  }
+  console.error(`[SubcontractorInvoices] createdBy hydration failed for invoice ${invoiceId} after ${attempts} attempts:`, lastErr);
+  return { id: invoiceId, createdBy: undefined };
+}
+
 async function hydrateCreatedBy(
   list: SubcontractorInvoiceListItem[],
 ): Promise<SubcontractorInvoiceListItem[]> {
@@ -148,12 +183,7 @@ async function hydrateCreatedBy(
   for (let i = 0; i < list.length; i += CHUNK) {
     const chunk = list.slice(i, i + CHUNK);
     const results = await Promise.allSettled(
-      chunk.map((inv) =>
-        fetchSubcontractorInvoiceDetail(inv.id).then((detail) => ({
-          id: inv.id,
-          createdBy: detail.createdBy,
-        })),
-      ),
+      chunk.map((inv) => fetchCreatedByWithRetry(inv.id)),
     );
     results.forEach((res) => {
       if (res.status === 'fulfilled' && res.value.createdBy) {

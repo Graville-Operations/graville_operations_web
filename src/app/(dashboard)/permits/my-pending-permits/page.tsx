@@ -4,11 +4,11 @@
 import { FileText, Search } from "lucide-react";
 import EmptyState from "@/components/ui/emptystate";
 import { Bone, ShimmerStyle } from "@/components/shared/Shimmer";
-import { StatusBadge } from "@/components/perrmits/shared/StatusBadge";
-import { RejectConfirmModal } from "@/components/perrmits/RejectConfirmModal";
-import { PendingApprovalDetailModal } from "@/components/perrmits/PendingApprovalDetailModal";
+import { StatusBadge } from "@/components/permits/shared/StatusBadge";
+import { RejectConfirmModal } from "@/components/permits/RejectConfirmModal";
+import { PendingApprovalDetailModal } from "@/components/permits/PendingApprovalDetailModal";
 import { usePendingApprovals } from "@/hooks/permits/usePendingApprovals";
-import { formatDate } from "@/lib/utils/date";
+import { formatPermitDate } from "@/lib/utils/permit-date";
 import { STATUS_STYLES } from "@/types/permits";
 
 export default function PendingApprovalsPage() {
@@ -17,22 +17,19 @@ export default function PendingApprovalsPage() {
     selected, openDetail, closeDetail,
     actionLoading, actionError,
     showRejectModal, rejectComment, setRejectComment,
+    approveComment, setApproveComment,
     approve, openReject, confirmReject, cancelReject,
   } = usePendingApprovals();
 
   return (
     <div className="space-y-6">
       <ShimmerStyle />
-
-      {/* Header */}
       <div>
         <h2 className="text-xl font-bold" style={{ color: "var(--gv-text-primary)" }}>Pending Approvals</h2>
         <p className="text-sm mt-0.5" style={{ color: "var(--gv-text-muted)" }}>
           {filtered.length} permit{filtered.length !== 1 ? "s" : ""} awaiting your action
         </p>
       </div>
-
-      {/* Search */}
       <div className="gv-card p-3!">
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--gv-text-subtle)" }} />
@@ -45,8 +42,6 @@ export default function PendingApprovalsPage() {
           />
         </div>
       </div>
-
-      {/* Table — desktop */}
       <div className="gv-card p-0! overflow-hidden hidden md:block">
         {isLoading ? (
           <table className="w-full">
@@ -100,7 +95,7 @@ export default function PendingApprovalsPage() {
                     <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>{detail?.permitCategory ?? "—"}</td>
                     <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>{detail?.siteName ?? "—"}</td>
                     <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
-                    <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>{formatDate(item.created_at)}</td>
+                    <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>{formatPermitDate(item.created_at)}</td>
                   </tr>
                 );
               })}
@@ -134,9 +129,6 @@ export default function PendingApprovalsPage() {
           />
         ) : filtered.map((item) => {
           const detail = permitCache[item.permit_id];
-          // NOTE: matches the original mobile-card badge padding (py-0.5),
-          // which differs slightly from the shared StatusBadge (py-1) —
-          // preserved as-is rather than silently changed.
           const st = STATUS_STYLES[item.status] ?? { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" };
           return (
             <div key={item.id} onClick={() => openDetail(item)} className="gv-card cursor-pointer active:scale-[0.99] transition-transform" style={{ padding: "14px 16px" }}>
@@ -146,7 +138,7 @@ export default function PendingApprovalsPage() {
               </div>
               <p className="text-sm mb-1" style={{ color: "var(--gv-text-muted)" }}>{detail?.permitCategory ?? "—"}</p>
               <div className="flex items-center justify-between pt-2.5" style={{ borderTop: "1px solid var(--gv-glass-border)" }}>
-                <span className="text-xs" style={{ color: "var(--gv-text-subtle)" }}>{formatDate(item.created_at)}</span>
+                <span className="text-xs" style={{ color: "var(--gv-text-subtle)" }}>{formatPermitDate(item.created_at)}</span>
               </div>
             </div>
           );
@@ -171,6 +163,8 @@ export default function PendingApprovalsPage() {
           onReject={openReject}
           actionLoading={actionLoading}
           actionError={actionError}
+          approveComment={approveComment}
+          setApproveComment={setApproveComment}
         />
       )}
     </div>

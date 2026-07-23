@@ -30,7 +30,7 @@ export default function SupplierInvoicesPage() {
   } = useSupplierInvoices();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6"> 
       <div>
         <h2 className="text-xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>Supplier Invoices</h2>
         <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
