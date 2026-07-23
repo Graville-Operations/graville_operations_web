@@ -12,10 +12,13 @@ interface PendingApprovalDetailModalProps {
   onReject: () => void;
   actionLoading: boolean;
   actionError: string | null;
+  approveComment: string;
+  setApproveComment: (v: string) => void;
 }
 
 export function PendingApprovalDetailModal({
   selected, onClose, onApprove, onReject, actionLoading, actionError,
+  approveComment, setApproveComment,
 }: PendingApprovalDetailModalProps) {
   return (
     <div
@@ -48,7 +51,7 @@ export function PendingApprovalDetailModal({
 
         <div className="p-5 space-y-4">
           <PermitMetaGrid fields={buildPermitMetaFields(selected, false)} />
-          <PermitDescription description={selected.description} />
+          <PermitDescription description={selected.description} title={selected.title} />
           <ApproversTable approvals={selected.approvals} />
 
           {actionError && (
@@ -59,6 +62,18 @@ export function PendingApprovalDetailModal({
 
           <div className="rounded-xl p-4 space-y-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--gv-glass-border)" }}>
             <p className="gv-eyebrow" style={{ letterSpacing: "0.15em" }}>Take Action</p>
+            <div>
+              <label className="gv-eyebrow mb-1 block text-label-sm">
+                Comment <span style={{ color: "var(--gv-text-muted)", fontWeight: 400 }}>(optional)</span>
+              </label>
+              <textarea
+                value={approveComment}
+                onChange={(e) => setApproveComment(e.target.value)}
+                placeholder="Add a note for this decision..."
+                rows={2}
+                className="gv-input resize-none text-sm w-full"
+              />
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={onApprove}

@@ -1,16 +1,11 @@
 import { PermitDetail, APPROVAL_STYLES } from "@/types/permits";
-import { formatDate } from "@/lib/utils/date";
+import { formatPermitDate } from "@/lib/utils/permit-date";
 
 interface MetaField {
   label: string;
   value: string;
 }
 
-/**
- * Builds the label/value pairs for the detail-modal meta grid.
- * `includeLastUpdated` controls whether "Last Updated" is shown — the
- * my-permits detail modal shows it, the pending-approval one does not.
- */
 export function buildPermitMetaFields(
   selected: PermitDetail,
   includeLastUpdated: boolean
@@ -19,10 +14,10 @@ export function buildPermitMetaFields(
     { label: "Requested By", value: selected.requester ?? "—" },
     { label: "Category", value: selected.permitCategory ?? "—" },
     { label: "Site", value: selected.siteName ?? "—" },
-    { label: "Created", value: formatDate(selected.created_at) },
+    { label: "Created", value: formatPermitDate(selected.created_at) },
   ];
   if (includeLastUpdated) {
-    fields.push({ label: "Last Updated", value: formatDate(selected.updated_at) });
+    fields.push({ label: "Last Updated", value: formatPermitDate(selected.updated_at) });
   }
   return fields;
 }
@@ -39,20 +34,17 @@ export function PermitMetaGrid({ fields }: { fields: MetaField[] }) {
     </div>
   );
 }
-
-/** Always renders — shows a faint placeholder instead of hiding the block when empty. */
-export function PermitDescription({ description }: { description?: string | null }) {
+export function PermitDescription({ description, title }: { description?: string | null; title?: string }) {
+  const isPlaceholder = !description || (title && description.trim() === title.trim());
   return (
     <div className="rounded-xl px-4 py-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid var(--gv-glass-border)" }}>
       <p className="gv-eyebrow text-label-sm mb-1">Description</p>
-      <p className="text-xs leading-relaxed" style={{ color: description ? "var(--gv-text-muted)" : "var(--gv-text-faint)" }}>
-        {description || "No description provided"}
+      <p className="text-xs leading-relaxed" style={{ color: isPlaceholder ? "var(--gv-text-faint)" : "var(--gv-text-muted)" }}>
+        {isPlaceholder ? "No description provided" : description}
       </p>
     </div>
   );
 }
-
-/** Comment column only renders when at least one approval actually has a comment. */
 export function ApproversTable({ approvals }: { approvals: PermitDetail["approvals"] }) {
   if (!approvals || approvals.length === 0) return null;
   const hasComment = approvals.some((a) => a.comment);

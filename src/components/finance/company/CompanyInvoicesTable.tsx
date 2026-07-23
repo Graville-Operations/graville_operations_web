@@ -2,8 +2,9 @@
 
 import { CompanyInvoice } from '@/types/company_invoices';
 import EmptyState from '@/components/ui/emptystate';
+import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge';
 
-const HEADERS = ['Invoice No', 'Invoiced By', 'Invoice Date', 'Total'];
+const HEADERS = ['Invoice No', 'Invoiced By', 'Invoice Date', 'Total', 'Status'];
 
 function ShimmerRow() {
   return (
@@ -14,7 +15,7 @@ function ShimmerRow() {
             className="h-3 rounded animate-pulse"
             style={{
               background: 'rgba(255,255,255,0.07)',
-              width: i === 0 ? '80px' : i === 3 ? '60px' : '100px',
+              width: i === 0 ? '80px' : i === 3 ? '60px' : i === 4 ? '70px' : '100px',
             }}
           />
         </td>
@@ -96,6 +97,9 @@ export default function CompanyInvoicesTable({
                 </td>
                 <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
                   KES {inv.total.toLocaleString()}
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  <PaymentStatusBadge status={inv.payment_status} />
                 </td>
               </tr>
             ))

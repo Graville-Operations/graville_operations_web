@@ -10,4 +10,3 @@ export const ROLE_COLORS: Record<string, string> = {
 };
 
 export const DEFAULT_ROLE_BADGE = 'bg-white/10 text-white/60';
-export const DEFAULT_NEW_USER_PASSWORD = 'Password098!';

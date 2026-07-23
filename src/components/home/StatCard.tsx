@@ -14,7 +14,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, icon: Icon, iconBg, iconColor, change, positive, href, loading }: StatCardProps) {
   const content = (
-    <div className="gv-card gv-stat-card p-5 flex flex-col gap-4 cursor-pointer">
+    <div className="gv-card gv-stat-card h-full p-5 flex flex-col gap-4 cursor-pointer">
       <div className="flex items-center justify-between">
         <div className="p-2.5 rounded-xl" style={{ background: iconBg }}>
           <Icon size={20} style={{ color: iconColor }} />
@@ -39,10 +39,10 @@ export function StatCard({ label, value, icon: Icon, iconBg, iconColor, change, 
           {value}
         </p>
       )}
-      <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
+      <p className="text-sm mt-auto" style={{ color: 'var(--gv-text-muted)' }}>{label}</p>
     </div>
   );
 
-  if (href) return <Link href={href}>{content}</Link>;
-  return <div>{content}</div>;
+  if (href) return <Link href={href} className="block h-full">{content}</Link>;
+  return <div className="h-full">{content}</div>;
 }

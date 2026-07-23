@@ -1,30 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ApiUser } from '@/types';
-import { fetchUsers } from '@/lib/api/users';
+import { API } from '@/lib/endpoints';
+import { unwrapList } from '@/lib/api/users';
+import { useCachedLookup } from '@/hooks/useCachedLookup';
 
 export function useUsers() {
-  const [users, setUsers] = useState<ApiUser[]>([]);
+  const { data, loading: isLoading, refetch } = useCachedLookup<unknown>(API.users.list);
+  const users = useMemo(() => (data ? unwrapList<ApiUser>(data) : []), [data]);
+
   const [filtered, setFiltered] = useState<ApiUser[]>([]);
   const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
 
-  const loadUsers = async () => {
-    try {
-      setIsLoading(true);
-      const list = await fetchUsers();
-      setUsers(list);
-      setFiltered(list);
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+ 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => { setFiltered(users); }, [users]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -41,5 +32,5 @@ export function useUsers() {
     return () => clearTimeout(timer);
   }, [search, users]);
 
-  return { users, filtered, search, setSearch, isLoading, refetch: loadUsers };
+  return { users, filtered, search, setSearch, isLoading, refetch };
 }

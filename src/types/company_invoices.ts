@@ -1,5 +1,12 @@
 import { RawCreatedBy } from '@/types/invoice';
 
+export enum InvoicePaymentStatus {
+  PENDING = 'PENDING',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
+  PAID = 'PAID',
+  REJECTED = 'REJECTED',
+}
+
 export interface RawCompanyInvoiceItem {
   id: number;
   index: number;
@@ -18,6 +25,7 @@ export interface RawCompanyInvoice {
   invoiceDate: string;
   notes?: string | null;
   total: number;
+  paymentStatus?: InvoicePaymentStatus;
   created_at?: string;
   updatedAt?: string;
   items?: RawCompanyInvoiceItem[];
@@ -41,10 +49,29 @@ export interface CompanyInvoice {
   invoice_date: string | null;
   notes: string | null;
   total: number;
+  payment_status: InvoicePaymentStatus;
+  total_paid: number | null;
+  remaining_balance: number | null;
   created_at: string | null;
   updated_at: string | null;
   items: CompanyInvoiceItem[];
 }
+export interface PaymentRecord {
+  id: number;
+  amount: number;
+  payment_date: string;
+  notes: string | null;
+  recorded_by: number;
+}
+
+export interface PaymentHistory {
+  invoice_id: number;
+  total_invoice_value: number;
+  total_paid: number;
+  remaining_balance: number;
+  payments: PaymentRecord[];
+}
+
 
 export function normaliseCompanyInvoice(raw: RawCompanyInvoice): CompanyInvoice {
   const invoicedBy =
@@ -53,16 +80,19 @@ export function normaliseCompanyInvoice(raw: RawCompanyInvoice): CompanyInvoice 
       : (raw.invoicedBy as RawCreatedBy)?.name ?? null;
 
   return {
-    id:             raw.id,
-    invoice_number: raw.invoiceNo,
-    invoiced_by:    invoicedBy,
-    source:         raw.source    ?? null,
-    requester:      raw.requester ?? null,
-    invoice_date:   raw.invoiceDate  ?? null,
-    notes:          raw.notes        ?? null,
-    total:          raw.total,
-    created_at:     raw.created_at   ?? null,
-    updated_at:     raw.updatedAt    ?? null,
+    id:                raw.id,
+    invoice_number:    raw.invoiceNo,
+    invoiced_by:       invoicedBy,
+    source:            raw.source    ?? null,
+    requester:         raw.requester ?? null,
+    invoice_date:      raw.invoiceDate  ?? null,
+    notes:             raw.notes        ?? null,
+    total:             raw.total,
+    payment_status:    raw.paymentStatus ?? InvoicePaymentStatus.PENDING,
+    total_paid:        null,
+    remaining_balance: null,
+    created_at:        raw.created_at   ?? null,
+    updated_at:        raw.updatedAt    ?? null,
     items: (raw.items ?? []).map((item) => ({
       id:           item.id,
       index:        item.index,

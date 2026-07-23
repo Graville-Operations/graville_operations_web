@@ -7,6 +7,7 @@ import { useClientInvoices } from '@/hooks/client-invoices/useClientInvoices';
 import { SearchInput } from '@/components/finance/client-invoices/SearchInput';
 import { SiteFilterDropdown } from '@/components/finance/client-invoices/SiteFilterDropdown';
 import { DateFilterDropdown } from '@/components/finance/client-invoices/DateFilterDropdown';
+import { StatusFilterDropdown } from '@/components/finance/client-invoices/StatusFilterDropdown';
 import { ClientInvoicesTable } from '@/components/finance/client-invoices/ClientInvoicesTable';
 import { ROUTES } from '@/lib/routes';
 
@@ -19,6 +20,7 @@ export default function ClientInvoicesPage() {
     calendarOpen, toggleCalendarDropdown, dateMode, setDateMode,
     singleDate, setSingleDate, dateFrom, setDateFrom, dateTo, setDateTo,
     activeDateLabel, applyDateFilter, clearDateFilter, clearAllFilters,
+    statusFilter, setStatusFilter,
     hasActiveFilters,
   } = useClientInvoices();
 
@@ -69,6 +71,8 @@ export default function ClientInvoicesPage() {
             onApply={applyDateFilter}
             onClear={clearDateFilter}
           />
+
+          <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
 
           {hasActiveFilters && (
             <button

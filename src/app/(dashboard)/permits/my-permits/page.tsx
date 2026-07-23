@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import { Plus, FileText, Tag, Pencil, Search } from "lucide-react";
 import EmptyState from "@/components/ui/emptystate";
 import { Bone, ShimmerStyle } from "@/components/shared/Shimmer";
-import { StatusBadge } from "@/components/perrmits/shared/StatusBadge";
-import { PlainStatCard } from "@/components/perrmits/shared/PlainStatCard";
-import { CategoriesTab } from "@/components/perrmits/CategoriesTab";
-import { DraftEditModal } from "@/components/perrmits/DraftEditModal";
-import { PermitDetailModal } from "@/components/perrmits/PermitDetailModal";
-import { usePermitsList, STATUS_TABS } from "@/hooks/permits/usePermitList";
-import { formatDate } from "@/lib/utils/date";
+import { StatusBadge } from "@/components/permits/shared/StatusBadge";
+import { PlainStatCard } from "@/components/permits/shared/PlainStatCard";
+import { CategoriesTab } from "@/components/permits/CategoriesTab";
+import { DraftEditModal } from "@/components/permits/DraftEditModal";
+import { PermitDetailModal } from "@/components/permits/PermitDetailModal";
+import { usePermitsList, STATUS_TABS } from "@/hooks/permits/usePermitsList";
+import { formatPermitDate } from "@/lib/utils/permit-date";
 import { STATUS_STYLES } from "@/types/permits";
 
 const STAT_DEFS = [
@@ -193,7 +193,7 @@ export default function PermitsDashboard() {
                       <td className="px-4 py-3 text-sm font-semibold max-w-xs truncate" style={{ color: "var(--gv-text-primary)" }}>{permit.title}</td>
                       <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>{permit.categoryName ?? "—"}</td>
                       <td className="px-4 py-3"><StatusBadge status={permit.status} /></td>
-                      <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>{formatDate(permit.updated_at)}</td>
+                      <td className="px-4 py-3 text-sm" style={{ color: "var(--gv-text-muted)" }}>{formatPermitDate(permit.updated_at)}</td>
                       <td className="px-4 py-3">
                         {permit.status === "Draft" && (
                           <span className="text-xs px-2 py-1 rounded-lg flex items-center gap-1 w-fit" style={{ background: "rgba(51,144,124,0.15)", color: "#33907c" }}>
@@ -249,7 +249,7 @@ export default function PermitsDashboard() {
                   </div>
                   <p className="text-sm mb-1" style={{ color: "var(--gv-text-muted)" }}>{permit.categoryName ?? "—"}</p>
                   <div className="flex items-center justify-between pt-2.5" style={{ borderTop: "1px solid var(--gv-glass-border)" }}>
-                    <span className="text-xs" style={{ color: "var(--gv-text-subtle)" }}>{formatDate(permit.updated_at)}</span>
+                    <span className="text-xs" style={{ color: "var(--gv-text-subtle)" }}>{formatPermitDate(permit.updated_at)}</span>
                     {permit.status === "Draft" && (
                       <span className="text-xs flex items-center gap-1" style={{ color: "#33907c" }}>
                         <Pencil size={10} /> Edit & Submit

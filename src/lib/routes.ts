@@ -1,7 +1,18 @@
 export const ROUTES = {
   home:     '/home',
   signin:   '/signin',
+  forgotPassword: '/signin/forgot-password',
   account:  '/account',
+  public: {
+    landing:  '/',
+    about:    '/about',
+    services: '/services',
+    contact:  '/contact',
+    demo:     '/demo',
+  },
+  homeInvoices: {
+    detail: (type: string) => `/home/invoices/${type}`,
+  },
   users: {
     dashboard: '/users/dashboard',
     new:    '/users/new',
@@ -34,6 +45,16 @@ export const ROUTES = {
   projects: {
     dashboard: '/projects/dashboard',
     new:       '/projects/new',
+    sites:     '/projects/sites',
+  },
+  permits: {
+    all:              '/permits/all',
+    create:           '/permits/create',
+    myPendingPermits: '/permits/my-pending-permits',
+    myPermits:        '/permits/my-permits',
+  },
+  workers: {
+    dashboard: '/workers/dashboard',
   },
   sections: {
     departments: {
@@ -56,12 +77,6 @@ export const ROUTES = {
     },
     stocks: '/stores/stocks',
   },
-  permits: {
-    create: '/permits/create',
-    myPending: '/permits/my-pending-permits',
-    mine: '/permits/my-permits',
-    all: '/permits/all',
-  },
   quality: {
     dashboard: '/quality/dashboard',
     taskDetail: (id: string) => `/quality/dashboard/tasks/${id}`,
@@ -69,3 +84,27 @@ export const ROUTES = {
     subtaskCreate: (taskId: string) => `/quality/dashboard/tasks/${taskId}/subtasks/create`,
   },
 } as const;
+
+export const AUTH_ROUTES = [
+  ROUTES.signin,
+  ROUTES.forgotPassword,
+];
+
+export const PUBLIC_ROUTES = [
+  ROUTES.public.landing,
+  ROUTES.public.about,
+  ROUTES.public.services,
+  ROUTES.public.contact,
+  ROUTES.public.demo,
+];
+
+export const PROTECTED_PREFIX = [
+  '/home',
+  '/users',
+  '/finance',
+  '/workers',
+  '/projects',
+  '/store',
+  '/department',
+  '/account',
+];

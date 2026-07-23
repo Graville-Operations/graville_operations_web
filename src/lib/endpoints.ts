@@ -40,6 +40,7 @@ export const API = {
     all: "/invoices/all",
     detail: (id: number) => `/invoices/details/${id}`,
     create: "/invoices/create",
+    summary: "/invoices/summary",
   },
   clientInvoices: {
   all: "/client-invoices/all",
@@ -50,6 +51,11 @@ export const API = {
     all: "/subcontractor-invoices/all",
     detail: (id: number) => `/subcontractor-invoices/details/${id}`,
     create: "/subcontractor-invoices/create",
+  },
+  companyInvoices: {
+    all: "/company-invoices/all",
+    detail: (id: number | string) => `/company-invoices/details/${id}`,
+    create: "/company-invoices/create",
   },
   workers: {
     listBySite: (siteId: number) => `/workers/list-by-id/${siteId}`,
@@ -64,6 +70,11 @@ export const API = {
     detail: (id: number) => `/sites/${id}`,
     analytics: (id: number | string) => `/sites/analytics/${id}`,
     dashboardMetrics: "/sites/dashboard-metrics",
+    unassignedOperators: "/sites/operators/unassigned",
+    assignOperator: (siteId: number | string, operatorId: number | string) =>
+      `/sites/${siteId}/opertor/${operatorId}`,
+    operator: (siteId: number | string) => `/sites/${siteId}/operator`,
+    replaceOperator: (siteId: number | string) => `/sites/${siteId}/operator/replace`,
   },
   attendance: {
     summary: "/attendance/summary",
@@ -96,5 +107,13 @@ export const API = {
     dailyUsageAll: '/daily-usage/all',
     dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
+  },
+ invoiceActions: {
+    updateStatus: (invoiceType: string, invoiceId: number | string) =>
+      `/invoices/${invoiceType}/${invoiceId}/status`,
+    recordPayment: (invoiceType: string, invoiceId: number | string) =>
+      `/invoices/${invoiceType}/${invoiceId}/payments`,
+    paymentHistory: (invoiceType: string, invoiceId: number | string) =>
+      `/invoices/${invoiceType}/${invoiceId}/payments`,
   },
 } as const;

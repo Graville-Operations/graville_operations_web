@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Invoice, normaliseInvoice } from '@/types/invoice';
+import { Invoice, InvoicePaymentStatus, normaliseInvoice } from '@/types/invoice';
 import { fetchSites, fetchSupplierInvoices, Site } from '@/lib/api/supplier-invoices';
 import { ROUTES } from '@/lib/routes';
 
@@ -16,6 +16,12 @@ export function useSupplierInvoices() {
   const [siteId, setSiteId]       = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate]     = useState('');
+  const [statusFilter, setStatusFilter] = useState<InvoicePaymentStatus | null>(null);
+
+  const filtersRef = useRef({ siteId, startDate, endDate, statusFilter });
+  useEffect(() => {
+    filtersRef.current = { siteId, startDate, endDate, statusFilter };
+  }, [siteId, startDate, endDate, statusFilter]);
 
   useEffect(() => {
     fetchSites()
@@ -23,22 +29,52 @@ export function useSupplierInvoices() {
       .catch((err) => console.error('Failed to fetch sites:', err));
   }, []);
 
-  const loadInvoices = useCallback(async (sid: string, start: string, end: string) => {
-    try {
-      setIsLoading(true);
-      const raw = await fetchSupplierInvoices({ siteId: sid, startDate: start, endDate: end });
-      setInvoices(raw.map(normaliseInvoice));
-    } catch (err) {
-      console.error('Failed to fetch invoices:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const loadInvoices = useCallback(
+    async (sid: string, start: string, end: string, status: InvoicePaymentStatus | null) => {
+      try {
+        setIsLoading(true);
+        const raw = await fetchSupplierInvoices({
+          siteId: sid,
+          startDate: start,
+          endDate: end,
+          status: status ?? undefined,
+        });
+        setInvoices(raw.map(normaliseInvoice));
+      } catch (err) {
+        console.error('Failed to fetch invoices:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadInvoices(siteId, startDate, endDate);
-  }, [siteId, startDate, endDate, loadInvoices]);
+    loadInvoices(siteId, startDate, endDate, statusFilter);
+  }, [siteId, startDate, endDate, statusFilter, loadInvoices]);
+
+  // Refetch whenever the page becomes visible again (e.g. navigating back
+  // from a detail page after a status update or payment) or the window
+  // regains focus, so the table never shows stale payment statuses.
+  useEffect(() => {
+    const refetch = () => {
+      const { siteId: sid, startDate: s, endDate: e, statusFilter: st } = filtersRef.current;
+      loadInvoices(sid, s, e, st);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refetch();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', refetch);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', refetch);
+    };
+  }, [loadInvoices]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -51,7 +87,7 @@ export function useSupplierInvoices() {
     );
   }, [invoices, search]);
 
-  const hasFilter = !!(search || siteId || startDate || endDate);
+  const hasFilter = !!(search || siteId || startDate || endDate || statusFilter);
 
   const openDetail = useCallback(
     (inv: Invoice) => {
@@ -87,6 +123,7 @@ export function useSupplierInvoices() {
     setSiteId('');
     setStartDate('');
     setEndDate('');
+    setStatusFilter(null);
   }, []);
 
   return {
@@ -100,6 +137,8 @@ export function useSupplierInvoices() {
     endDate,
     applyDateFilter,
     clearDateFilter,
+    statusFilter,
+    setStatusFilter,
     filtered,
     hasFilter,
     openDetail,

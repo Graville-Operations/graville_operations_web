@@ -1,3 +1,5 @@
+import { InvoicePaymentStatus, PaymentHistory } from '@/types/company_invoices';
+
 export interface RawInvoiceItem {
   id: number;
   index: number;
@@ -19,16 +21,16 @@ export interface RawInvoice {
   deliveryNo: string | null;
   lpoNo: string | null;
   supplierName: string;
-  invoiceDate: string;   
+  invoiceDate: string;
   notes: string | null;
   createdBy: RawCreatedBy | null;
-  created_at: string;   
+  created_at: string;
   requester: string | null;
   source: string | null;
   updatedAt: string | null;
   total: number;
   amountPaid: number;
-  status: string;
+  paymentStatus?: InvoicePaymentStatus;
   items: RawInvoiceItem[];
 }
 
@@ -58,34 +60,38 @@ export interface Invoice {
   lpo_number: string | null;
   delivery_number: string | null;
   supplier_name: string;
-  invoice_date: string;   
+  invoice_date: string;
   total_amount: number;
   amount_paid: number;
-  status: string;
+  status: InvoicePaymentStatus;
+  total_paid: number | null;
+  remaining_balance: number | null;
   site: string | null;
   items: InvoiceItem[];
   submitted_by: string | null;
   submitted_by_id: number;
   notes: string | null;
-  created_at: string | null;  
+  created_at: string | null;
 }
 
 export function normaliseInvoice(raw: RawInvoice): Invoice {
   return {
-    id:              raw.id,
-    invoice_number:  raw.invoiceNo,
-    lpo_number:      raw.lpoNo      ?? null,
-    delivery_number: raw.deliveryNo ?? null,
-    supplier_name:   raw.supplierName,
-    invoice_date:    raw.invoiceDate,          
-    total_amount:    raw.total,
-    amount_paid:     raw.amountPaid  ?? 0,
-    status:          raw.status      ?? 'PENDING',
-    site:            raw.source      ?? null,  
-    submitted_by:    raw.requester   ?? raw.createdBy?.name ?? null,
-    submitted_by_id: 0,
-    notes:           raw.notes       ?? null,
-    created_at:      raw.created_at  ?? raw.updatedAt ?? null, 
+    id:                raw.id,
+    invoice_number:    raw.invoiceNo,
+    lpo_number:        raw.lpoNo      ?? null,
+    delivery_number:   raw.deliveryNo ?? null,
+    supplier_name:     raw.supplierName,
+    invoice_date:      raw.invoiceDate,
+    total_amount:      raw.total,
+    amount_paid:       raw.amountPaid  ?? 0,
+    status:            raw.paymentStatus ?? InvoicePaymentStatus.PENDING,
+    total_paid:        null,
+    remaining_balance: null,
+    site:              raw.source      ?? null,
+    submitted_by:      raw.requester   ?? raw.createdBy?.name ?? null,
+    submitted_by_id:   0,
+    notes:             raw.notes       ?? null,
+    created_at:        raw.created_at  ?? raw.updatedAt ?? null,
     items: (raw.items ?? []).map((item) => ({
       id:          item.id,
       index:       item.index,
@@ -96,3 +102,6 @@ export function normaliseInvoice(raw: RawInvoice): Invoice {
     })),
   };
 }
+
+export { InvoicePaymentStatus };
+export type { PaymentHistory };

@@ -1,19 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/user-store';
 import { ROUTES } from '@/lib/routes';
-import { Role, Department, NewUserFormState } from '@/types/users';
-import { DEFAULT_NEW_USER_PASSWORD } from '@/lib/users-constants';
-import { fetchRoles, fetchDepartments, createUser, assignUserToDepartment } from '@/lib/api/users';
+import { useRoles } from '@/hooks/users/useRoles';
+import { useDepartmentOptions } from '@/hooks/department/use-department-options';
+import { Role, NewUserFormState } from '@/types/users';
+import { fetchRoles, createUser, assignUserToDepartment } from '@/lib/api/users';
+import { useEffect } from 'react';
 
 const initialForm: NewUserFormState = {
   first_name:    '',
   last_name:     '',
   email:         '',
   phone_no:      '',
-  password:      DEFAULT_NEW_USER_PASSWORD,
   role_id:       '',
   department_id: '',
   site_ids:      null,
@@ -23,14 +24,13 @@ export function useCreateUser() {
   const router = useRouter();
   const { clearUsers } = useUserStore();
   const [roles, setRoles] = useState<Role[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const { departments, isLoading: departmentsLoading } = useDepartmentOptions();
   const [form, setForm] = useState<NewUserFormState>(initialForm);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchRoles().then(setRoles).catch((err) => console.error('Failed to fetch roles:', err));
-    fetchDepartments().then(setDepartments).catch((err) => console.error('Failed to fetch departments:', err));
   }, []);
 
   const updateField = (key: keyof NewUserFormState, value: string) => {
@@ -58,5 +58,5 @@ export function useCreateUser() {
     }
   };
 
-  return { roles, departments, form, updateField, handleSubmit, isLoading, error };
+  return { roles, departments, departmentsLoading, form, updateField, handleSubmit, isLoading, error };
 }

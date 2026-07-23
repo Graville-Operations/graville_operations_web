@@ -3,15 +3,25 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { departmentDetailService } from '@/lib/api/department-detail-service';
 import { getApiErrorMessage } from '@/lib/api/api-error';
+import {
+  getCachedDepartment, setCachedDepartment,
+  getCachedMenus, setCachedMenus,
+  getCachedUsers, setCachedUsers,
+} from '@/lib/departments-cache';
 import { DeptDetail, Menu, User, ToastState } from '@/types/department-detail';
 
 export function useDepartmentDetail(deptId: number) {
-  const [dept, setDept] = useState<DeptDetail | null>(null);
-  const [menus, setMenus] = useState<Menu[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [deptLoading, setDeptLoading] = useState(true);
-  const [menusLoading, setMenusLoading] = useState(true);
-  const [usersLoading, setUsersLoading] = useState(true);
+  const [dept, setDept] = useState<DeptDetail | null>(() => {
+    const cached = getCachedDepartment(deptId);
+    return cached ? { id: cached.id, name: cached.name, description: cached.description } : null;
+  });
+  const [menus, setMenus] = useState<Menu[]>(() => getCachedMenus(deptId) ?? []);
+  const [users, setUsers] = useState<User[]>(() => getCachedUsers(deptId) ?? []);
+
+  const [deptLoading, setDeptLoading] = useState(() => getCachedDepartment(deptId) === null);
+  const [menusLoading, setMenusLoading] = useState(() => getCachedMenus(deptId) === null);
+  const [usersLoading, setUsersLoading] = useState(() => getCachedUsers(deptId) === null);
+
   const [removingMenuId, setRemovingMenuId] = useState<number | null>(null);
   const [removingUserEmail, setRemovingUserEmail] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
@@ -23,9 +33,20 @@ export function useDepartmentDetail(deptId: number) {
 
   const loadDept = useCallback(async () => {
     if (!deptId) return;
-    setDeptLoading(true);
+    const hadCache = getCachedDepartment(deptId) !== null;
+    if (!hadCache) setDeptLoading(true);
     try {
-      setDept(await departmentDetailService.getDepartment(deptId));
+      const fresh = await departmentDetailService.getDepartment(deptId);
+      setDept(fresh);
+
+      const existing = getCachedDepartment(deptId);
+      setCachedDepartment({
+        id: deptId,
+        name: fresh.name,
+        description: fresh.description ?? existing?.description ?? '',
+        menusCount: existing?.menusCount ?? 0,
+        usersCount: existing?.usersCount ?? 0,
+      });
     } catch (err) {
       console.warn('[useDepartmentDetail] loadDept failed:', err);
     } finally {
@@ -35,9 +56,12 @@ export function useDepartmentDetail(deptId: number) {
 
   const loadMenus = useCallback(async () => {
     if (!deptId) return;
-    setMenusLoading(true);
+    const hadCache = getCachedMenus(deptId) !== null;
+    if (!hadCache) setMenusLoading(true);
     try {
-      setMenus(await departmentDetailService.getMenus(deptId));
+      const fresh = await departmentDetailService.getMenus(deptId);
+      setMenus(fresh);
+      setCachedMenus(deptId, fresh);
     } catch (err) {
       console.warn('[useDepartmentDetail] loadMenus failed:', err);
       showToast('Failed to load menus', 'error');
@@ -48,9 +72,12 @@ export function useDepartmentDetail(deptId: number) {
 
   const loadUsers = useCallback(async () => {
     if (!deptId) return;
-    setUsersLoading(true);
+    const hadCache = getCachedUsers(deptId) !== null;
+    if (!hadCache) setUsersLoading(true);
     try {
-      setUsers(await departmentDetailService.getMembers(deptId));
+      const fresh = await departmentDetailService.getMembers(deptId);
+      setUsers(fresh);
+      setCachedUsers(deptId, fresh);
     } catch (err) {
       console.warn('[useDepartmentDetail] loadUsers failed:', err);
       showToast('Failed to load members', 'error');
@@ -66,6 +93,7 @@ export function useDepartmentDetail(deptId: number) {
   }, [loadDept, loadMenus, loadUsers]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 

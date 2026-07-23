@@ -1,7 +1,7 @@
 'use client';
 
 import { Invoice } from '@/types/invoice';
-import { getStatusStyle } from '@/lib/utils/invoice-status';
+import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge';
 import EmptyState from '@/components/ui/emptystate';
 
 const HEADERS = ['Invoice No', 'Supplier', 'Invoiced By', 'Date', 'Amount', 'Status'];
@@ -87,46 +87,38 @@ export default function SupplierInvoicesTable({
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv, idx) => {
-                const st = getStatusStyle(inv.status);
-                return (
-                  <tr
-                    key={inv.id}
-                    onClick={() => onSelect(inv)}
-                    className="cursor-pointer"
-                    style={{
-                      borderBottom: idx < invoices.length - 1 ? '1px solid var(--gv-glass-border)' : 'none',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
-                      {inv.invoice_number}
-                    </td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
-                      {inv.supplier_name}
-                    </td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
-                      {inv.submitted_by ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
-                      {inv.invoice_date ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>
-                      KES {inv.total_amount.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="text-xs font-bold px-2.5 py-1 rounded-full"
-                        style={{ background: st.bg, color: st.color }}
-                      >
-                        {inv.status.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {invoices.map((inv, idx) => (
+                <tr
+                  key={inv.id}
+                  onClick={() => onSelect(inv)}
+                  className="cursor-pointer"
+                  style={{
+                    borderBottom: idx < invoices.length - 1 ? '1px solid var(--gv-glass-border)' : 'none',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--gv-glass-bg)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
+                    {inv.invoice_number}
+                  </td>
+                  <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    {inv.supplier_name}
+                  </td>
+                  <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    {inv.submitted_by ?? '—'}
+                  </td>
+                  <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                    {inv.invoice_date ?? '—'}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>
+                    KES {inv.total_amount.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <PaymentStatusBadge status={inv.status} />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

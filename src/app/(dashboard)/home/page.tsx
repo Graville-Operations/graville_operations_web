@@ -13,13 +13,19 @@ export default function HomePage() {
     recentUsers, usersLoading,
     recentInvoices, invoicesLoading,
     kpis, kpisLoading,
+    invoiceSummary, invoiceSummaryLoading,
   } = useHomeDashboard();
 
   return (
     <div className="space-y-8">
       <WelcomeBanner firstName={user?.first_name} role={role} />
 
-      <StatsGrid kpis={kpis} loading={kpisLoading} />
+      <StatsGrid
+        kpis={kpis}
+        loading={kpisLoading}
+        invoiceSummary={invoiceSummary}
+        invoiceSummaryLoading={invoiceSummaryLoading}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentInvoicesCard invoices={recentInvoices} loading={invoicesLoading} />

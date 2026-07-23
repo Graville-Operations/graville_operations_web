@@ -5,6 +5,7 @@ import { useSupplierInvoices } from '@/hooks/supplier-invoices/useSupplierInvoic
 import SearchInput from '@/components/finance/suppliers/SearchInput';
 import SiteFilterDropdown from '@/components/finance/suppliers/SiteFilterDropdown';
 import DateFilterDropdown from '@/components/finance/suppliers/DateFilterDropdown';
+import StatusFilterDropdown from '@/components/finance/suppliers/StatusFilterDropdown';
 import SupplierInvoicesTable from '@/components/finance/suppliers/SupplierInvoicesTable';
 import SupplierInvoiceCards from '@/components/finance/suppliers/SupplierInvoiceCards';
 
@@ -20,6 +21,8 @@ export default function SupplierInvoicesPage() {
     endDate,
     applyDateFilter,
     clearDateFilter,
+    statusFilter,
+    setStatusFilter,
     filtered,
     hasFilter,
     openDetail,
@@ -27,7 +30,7 @@ export default function SupplierInvoicesPage() {
   } = useSupplierInvoices();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6"> 
       <div>
         <h2 className="text-xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>Supplier Invoices</h2>
         <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
@@ -51,7 +54,9 @@ export default function SupplierInvoicesPage() {
             onClear={clearDateFilter}
           />
 
-          {hasFilter && (siteId || startDate || endDate) && (
+          <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
+
+          {hasFilter && (siteId || startDate || endDate || statusFilter) && (
             <button
               onClick={clearAllFilters}
               className="p-2 rounded-lg shrink-0"

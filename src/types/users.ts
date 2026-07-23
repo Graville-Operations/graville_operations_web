@@ -20,7 +20,6 @@ export interface NewUserFormState {
   last_name: string;
   email: string;
   phone_no: string;
-  password: string;
   role_id: string | number;
   department_id: string | number;
   site_ids: number[] | null;

@@ -6,11 +6,12 @@ import { Title, Subtitle, Label, Body } from '@/components/ui/typography';
 import { useDepartments } from '@/hooks/department/use-departments';
 import { CreateDepartmentPayload, Department } from '@/types/department';
 import { ROUTES } from '@/lib/routes';
+import { Bone, ShimmerStyle } from '@/components/shared/Shimmer';
 
 function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
   return (
     <div
-      className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white z-[60] shadow-xl pointer-events-none
+      className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white z-60 shadow-xl pointer-events-none
         ${type === 'success' ? 'bg-[#33907c]' : 'bg-red-600'}`}
     >
       <Label size="sm" as="span" className="text-white normal-case tracking-normal">
@@ -137,7 +138,7 @@ function CreateDeptModal({
               onChange={e => setName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               placeholder="e.g. Finance, Operations, Engineering…"
-              className="w-full gv-input px-4 py-3 outline-none text-white text-[0.8125rem]"
+              className="w-full gv-input px-4 py-3 outline-none text-white text-body-sm"
             />
           </div>
           <div className="space-y-2">
@@ -150,7 +151,7 @@ function CreateDeptModal({
               onChange={e => setDescription(e.target.value)}
               placeholder="What does this department do?"
               rows={4}
-              className="w-full gv-input px-4 py-3 outline-none resize-none text-white text-[0.8125rem]"
+              className="w-full gv-input px-4 py-3 outline-none resize-none text-white text-body-sm"
             />
           </div>
           {error && (
@@ -166,7 +167,7 @@ function CreateDeptModal({
           <button
             type="button"
             onClick={onClose}
-            className="gv-btn-outline flex-1 justify-center py-3 text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium"
+            className="gv-btn-outline flex-1 justify-center py-3 text-label-sm tracking-[0.15em] uppercase font-mono font-medium"
             disabled={isSubmitting}
           >
             Cancel
@@ -175,7 +176,7 @@ function CreateDeptModal({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || !name.trim()}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all disabled:opacity-40 text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all disabled:opacity-40 text-label-sm tracking-[0.15em] uppercase font-mono font-medium"
             style={{ background: 'var(--gv-brand)', color: '#fff' }}
           >
             {isSubmitting ? <SpinnerIcon /> : <PlusIcon />}
@@ -230,7 +231,7 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
         </div>
       </div>
 
-      <div className="mx-4 h-px bg-white/[0.06]" />
+      <div className="mx-4 h-px bg-white/6" />
 
       <div className="px-4 py-3 pb-4 flex items-center gap-3">
         {/* Menus badge */}
@@ -266,21 +267,21 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
 
 function SkeletonCard() {
   return (
-    <div className="gv-card p-0 overflow-hidden animate-pulse" style={{ borderTop: '3px solid rgba(255,255,255,0.08)' }}>
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex gap-3">
-          <div className="w-9 h-9 rounded-lg bg-white/5 shrink-0" />
-          <div className="flex-1 space-y-2 pt-0.5">
-            <div className="h-4 bg-white/5 rounded w-3/4" />
-            <div className="h-3 bg-white/5 rounded w-full" />
-            <div className="h-3 bg-white/5 rounded w-2/3" />
+    <div className="gv-card p-0 overflow-hidden flex flex-col" style={{ borderTop: '3px solid rgba(255,255,255,0.08)' }}>
+      <div className="px-4 pt-4 pb-3 flex-1">
+        <div className="flex items-start gap-3">
+          <div className="gv-bone shrink-0 mt-0.5" style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.5rem' }} />
+          <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+            <Bone w="70%" h="0.95rem" />
+            <Bone w="100%" h="0.75rem" />
+            <Bone w="55%" h="0.75rem" />
           </div>
         </div>
       </div>
-      <div className="mx-4 h-px bg-white/5" />
-      <div className="px-4 py-3 pb-4 flex gap-3">
-        <div className="h-9 bg-white/5 rounded-xl flex-1" />
-        <div className="h-9 bg-white/5 rounded-xl flex-1" />
+      <div className="mx-4 h-px bg-white/6" />
+      <div className="px-4 py-3 pb-4 flex items-center gap-3">
+        <div className="gv-bone flex-1" style={{ height: '2.25rem', borderRadius: '0.75rem' }} />
+        <div className="gv-bone flex-1" style={{ height: '2.25rem', borderRadius: '0.75rem' }} />
       </div>
     </div>
   );
@@ -289,10 +290,8 @@ function SkeletonCard() {
 export default function DepartmentsPage() {
   const router = useRouter();
 
-  // All data fetching, filtering, and create logic lives in the hook.
   const { filtered, isLoading, search, setSearch, toast, createDepartment } = useDepartments();
 
-  // Pure UI state — which modal is open — stays local to the component.
   const [showCreate, setShowCreate] = useState(false);
 
   const handleCardClick = (dept: Department) => {
@@ -301,6 +300,8 @@ export default function DepartmentsPage() {
 
   return (
     <div className="space-y-6">
+      <ShimmerStyle />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -310,7 +311,7 @@ export default function DepartmentsPage() {
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium text-white"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-label-sm tracking-[0.15em] uppercase font-mono font-medium text-white"
           style={{ background: 'var(--gv-brand)' }}
         >
           <PlusIcon /> Add Department
@@ -324,7 +325,7 @@ export default function DepartmentsPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search departments…"
-          className="flex-1 bg-transparent outline-none placeholder:text-white/30 text-white text-[0.8125rem]"
+          className="flex-1 bg-transparent outline-none placeholder:text-white/30 text-white text-body-sm"
         />
         {search && (
           <button type="button" onClick={() => setSearch('')} className="text-white/30 hover:text-white transition-colors">
@@ -353,7 +354,7 @@ export default function DepartmentsPage() {
             <button
               type="button"
               onClick={() => setShowCreate(true)}
-              className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl mx-auto text-[0.625rem] tracking-[0.15em] uppercase font-mono font-medium"
+              className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl mx-auto text-label-sm tracking-[0.15em] uppercase font-mono font-medium"
               style={{
                 background: 'color-mix(in srgb, var(--gv-brand) 13%, transparent)',
                 border: '1px solid color-mix(in srgb, var(--gv-brand) 27%, transparent)',

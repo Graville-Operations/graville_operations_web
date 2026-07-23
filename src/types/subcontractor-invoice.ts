@@ -13,6 +13,8 @@ export interface BriefUserInfo {
   phone: string;
 }
 
+export type InvoicePaymentStatus = 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'REJECTED';
+
 export interface SubcontractorInvoiceListItem {
   id: number;
   invoiceNo: string;
@@ -21,6 +23,7 @@ export interface SubcontractorInvoiceListItem {
   total: number;
   createdAt: string;
   createdBy?: BriefUserInfo;
+  paymentStatus?: InvoicePaymentStatus;
 }
 
 export interface SubcontractorInvoiceDetail {
@@ -33,6 +36,7 @@ export interface SubcontractorInvoiceDetail {
   total: number;
   created_at: string;
   items: LineItem[];
+  paymentStatus?: InvoicePaymentStatus;
 }
 
 export interface SiteOption {
@@ -81,3 +85,19 @@ export const defaultInvoiceForm = (): NewInvoiceForm => ({
   notes: '',
   items: [emptyLineItem()],
 });
+
+export interface PaymentHistoryEntry {
+  id: number;
+  amount: number;
+  notes: string | null;
+  paymentDate: string;
+  recordedBy: string | null;
+}
+
+export interface PaymentHistorySummary {
+  invoiceId: number;
+  totalInvoiceValue: number;
+  totalPaid: number;
+  remainingBalance: number;
+  payments: PaymentHistoryEntry[];
+}

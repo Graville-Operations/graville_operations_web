@@ -6,13 +6,15 @@ import { Title, Label, Body } from '@/components/ui/typography';
 import { useDepartmentDetail } from '@/hooks/department/use-department-detail';
 import { useAssignMenus } from '@/hooks/department/use-assign-menus';
 import { useAssignUsers } from '@/hooks/department/use-assign-users';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Menu, User } from '@/types/department-detail';
 import { ROUTES } from '@/lib/routes';
+import { Bone, ShimmerStyle } from '@/components/shared/Shimmer';
 
 function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
   return (
     <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white
-      z-[60] shadow-xl pointer-events-none
+      z-60 shadow-xl pointer-events-none
       ${type === 'success' ? 'bg-[#33907c]' : 'bg-red-600'}`}
     >
       <Label size="sm" as="span" className="text-white normal-case tracking-normal">
@@ -81,6 +83,43 @@ const RefreshIcon = () => (
     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
   </svg>
 );
+
+function ListRowSkeleton({ avatar = false }: { avatar?: boolean }) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-xl"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
+      <div
+        className="gv-bone shrink-0"
+        style={{ width: '1.75rem', height: '1.75rem', borderRadius: avatar ? '9999px' : '0.5rem' }}
+      />
+      <div className="min-w-0 flex-1 space-y-2">
+        <Bone w="55%" h="0.8rem" />
+        <Bone w="35%" h="0.7rem" />
+      </div>
+      <div className="gv-bone shrink-0" style={{ width: '4.5rem', height: '1.75rem', borderRadius: '0.5rem' }} />
+    </div>
+  );
+}
+
+function AssignRowSkeleton({ avatar = false }: { avatar?: boolean }) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 rounded-xl"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+    >
+      <div className="gv-bone shrink-0" style={{ width: '1.25rem', height: '1.25rem', borderRadius: '0.375rem' }} />
+      {avatar && (
+        <div className="gv-bone shrink-0" style={{ width: '2.25rem', height: '2.25rem', borderRadius: '9999px' }} />
+      )}
+      <div className="min-w-0 flex-1 space-y-2">
+        <Bone w="60%" h="0.8rem" />
+        <Bone w="40%" h="0.7rem" />
+      </div>
+    </div>
+  );
+}
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -164,7 +203,7 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
       </div>
       <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-2">
         {loading ? (
-          [1, 2, 3, 4].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)
+          [1, 2, 3, 4].map(i => <AssignRowSkeleton key={i} />)
         ) : errMsg ? (
           <div className="px-4 py-4 rounded-xl space-y-1.5" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
             <Body size="sm" as="p" className="text-red-400 font-semibold">Could not load menus</Body>
@@ -239,7 +278,7 @@ function AssignUserModal({ deptId, currentUserEmails, onClose, onAssigned, showT
       </div>
       <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-2">
         {loading ? (
-          [1, 2, 3, 4].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)
+          [1, 2, 3, 4].map(i => <AssignRowSkeleton key={i} avatar />)
         ) : errMsg ? (
           <div className="px-4 py-4 rounded-xl space-y-1.5" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
             <Body size="sm" as="p" className="text-red-400 font-semibold">Could not load users</Body>
@@ -299,7 +338,6 @@ export default function DepartmentDetailPage() {
   const params = useParams();
   const deptId = Number(params?.id);
 
-
   const {
     dept, menus, users,
     deptLoading, menusLoading, usersLoading,
@@ -310,12 +348,12 @@ export default function DepartmentDetailPage() {
     assignedMenuIds, assignedUserEmails,
   } = useDepartmentDetail(deptId);
 
-  
   const [showAssignMenu, setShowAssignMenu] = useState(false);
   const [showAssignUser, setShowAssignUser] = useState(false);
 
   return (
     <div className="space-y-6">
+      <ShimmerStyle />
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
@@ -327,7 +365,7 @@ export default function DepartmentDetailPage() {
           <div>
             <Label size="sm" as="p" className="gv-eyebrow mb-0.5">Departments</Label>
             {deptLoading ? (
-              <div className="h-7 w-48 rounded-lg bg-white/5 animate-pulse" />
+              <Bone w="12rem" h="1.75rem" style={{ borderRadius: '0.5rem' }} />
             ) : dept ? (
               <Title size="md" as="h1">{dept.name}</Title>
             ) : (
@@ -377,7 +415,7 @@ export default function DepartmentDetailPage() {
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
             {menusLoading ? (
-              [1, 2, 3].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)
+              [1, 2, 3].map(i => <ListRowSkeleton key={i} />)
             ) : menus.length === 0 ? (
               <EmptyState icon={<MenusIcon />} label="No menus assigned yet"
                 action={
@@ -433,7 +471,7 @@ export default function DepartmentDetailPage() {
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
             {usersLoading ? (
-              [1, 2, 3].map(i => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)
+              [1, 2, 3].map(i => <ListRowSkeleton key={i} avatar />)
             ) : users.length === 0 ? (
               <EmptyState icon={<UsersIcon />} label="No users assigned yet"
                 action={

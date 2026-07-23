@@ -17,6 +17,7 @@ import { AnalyticsTaskRow } from '@/components/sites/AnalyticsTaskRow';
 import { AttendanceRow } from '@/components/sites/AttendanceRow';
 import { AllWorkersScreen } from '@/components/sites/AllWorkersScreen';
 import { DateRangePicker } from '@/components/sites/DateRangePicker';
+import { FieldOperatorCard } from '@/components/sites/FieldOperatorCard';
 
 export function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void }) {
 
@@ -130,6 +131,12 @@ export function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => 
                   )}
                 </div>
               )}
+
+              <div>
+                <p className="gv-label mb-2">Field Operator</p>
+                <FieldOperatorCard siteId={site.id} />
+              </div>
+
               <div style={{ borderTop: '1px solid var(--gv-glass-border)', paddingTop: '1.25rem' }}>
                 <p className="gv-label">Estimated Value</p>
                 {loadingDetail && !analytics
