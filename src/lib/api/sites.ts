@@ -1,10 +1,11 @@
+import axios from 'axios';
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import {
   Site, SiteDetail, SiteWorker, AttendanceRecord,
   SiteTask, CreateSitePayload, OverviewKPIs,
 } from '@/types/site';
-import { SiteAnalytics } from '@/types/site-detail';
+import { SiteAnalytics, FieldOperator } from '@/types/site-detail';
 import { DashboardMetrics } from '@/types/dashboard';
 
 function unwrapArray<T>(response: unknown): T[] {
@@ -30,6 +31,35 @@ function unwrapObject<T>(response: unknown): T {
     }
   }
   return response as T;
+}
+
+// Backend returns firstName/middleName/lastName (camelCase) per the confirmed
+// operator payload shape; snake_case fallbacks kept in case other endpoints differ.
+function normalizeOperator(raw: unknown): FieldOperator | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+
+  const firstName = (o.firstName ?? o.first_name ?? '') as string;
+  const middleName = (o.middleName ?? o.middle_name ?? '') as string;
+  const lastName  = (o.lastName ?? o.last_name ?? '') as string;
+
+  const name =
+    (o.name as string) ||
+    [firstName, middleName, lastName].filter(Boolean).join(' ').trim() ||
+    'Unnamed Operator';
+
+  return {
+    id: Number(o.id),
+    name,
+    email: (o.email as string) ?? '',
+    phone: (o.phone ?? o.phone_number ?? o.phoneNumber ?? '') as string,
+  };
+}
+
+function normalizeOperatorList(raw: unknown[]): FieldOperator[] {
+  return raw
+    .map(normalizeOperator)
+    .filter((op): op is FieldOperator => op !== null);
 }
 
 export async function fetchSites(): Promise<Site[]> {
@@ -86,4 +116,36 @@ export async function fetchSiteAnalytics(siteId: number | string): Promise<SiteA
 export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   const { data } = await api.get(API.sites.dashboardMetrics);
   return unwrapObject<DashboardMetrics>(data);
+}
+
+// ---- Field operator assignment ----
+
+export async function fetchUnassignedFieldOperators(): Promise<FieldOperator[]> {
+  const { data } = await api.get(API.sites.unassignedOperators);
+  return normalizeOperatorList(unwrapArray<unknown>(data));
+}
+
+export async function fetchSiteOperator(siteId: number): Promise<FieldOperator | null> {
+  try {
+    const { data } = await api.get(API.sites.operator(siteId));
+    return normalizeOperator(unwrapObject<unknown>(data));
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 404) return null;
+    throw err;
+  }
+}
+
+export async function assignFieldOperator(siteId: number, operatorId: number): Promise<void> {
+  await api.patch(API.sites.assignOperator(siteId, operatorId));
+}
+
+// new_operator_id is a query param on this endpoint, not a request body field.
+export async function replaceFieldOperator(siteId: number, operatorId: number): Promise<void> {
+  await api.patch(API.sites.replaceOperator(siteId), null, {
+    params: { new_operator_id: operatorId },
+  });
+}
+
+export async function unassignFieldOperator(siteId: number): Promise<void> {
+  await api.delete(API.sites.operator(siteId));
 }

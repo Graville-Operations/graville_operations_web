@@ -10,6 +10,9 @@ export const ROUTES = {
     contact:  '/contact',
     demo:     '/demo',
   },
+  homeInvoices: {
+    detail: (type: string) => `/home/invoices/${type}`,
+  },
   users: {
     dashboard: '/users/dashboard',
     new:    '/users/new',
