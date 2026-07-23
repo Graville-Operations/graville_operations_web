@@ -2,31 +2,54 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { fetchSubcontractorInvoiceDetail } from '@/lib/api/subcontractor-invoices';
-import type { SubcontractorInvoiceDetail } from '@/types/subcontractor-invoice';
+import type { SubcontractorInvoiceDetail, SubcontractorInvoiceListItem } from '@/types/subcontractor-invoice';
 
-export function useSubcontractorInvoiceDetail(invoiceId: number) {
-  const [invoice, setInvoice] = useState<SubcontractorInvoiceDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+function fromListItem(item: SubcontractorInvoiceListItem): SubcontractorInvoiceDetail {
+  return {
+    id:              item.id,
+    invoiceNo:       item.invoiceNo,
+    contractorName:  item.contractorName,
+    invoiceDate:     item.invoiceDate,
+    notes:           null,
+    createdBy:       item.createdBy ?? { name: '', email: '', phone: '' },
+    total:           item.total,
+    created_at:      item.createdAt,
+    items:           [],
+    paymentStatus:   item.paymentStatus,
+  };
+}
+
+export function useSubcontractorInvoiceDetail(
+  invoiceId: number,
+  initialData?: SubcontractorInvoiceListItem,
+) {
+  const [invoice, setInvoice] = useState<SubcontractorInvoiceDetail | null>(
+    initialData ? fromListItem(initialData) : null,
+  );
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [hasFullDetail, setHasFullDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (id: number) => {
-    setLoading(true);
+    setDetailLoading(true);
     setError(null);
-    setInvoice(null);
     try {
       const data = await fetchSubcontractorInvoiceDetail(id);
       setInvoice(data);
+      setHasFullDetail(true);
     } catch (err) {
       console.error(err);
       setError('Failed to load invoice details.');
     } finally {
-      setLoading(false);
+      setDetailLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHasFullDetail(false);
     load(invoiceId);
   }, [invoiceId, load]);
 
-  return { invoice, loading, error, retry: () => load(invoiceId) };
+  return { invoice, detailLoading, hasFullDetail, error, retry: () => load(invoiceId) };
 }

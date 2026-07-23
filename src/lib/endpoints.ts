@@ -70,6 +70,11 @@ export const API = {
     detail: (id: number) => `/sites/${id}`,
     analytics: (id: number | string) => `/sites/analytics/${id}`,
     dashboardMetrics: "/sites/dashboard-metrics",
+    unassignedOperators: "/sites/operators/unassigned",
+    assignOperator: (siteId: number | string, operatorId: number | string) =>
+      `/sites/${siteId}/opertor/${operatorId}`,
+    operator: (siteId: number | string) => `/sites/${siteId}/operator`,
+    replaceOperator: (siteId: number | string) => `/sites/${siteId}/operator/replace`,
   },
   attendance: {
     summary: "/attendance/summary",
