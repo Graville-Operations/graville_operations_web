@@ -1,34 +1,53 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { fetchSubcontractorInvoicePaymentHistory } from '@/lib/api/subcontractor-invoices';
 import { formatKes } from '@/lib/utils/currency';
 import type { PaymentHistorySummary } from '@/types/subcontractor-invoice';
+import EmptyState from '@/components/ui/emptystate';
 
 interface PaymentHistoryViewProps {
   invoiceId: number;
-  invoiceTotal: number;
   onBack: () => void;
 }
 
-export function PaymentHistoryView({ invoiceId, invoiceTotal, onBack }: PaymentHistoryViewProps) {
+function ShimmerLine({ w, h }: { w: string; h: string }) {
+  return <div className="rounded animate-pulse bg-white/10" style={{ width: w, height: h }} />;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isAccessDeniedError(err: any): boolean {
+  const status = err?.response?.status ?? err?.status;
+  if (status === 403 || status === 401) return true;
+  const msg = String(err?.message ?? err ?? '').toLowerCase();
+  return /403|forbidden|permission|access denied/.test(msg);
+}
+
+export function PaymentHistoryView({ invoiceId, onBack }: PaymentHistoryViewProps) {
   const [history, setHistory] = useState<PaymentHistorySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
+    setAccessDenied(false);
     fetchSubcontractorInvoicePaymentHistory(invoiceId)
       .then((data) => {
         if (!cancelled) setHistory(data);
       })
       .catch((err) => {
         console.error(err);
-        if (!cancelled) setError('Failed to load payment history.');
+        if (cancelled) return;
+        if (isAccessDeniedError(err)) {
+          setAccessDenied(true);
+        } else {
+          setError('Failed to load payment history.');
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -38,40 +57,78 @@ export function PaymentHistoryView({ invoiceId, invoiceTotal, onBack }: PaymentH
     };
   }, [invoiceId]);
 
+  const backButton = (
+    <div className="flex items-center gap-3">
+      <button
+        onClick={onBack}
+        className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+      >
+        <ChevronLeft size={18} className="text-white" />
+      </button>
+      <h2 className="text-xl font-bold text-white">Payment History</h2>
+    </div>
+  );
+
+  if (accessDenied) {
+    return (
+      <div className="space-y-6">
+        {backButton}
+        <EmptyState
+          title="Access Denied"
+          description="Only Finance can view this invoice's payment history."
+          fullScreen={false}
+        />
+      </div>
+    );
+  }
+
+  if (error && !history) {
+    return (
+      <div className="space-y-6">
+        {backButton}
+        <EmptyState
+          title="Unable to Load Payment History"
+          description={error}
+          fullScreen={false}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-        >
-          <ChevronLeft size={18} className="text-white" />
-        </button>
-        <h2 className="text-xl font-bold text-white">Payment History</h2>
-      </div>
+      {backButton}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="gv-card">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#33907C] mb-2">
             Total Invoice Value
           </p>
-          <p className="text-lg font-bold text-white">{formatKes(invoiceTotal)}</p>
+          {loading ? (
+            <ShimmerLine w="100px" h="20px" />
+          ) : (
+            <p className="text-lg font-bold text-white">{formatKes(history?.totalInvoiceValue ?? 0)}</p>
+          )}
         </div>
         <div className="gv-card">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#33907C] mb-2">
             Total Paid
           </p>
-          <p className="text-lg font-bold text-white">
-            {loading ? '—' : formatKes(history?.totalPaid ?? 0)}
-          </p>
+          {loading ? (
+            <ShimmerLine w="100px" h="20px" />
+          ) : (
+            <p className="text-lg font-bold text-white">{formatKes(history?.totalPaid ?? 0)}</p>
+          )}
         </div>
         <div className="gv-card">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#33907C] mb-2">
             Remaining Balance
           </p>
-          <p className="text-lg font-bold text-white">
-            {loading ? '—' : formatKes(history?.remainingBalance ?? invoiceTotal)}
-          </p>
+          {loading ? (
+            <ShimmerLine w="100px" h="20px" />
+          ) : (
+            <p className="text-lg font-bold text-white">{formatKes(history?.remainingBalance ?? 0)}</p>
+          )}
         </div>
       </div>
 
@@ -81,13 +138,26 @@ export function PaymentHistoryView({ invoiceId, invoiceTotal, onBack }: PaymentH
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 size={20} className="animate-spin text-[#33907C]" />
+          <div className="divide-y divide-white/10">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex justify-between items-start px-6 py-4">
+                <div className="space-y-2">
+                  <ShimmerLine w="100px" h="14px" />
+                  <ShimmerLine w="160px" h="11px" />
+                </div>
+                <div className="space-y-2 flex flex-col items-end">
+                  <ShimmerLine w="80px" h="11px" />
+                  <ShimmerLine w="110px" h="11px" />
+                </div>
+              </div>
+            ))}
           </div>
-        ) : error ? (
-          <p className="text-sm text-red-400 text-center py-10">{error}</p>
         ) : !history || history.payments.length === 0 ? (
-          <p className="text-sm text-white/40 text-center py-10">No payments recorded yet.</p>
+          <EmptyState
+            title="No Payments Recorded"
+            description="Payments made against this invoice will show up here."
+            fullScreen={false}
+          />
         ) : (
           <div className="divide-y divide-white/10">
             {history.payments.map((p) => (
@@ -100,7 +170,7 @@ export function PaymentHistoryView({ invoiceId, invoiceTotal, onBack }: PaymentH
                   <p className="text-xs text-white/50">{p.paymentDate}</p>
                   {p.recordedBy != null && (
                     <p className="text-xs text-white/30 mt-0.5">
-                      Recorded by {p.recordedBy}
+                      Recorded by user #{p.recordedBy}
                     </p>
                   )}
                 </div>
