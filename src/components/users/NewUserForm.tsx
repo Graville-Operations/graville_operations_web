@@ -69,20 +69,6 @@ export function NewUserForm({ form, roles, departments, error, isLoading, onChan
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-blue-100/80 mb-1">Default Password *</label>
-        <input
-          type="text"
-          value={form.password}
-          onChange={(e) => onChange('password', e.target.value)}
-          required
-          className={inputClass}
-        />
-        <p className="text-xs text-white/30 mt-1">
-          User will be prompted to change this on first login.
-        </p>
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-blue-100/80 mb-1">Role *</label>

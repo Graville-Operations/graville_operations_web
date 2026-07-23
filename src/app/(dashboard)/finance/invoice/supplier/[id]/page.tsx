@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Ban, Banknote } from 'lucide-react';
 import EmptyState from '@/components/ui/emptystate';
 import { useSupplierInvoiceDetail } from '@/hooks/supplier-invoices/useSupplierInvoiceDetail';
 import SupplierInvoiceHeader from '@/components/finance/suppliers/SupplierInvoiceHeader';
@@ -9,13 +10,21 @@ import SupplierInvoiceMetaCard from '@/components/finance/suppliers/SupplierInvo
 import SupplierInvoiceLineItems from '@/components/finance/suppliers/SupplierInvoiceLineItems';
 import SupplierInvoiceSummary from '@/components/finance/suppliers/SupplierInvoiceSummary';
 import SupplierInvoiceNotes from '@/components/finance/suppliers/SupplierInvoiceNotes';
+import RejectInvoiceModal from '@/components/finance/suppliers/RejectInvoiceModal';
+import RecordPaymentModal from '@/components/finance/suppliers/RecordPaymentModal';
+import { InvoicePaymentStatus } from '@/types/invoice';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  const { invoice, isLoading, isEnriching, downloading, handleDownload, balance } =
-    useSupplierInvoiceDetail(id);
+  const {
+    invoice, isLoading, isEnriching, downloading, handleDownload, balance,
+    rejecting, paymentSubmitting, handleReject, handleRecordPayment,
+  } = useSupplierInvoiceDetail(id);
+
+  const [rejectModalOpen, setRejectModalOpen]   = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -36,6 +45,11 @@ export default function InvoiceDetailPage() {
     );
   }
 
+  const showRecordPayment =
+    invoice.status === InvoicePaymentStatus.PENDING ||
+    invoice.status === InvoicePaymentStatus.PARTIALLY_PAID;
+  const showReject = invoice.status === InvoicePaymentStatus.PENDING;
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <SupplierInvoiceHeader
@@ -44,6 +58,7 @@ export default function InvoiceDetailPage() {
         downloading={downloading}
         onBack={() => router.back()}
         onDownload={handleDownload}
+        onViewPaymentHistory={() => router.push(`/finance/invoice/supplier/${invoice.id}/payments`)}
       />
 
       <SupplierInvoiceMetaCard invoice={invoice} isEnriching={isEnriching} />
@@ -57,6 +72,55 @@ export default function InvoiceDetailPage() {
       />
 
       <SupplierInvoiceNotes notes={invoice.notes} isEnriching={isEnriching} />
+
+      {(showRecordPayment || showReject) && (
+        <div className="flex items-center justify-end gap-2">
+          {showRecordPayment && (
+            <button
+              onClick={() => setPaymentModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: 'rgba(51,144,124,0.15)', border: '1px solid rgba(51,144,124,0.35)', color: '#33907c' }}
+            >
+              <Banknote size={14} />
+              Record Payment
+            </button>
+          )}
+
+          {showReject && (
+            <button
+              onClick={() => setRejectModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444' }}
+            >
+              <Ban size={14} />
+              Reject
+            </button>
+          )}
+        </div>
+      )}
+
+      <RejectInvoiceModal
+        open={rejectModalOpen}
+        onOpenChange={setRejectModalOpen}
+        invoiceNumber={invoice.invoice_number}
+        submitting={rejecting}
+        onConfirm={async () => {
+          await handleReject();
+          setRejectModalOpen(false);
+        }}
+      />
+
+      <RecordPaymentModal
+        open={paymentModalOpen}
+        onOpenChange={setPaymentModalOpen}
+        submitting={paymentSubmitting}
+        totalInvoiced={invoice.total_amount}
+        remainingBalance={invoice.remaining_balance ?? balance}
+        onSubmit={async (payload) => {
+          await handleRecordPayment(payload);
+          setPaymentModalOpen(false);
+        }}
+      />
     </div>
   );
 }

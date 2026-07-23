@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Site } from '@/types';
-import { ClientInvoiceListItem, DateFilterMode } from '@/types/client-invoice';
+import { ClientInvoiceListItem, DateFilterMode, InvoicePaymentStatus } from '@/types/client-invoice';
 import { fetchSites, fetchClientInvoices } from '@/lib/api/client-invoices';
 import { parseBackendDate, todayISO } from '@/lib/utils/date';
 
@@ -28,6 +28,16 @@ export function useClientInvoices() {
   const [dateTo, setDateTo] = useState('');
   const [activeDateLabel, setActiveDateLabel] = useState('');
 
+  const [statusFilter, setStatusFilter] = useState<InvoicePaymentStatus | null>(null);
+
+  // Keep the latest site/status filters in a ref so the visibility
+  // listener (registered once) always refetches using current values,
+  // not whatever they were when the listener was first attached.
+  const filtersRef = useRef({ selectedSite, statusFilter });
+  useEffect(() => {
+    filtersRef.current = { selectedSite, statusFilter };
+  }, [selectedSite, statusFilter]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(e.target as Node))
@@ -45,22 +55,45 @@ export function useClientInvoices() {
       .catch((err) => console.error('[Sites]', err));
   }, []);
 
+  const loadInvoices = async (siteId?: number, status?: InvoicePaymentStatus | null) => {
+    try {
+      setIsLoading(true);
+      const { items, total: t } = await fetchClientInvoices(siteId, status ?? undefined);
+      setInvoices(items);
+      setFiltered(items);
+      setTotal(t);
+    } catch (err) {
+      console.error('[ClientInvoices]', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        setIsLoading(true);
-        const { items, total: t } = await fetchClientInvoices(selectedSite?.id);
-        setInvoices(items);
-        setFiltered(items);
-        setTotal(t);
-      } catch (err) {
-        console.error('[ClientInvoices]', err);
-      } finally {
-        setIsLoading(false);
-      }
+    loadInvoices(selectedSite?.id, statusFilter);
+  }, [selectedSite, statusFilter]);
+
+  // Refetch whenever the page becomes visible again (e.g. navigating back
+  // from a detail page after a status update or payment) or the window
+  // regains focus, so the table never shows stale payment statuses.
+  useEffect(() => {
+    const refetch = () => {
+      const { selectedSite: site, statusFilter: status } = filtersRef.current;
+      loadInvoices(site?.id, status);
     };
-    load();
-  }, [selectedSite]);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refetch();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', refetch);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', refetch);
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -118,10 +151,11 @@ export function useClientInvoices() {
 
   const clearAllFilters = () => {
     setSelectedSite(null);
+    setStatusFilter(null);
     clearDateFilter();
   };
 
-  const hasActiveFilters = !!(selectedSite || activeDateLabel);
+  const hasActiveFilters = !!(selectedSite || activeDateLabel || statusFilter);
 
   return {
     calendarRef, siteRef, today,
@@ -130,6 +164,7 @@ export function useClientInvoices() {
     calendarOpen, toggleCalendarDropdown, dateMode, setDateMode,
     singleDate, setSingleDate, dateFrom, setDateFrom, dateTo, setDateTo,
     activeDateLabel, applyDateFilter, clearDateFilter, clearAllFilters,
+    statusFilter, setStatusFilter,
     hasActiveFilters,
   };
 }

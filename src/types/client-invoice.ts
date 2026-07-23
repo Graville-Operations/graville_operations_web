@@ -1,3 +1,5 @@
+import { InvoicePaymentStatus, PaymentHistory } from '@/types/company_invoices';
+
 export interface ClientInvoiceListItem {
   id: number;
   invoiceNo: string;
@@ -5,6 +7,7 @@ export interface ClientInvoiceListItem {
   invoiceDate: string;
   total: number;
   createdAt: string;
+  paymentStatus?: InvoicePaymentStatus;
 }
 
 export interface ClientInvoiceItemDraft {
@@ -40,6 +43,9 @@ export interface ClientInvoiceDetail {
   total: number;
   created_at: string;
   items: ClientInvoiceDetailItem[];
+  paymentStatus: InvoicePaymentStatus;
+  totalPaid?: number | null;
+  remainingBalance?: number | null;
 }
 
 export interface InvoicePreview {
@@ -48,3 +54,6 @@ export interface InvoicePreview {
 }
 
 export type DateFilterMode = 'single' | 'range';
+
+export { InvoicePaymentStatus };
+export type { PaymentHistory };

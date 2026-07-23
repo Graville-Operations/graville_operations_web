@@ -40,6 +40,7 @@ export const API = {
     all: "/invoices/all",
     detail: (id: number) => `/invoices/details/${id}`,
     create: "/invoices/create",
+    summary: "/invoices/summary",
   },
   companyInvoices: {
     all: "/company-invoices/all",
@@ -74,6 +75,11 @@ invoiceActions: {
     all: "/subcontractor-invoices/all",
     detail: (id: number) => `/subcontractor-invoices/details/${id}`,
     create: "/subcontractor-invoices/create",
+  },
+  companyInvoices: {
+    all: "/company-invoices/all",
+    detail: (id: number | string) => `/company-invoices/details/${id}`,
+    create: "/company-invoices/create",
   },
   workers: {
     listBySite: (siteId: number) => `/workers/list-by-id/${siteId}`,
@@ -120,5 +126,13 @@ invoiceActions: {
     dailyUsageAll: '/daily-usage/all',
     dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
+  },
+ invoiceActions: {
+    updateStatus: (invoiceType: string, invoiceId: number | string) =>
+      `/invoices/${invoiceType}/${invoiceId}/status`,
+    recordPayment: (invoiceType: string, invoiceId: number | string) =>
+      `/invoices/${invoiceType}/${invoiceId}/payments`,
+    paymentHistory: (invoiceType: string, invoiceId: number | string) =>
+      `/invoices/${invoiceType}/${invoiceId}/payments`,
   },
 } as const;

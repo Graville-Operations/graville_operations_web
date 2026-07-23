@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCompanyInvoices } from '@/hooks/company-invoices/useCompanyInvoices';
 import SearchInput from '@/components/finance/suppliers/SearchInput';
 import CompanyDateFilterDropdown from '@/components/finance/company/DateFilterDropdown';
+import StatusFilterDropdown from '@/components/finance/company/StatusFilterDropdown';
 import CompanyInvoicesTable from '@/components/finance/company/CompanyInvoicesTable';
 import CompanyInvoiceCards from '@/components/finance/company/CompanyInvoiceCards';
 import { ROUTES } from '@/lib/routes';
@@ -19,6 +20,8 @@ export default function CompanyInvoicesPage() {
     appliedLabel,
     applyDateFilter,
     clearDateFilter,
+    statusFilter,
+    setStatusFilter,
     openDetail,
     hasFilter,
   } = useCompanyInvoices();
@@ -57,9 +60,14 @@ export default function CompanyInvoicesPage() {
             onClear={clearDateFilter}
           />
 
-          {appliedLabel && (
+          <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
+
+          {(appliedLabel || statusFilter) && (
             <button
-              onClick={clearDateFilter}
+              onClick={() => {
+                clearDateFilter();
+                setStatusFilter(null);
+              }}
               className="p-2 rounded-lg shrink-0"
               style={{ color: '#f87171', background: 'rgba(248,113,113,0.1)' }}
             >

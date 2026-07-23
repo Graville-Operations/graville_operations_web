@@ -6,6 +6,8 @@ import {
   ClientInvoiceDetail,
   NewClientInvoiceForm,
   ClientInvoiceItemDraft,
+  InvoicePaymentStatus,
+  PaymentHistory,
 } from '@/types/client-invoice';
 
 function unwrap<T>(data: unknown): T {
@@ -25,9 +27,13 @@ export async function fetchSites(limit = 100): Promise<Site[]> {
   return unwrapList<Site>(data);
 }
 
-export async function fetchClientInvoices(siteId?: number): Promise<{ items: ClientInvoiceListItem[]; total: number }> {
+export async function fetchClientInvoices(
+  siteId?: number,
+  status?: InvoicePaymentStatus
+): Promise<{ items: ClientInvoiceListItem[]; total: number }> {
   const params: Record<string, any> = { limit: 100 };
   if (siteId) params.site_id = siteId;
+  if (status) params.payment_status = status;
   const { data } = await api.get(API.clientInvoices.all, { params });
   const payload = unwrap<{ items?: ClientInvoiceListItem[]; total?: number } | ClientInvoiceListItem[]>(data);
   const items = Array.isArray(payload) ? payload : payload?.items ?? [];
@@ -56,4 +62,47 @@ export async function createClientInvoice(
       unit_price: parseFloat(item.unit_price),
     })),
   });
+}
+
+export interface UpdateInvoiceStatusResponse {
+  id: number;
+  invoice_number: string;
+  payment_status: InvoicePaymentStatus;
+}
+
+export async function updateClientInvoiceStatus(
+  id: number | string,
+  status: InvoicePaymentStatus
+): Promise<UpdateInvoiceStatusResponse> {
+  const { data } = await api.patch(API.invoiceActions.updateStatus('client', id), { status });
+  return (data?.data ?? data) as UpdateInvoiceStatusResponse;
+}
+
+export interface RecordPaymentPayload {
+  amount: number;
+  notes?: string;
+}
+
+export interface RecordPaymentResponse {
+  invoice_id: number;
+  invoice_number: string;
+  payment_amount: number;
+  total_paid: number;
+  remaining_balance: number;
+  payment_status: InvoicePaymentStatus;
+}
+
+export async function recordClientInvoicePayment(
+  id: number | string,
+  payload: RecordPaymentPayload
+): Promise<RecordPaymentResponse> {
+  const { data } = await api.post(API.invoiceActions.recordPayment('client', id), payload);
+  return (data?.data ?? data) as RecordPaymentResponse;
+}
+
+export async function fetchClientInvoicePaymentHistory(
+  id: number | string
+): Promise<PaymentHistory> {
+  const { data } = await api.get(API.invoiceActions.paymentHistory('client', id));
+  return (data?.data ?? data) as PaymentHistory;
 }
