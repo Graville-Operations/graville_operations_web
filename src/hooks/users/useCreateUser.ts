@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/user-store';
 import { ROUTES } from '@/lib/routes';
-
 import { useRoles } from '@/hooks/users/useRoles';
 import { useDepartmentOptions } from '@/hooks/department/use-department-options';
 import { Role, NewUserFormState } from '@/types/users';
