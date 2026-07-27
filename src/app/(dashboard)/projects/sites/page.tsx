@@ -1,23 +1,21 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { Search, AlertCircle, Building2 } from 'lucide-react';
 import { ProjectStatus } from '@/types/site';
 import { RawSite } from '@/types/site-detail';
 import { useConstructionSites } from '@/hooks/sites/useConstructionSites';
 import { QuickStatPill } from '@/components/sites/QuickStatPill';
 import { SiteCard } from '@/components/sites/SiteCard';
-import { SiteDetailView } from '@/components/sites/SiteDetailView';
+import { ROUTES } from '@/lib/routes';
 
 export default function ConstructionSitesPage() {
+  const router = useRouter();
   const {
     sites, filtered, loadingSites, loadingKpis, sitesError,
     search, setSearch, projectFilter, setProjectFilter,
-    selectedSite, openSite, closeSite, load, stats,
+    load, stats,
   } = useConstructionSites();
-
-  if (selectedSite) {
-    return <SiteDetailView site={selectedSite} onBack={closeSite} />;
-  }
 
   return (
     <div className="gv-page-dashboard flex flex-col gap-0 overflow-y-auto pb-10">
@@ -96,7 +94,11 @@ export default function ConstructionSitesPage() {
       ) : (
         <div className="px-4 flex flex-col gap-3">
           {filtered.map((site) => (
-            <SiteCard key={site.id} site={site as unknown as RawSite} onClick={() => openSite(site as unknown as RawSite)} />
+            <SiteCard
+              key={site.id}
+              site={site as unknown as RawSite}
+              onClick={() => router.push(ROUTES.projects.siteDetail(site.id))}
+            />
           ))}
         </div>
       )}

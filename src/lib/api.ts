@@ -2,8 +2,6 @@ import axios from 'axios';
 import { API_BASE_URL } from './constants';
 import { API } from './endpoints';
 import { getToken, clearSession } from './auth';
-import { isNetworkError } from './errors';
-import { useNetworkStore } from '@/store/network-store';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -20,8 +18,6 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => {
-    useNetworkStore.getState().clearNetworkError();
-
     const body = res.data;
     if (body && typeof body === 'object' && 'code' in body) {
       const code = Number(body.code);
@@ -32,12 +28,6 @@ api.interceptors.response.use(
     return res;
   },
   (error) => {
-    if (isNetworkError(error)) {
-      useNetworkStore.getState().setNetworkError();
-    } else {
-      useNetworkStore.getState().clearNetworkError();
-    }
-
     const url = error.config?.url ?? '';
     const isAuthRoute = url.includes(API.auth.login) || url.includes(API.auth.verifyOtp);
 
