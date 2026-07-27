@@ -1,11 +1,10 @@
 'use client';
-import { useState, useCallback, useRef, useMemo } from 'react';
-import { UserCheck, HardHat, Plus, X } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+import { Plus, X } from 'lucide-react';
 import { useWorkersDashboard } from '@/hooks/workers/useWorkersDashboard';
-import { WorkerTypesCard } from '@/components/workers/WorkerTypeCard';
+import { WorkerTypesList } from '@/components/workers/WorkerTypesList';
 import { AddWorkerTypeOverlay } from '@/components/workers/AddWorkerTypeOverlay';
 import { WorkersBySiteSection } from '@/components/workers/WorkersBySiteSection';
-import { SkillType } from '@/types/worker-dashboard';
 import { useConstructionSites } from '@/hooks/sites/useConstructionSites';
 
 type ToastType = 'success' | 'error';
@@ -22,7 +21,7 @@ function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void 
 
 export default function WorkersDashboardPage() {
   const { workerTypes, loading, addWorkerType } = useWorkersDashboard();
-  const { sites, loading: sitesLoading } = useConstructionSites();
+  const { sites, loadingSites } = useConstructionSites();
 
   const [showAdd, setShowAdd] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -31,15 +30,6 @@ export default function WorkersDashboardPage() {
   const showToast = useCallback((message: string, type: ToastType) => {
     setToast({ message, type, id: ++toastId.current });
   }, []);
-
-  const skilledCount = useMemo(
-    () => workerTypes.filter(wt => wt.skill === SkillType.SKILLED).length,
-    [workerTypes]
-  );
-  const unskilledCount = useMemo(
-    () => workerTypes.filter(wt => wt.skill === SkillType.UNSKILLED).length,
-    [workerTypes]
-  );
 
   return (
     <>
@@ -55,30 +45,20 @@ export default function WorkersDashboardPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 max-w-md">
-          <div className="gv-card flex flex-col gap-4 border-border">
-            <div className="gv-icon-box"><span className="text-primary"><HardHat size={18} /></span></div>
-            <div>
-              <p className="gv-label">Skilled Types</p>
-              {loading
-                ? <div className="h-6 w-10 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                : <p className="text-2xl font-bold tracking-tight text-foreground">{skilledCount}</p>}
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <div className="flex flex-col gap-3 h-full">
+            <h2 className="text-lg font-semibold text-foreground">Worker Types</h2>
+            {loading ? (
+              <div className="gv-card p-4 space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-12 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
+                ))}
+              </div>
+            ) : (
+              <WorkerTypesList workerTypes={workerTypes} />
+            )}
           </div>
-          <div className="gv-card flex flex-col gap-4 border-border">
-            <div className="gv-icon-box"><span className="text-primary"><UserCheck size={18} /></span></div>
-            <div>
-              <p className="gv-label">Unskilled Types</p>
-              {loading
-                ? <div className="h-6 w-10 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                : <p className="text-2xl font-bold tracking-tight text-foreground">{unskilledCount}</p>}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          <WorkerTypesCard workerTypes={workerTypes} loading={loading} onAdd={() => setShowAdd(true)} />
-          <WorkersBySiteSection sites={sites} sitesLoading={sitesLoading} />
+          <WorkersBySiteSection sites={sites} sitesLoading={loadingSites} />
         </div>
       </div>
 
