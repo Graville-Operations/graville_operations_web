@@ -46,6 +46,7 @@ export const ROUTES = {
     dashboard: '/projects/dashboard',
     new:       '/projects/new',
     sites:     '/projects/sites',
+    siteDetail: (id: number | string) => `/projects/sites/${id}`,
   },
   permits: {
     all:              '/permits/all',

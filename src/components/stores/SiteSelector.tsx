@@ -11,7 +11,7 @@ interface SiteSelectorProps {
 export function SiteSelector({ sites, selectedSiteId, onChange, isLoading }: SiteSelectorProps) {
   return (
     <div className="flex flex-col gap-1 w-full sm:w-64">
-      <p className="gv-label">Viewing site</p>
+      <p className="gv-label">select site</p>
       {isLoading ? (
         <div className="h-10 rounded-lg bg-(--gv-glass-bg) relative overflow-hidden">
           <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]

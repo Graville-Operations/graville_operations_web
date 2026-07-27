@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   fetchSubcontractorInvoices,
   fetchSubcontractorInvoiceDetail,
@@ -9,6 +9,13 @@ import { fetchSites } from '@/lib/api/sites';
 import type { SubcontractorInvoiceListItem, SiteOption } from '@/types/subcontractor-invoice';
 
 export type DateMode = 'single' | 'range';
+
+// Background refresh cadence — keeps the table in sync with changes made by
+// other users/tabs without the person needing to hit F5. A single
+// visibilitychange listener covers both "tab switch" and "window refocus"
+// in modern browsers, so we don't add a separate focus listener too —
+// that tends to double the number of calls when both fire together.
+const POLL_INTERVAL_MS = 45_000;
 
 export function useSubcontractorInvoices() {
   const [invoices, setInvoices] = useState<SubcontractorInvoiceListItem[]>([]);
@@ -27,18 +34,30 @@ export function useSubcontractorInvoices() {
   const [dateFilter, setDateFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  // Tracks the filters currently in effect so a background poll (which
+  // fires from a timer/focus listener, not a render) always requests with
+  // the latest siteFilter/statusFilter instead of stale closure values.
+  const filtersRef = useRef({ siteFilter, statusFilter });
+  useEffect(() => {
+    filtersRef.current = { siteFilter, statusFilter };
+  }, [siteFilter, statusFilter]);
+
   useEffect(() => {
     fetchSites()
       .then((siteList) => setSites(siteList.map((s) => ({ id: s.id, name: s.name }))))
       .catch((err) => console.error('[Sites] fetch error:', err));
   }, []);
 
-  const loadInvoices = async () => {
+  // silent = true skips the loading spinner/shimmer, used for background
+  // polling and focus-refresh so the table doesn't visibly flash.
+  const loadInvoices = useCallback(async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
+      const { siteFilter: currentSite, statusFilter: currentStatus } = filtersRef.current;
       const { items: list, total: fetchedTotal } = await fetchSubcontractorInvoices({
-        siteId: siteFilter || undefined,
-        paymentStatus: statusFilter || undefined,
+        siteId: currentSite || undefined,
+        paymentStatus: currentStatus || undefined,
       });
       setTotal(fetchedTotal);
 
@@ -54,16 +73,29 @@ export function useSubcontractorInvoices() {
     } catch (err) {
       console.error('[SubcontractorInvoices] fetch error:', err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadInvoices();
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteFilter, statusFilter]);
+
+  useEffect(() => {
+    const interval = setInterval(() => loadInvoices(true), POLL_INTERVAL_MS);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') loadInvoices(true);
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [loadInvoices]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -143,7 +175,7 @@ export function useSubcontractorInvoices() {
     clearDateFilter,
     clearAllFilters,
 
-    refetch: loadInvoices,
+    refetch: () => loadInvoices(false),
   };
 }
 
@@ -151,9 +183,6 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Fetches one invoice's detail (for its createdBy) with a couple of retries
-// on failure — a dropped request from a flaky connection shouldn't
-// permanently leave a real submitter looking blank in the table.
 async function fetchCreatedByWithRetry(
   invoiceId: number,
   attempts = 3,

@@ -1,11 +1,13 @@
 export const API = {
-  auth: {
+auth: {
   login: "/auth/login",
   me: "/auth/me",
   logout: "/auth/logout",
   changePassword: "/auth/change-password",
   verifyOtp: "/auth/verify-otp",
   meMenus: "/auth/me/menus",
+  forgotPassword: "/auth/forgot-password",
+  resetPassword: "/auth/reset-password",
 },
   users: {
     list: "/users/list",

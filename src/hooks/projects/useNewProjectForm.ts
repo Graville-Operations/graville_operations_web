@@ -70,7 +70,7 @@ export function useNewProjectForm() {
 
     try {
       await createSite(payload);
-      router.push(ROUTES.projects.dashboard);
+      router.push(ROUTES.projects.sites);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create project. Please try again.');
     } finally {

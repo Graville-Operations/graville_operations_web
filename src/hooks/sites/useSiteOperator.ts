@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
-  fetchSiteOperator,
   fetchUnassignedFieldOperators,
   assignFieldOperator,
   replaceFieldOperator,
@@ -10,24 +9,17 @@ import {
 } from '@/lib/api/sites';
 import { FieldOperator } from '@/types/site-detail';
 
-export function useSiteOperator(siteId: number) {
-  const [operator, setOperator] = useState<FieldOperator | null>(null);
-  const [loadingOperator, setLoadingOperator] = useState(true);
-
+export function useSiteOperator(
+  siteId: number,
+  operator: FieldOperator | null,
+  onOperatorChange: () => void,
+) {
   const [unassignedOperators, setUnassignedOperators] = useState<FieldOperator[]>([]);
   const [loadingUnassigned, setLoadingUnassigned] = useState(false);
 
-  const [assigning, setAssigning] = useState(false);
-  const [replacing, setReplacing] = useState(false);
+  const [assigning, setAssigning]     = useState(false);
+  const [replacing, setReplacing]     = useState(false);
   const [unassigning, setUnassigning] = useState(false);
-
-  const loadOperator = useCallback(() => {
-    setLoadingOperator(true);
-    fetchSiteOperator(siteId)
-      .then(setOperator)
-      .catch(() => setOperator(null))
-      .finally(() => setLoadingOperator(false));
-  }, [siteId]);
 
   const loadUnassignedOperators = useCallback(() => {
     setLoadingUnassigned(true);
@@ -37,40 +29,38 @@ export function useSiteOperator(siteId: number) {
       .finally(() => setLoadingUnassigned(false));
   }, []);
 
-  useEffect(() => { loadOperator(); }, [loadOperator]);
-
   const assignOperator = useCallback(async (operatorId: number) => {
     setAssigning(true);
     try {
       await assignFieldOperator(siteId, operatorId);
-      loadOperator();
+      onOperatorChange();
     } finally {
       setAssigning(false);
     }
-  }, [siteId, loadOperator]);
+  }, [siteId, onOperatorChange]);
 
   const replaceOperatorAction = useCallback(async (operatorId: number) => {
     setReplacing(true);
     try {
       await replaceFieldOperator(siteId, operatorId);
-      loadOperator();
+      onOperatorChange();
     } finally {
       setReplacing(false);
     }
-  }, [siteId, loadOperator]);
+  }, [siteId, onOperatorChange]);
 
   const unassignOperatorAction = useCallback(async () => {
     setUnassigning(true);
     try {
       await unassignFieldOperator(siteId);
-      setOperator(null);
+      onOperatorChange();
     } finally {
       setUnassigning(false);
     }
-  }, [siteId]);
+  }, [siteId, onOperatorChange]);
 
   return {
-    operator, loadingOperator, refreshOperator: loadOperator,
+    operator,
     unassignedOperators, loadingUnassigned, loadUnassignedOperators,
     assigning, assignOperator,
     replacing, replaceOperatorAction,

@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useSubcontractorInvoices } from '@/hooks/subcontractor-invoices/useSubcontractorInvoices';
@@ -9,10 +10,10 @@ import { StatusFilterDropdown } from '@/components/finance/subcontractor-invoice
 import { DateFilterDropdown } from '@/components/finance/subcontractor-invoices/DateFilterDropdown';
 import { SubcontractorInvoicesTable } from '@/components/finance/subcontractor-invoices/SubcontractorInvoicesTable';
 import { NewInvoiceModal } from '@/components/finance/subcontractor-invoices/NewInvoiceModal';
-import { InvoiceDetailView } from '@/components/finance/subcontractor-invoices/InvoiceDetailView';
 import type { SubcontractorInvoiceListItem } from '@/types/subcontractor-invoice';
 
 export default function SubcontractorInvoicesPage() {
+  const router = useRouter();
   const {
     filtered,
     isLoading,
@@ -39,18 +40,7 @@ export default function SubcontractorInvoicesPage() {
     refetch,
   } = useSubcontractorInvoices();
 
-  const [selectedInvoice, setSelectedInvoice] = useState<SubcontractorInvoiceListItem | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
-
-  if (selectedInvoice !== null) {
-    return (
-      <InvoiceDetailView
-        invoiceId={selectedInvoice.id}
-        initialData={selectedInvoice}
-        onBack={() => setSelectedInvoice(null)}
-      />
-    );
-  }
 
   return (
     <>
@@ -115,7 +105,9 @@ export default function SubcontractorInvoicesPage() {
           <SubcontractorInvoicesTable
             invoices={filtered}
             isLoading={isLoading}
-            onSelect={setSelectedInvoice}
+            onSelect={(inv: SubcontractorInvoiceListItem) =>
+              router.push(`/finance/invoice/contractor/${inv.id}`)
+            }
           />
         </div>
       </div>

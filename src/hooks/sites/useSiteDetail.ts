@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { fetchSiteById, fetchSiteAnalytics } from '@/lib/api/sites';
 import { fetchAttendanceSummary } from '@/lib/api/attendance';
-import { SiteAnalytics, SiteDetailExtended, RawSite } from '@/types/site-detail';
+import { SiteAnalytics, SiteDetailExtended } from '@/types/site-detail';
 import { AttendanceRecord } from '@/types/site';
 import { normalizeTaskBreakdown } from '@/lib/utils/site-helpers';
 
-export function useSiteDetail(site: RawSite) {
+export function useSiteDetail(siteId: number) {
   const [analytics, setAnalytics]         = useState<SiteAnalytics | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
@@ -25,7 +25,7 @@ export function useSiteDetail(site: RawSite) {
 
   const loadAnalytics = useCallback(() => {
     setLoadingAnalytics(true);
-    fetchSiteAnalytics(site.id)
+    fetchSiteAnalytics(siteId)
       .then((a) => {
         if (!a) { setAnalytics(a); return; }
         const rawTaskBreakdown =
@@ -37,27 +37,27 @@ export function useSiteDetail(site: RawSite) {
       })
       .catch(() => {})
       .finally(() => setLoadingAnalytics(false));
-  }, [site.id]);
+  }, [siteId]);
 
   const loadDetail = useCallback(() => {
     setLoadingDetail(true);
-   fetchSiteById(site.id)
+    fetchSiteById(siteId)
       .then(setDetail)
       .catch(() => {})
       .finally(() => setLoadingDetail(false));
-  }, [site.id]);
+  }, [siteId]);
 
   const loadRange = useCallback((from: string, to: string) => {
     if (!from || !to) return;
     setLoadingRange(true);
-    fetchAttendanceSummary({ siteId: site.id, startDate: from, endDate: to })
+    fetchAttendanceSummary({ siteId, startDate: from, endDate: to })
       .then((summary) => {
         setRangeRecords(summary?.records ?? []);
         setRangePayouts(summary?.payouts ?? 0);
       })
       .catch(() => { setRangeRecords([]); setRangePayouts(0); })
       .finally(() => setLoadingRange(false));
-  }, [site.id]);
+  }, [siteId]);
 
   useEffect(() => { loadDetail(); loadAnalytics(); }, [loadDetail, loadAnalytics]);
   useEffect(() => { loadRange(rangeFrom, rangeTo); }, [rangeFrom, rangeTo, loadRange]);
@@ -80,7 +80,7 @@ export function useSiteDetail(site: RawSite) {
     : `${format(parseISO(rangeFrom), 'dd MMM')} – ${format(parseISO(rangeTo), 'dd MMM yyyy')}`;
 
   return {
-    detail, loadingDetail,
+    detail, loadingDetail, refreshDetail: loadDetail,
     analytics, loadingAnalytics,
     rangeRecords, rangePayouts, loadingRange,
     rangeFrom, rangeTo, setRangeFrom, setRangeTo, todayStr, rangeLabel,

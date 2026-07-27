@@ -51,13 +51,14 @@ export interface SiteAnalytics {
   attendanceBreakdown: AttendanceBreakdownItem[];
 }
 
-export interface SiteDetailExtended extends SiteDetail {
-  estimatedValue?: number;
-}
-
 export interface FieldOperator {
   id: number;
   name: string;
   email: string;
   phone: string;
+}
+
+export interface SiteDetailExtended extends SiteDetail {
+  estimatedValue?: number;
+  operator?: FieldOperator | null;
 }
