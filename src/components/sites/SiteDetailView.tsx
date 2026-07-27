@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import { useRouter } from 'next/navigation';
 import {
   MapPin, Calendar, Building2, Loader2, FileText, Briefcase,
   Users, ClipboardList, UserCheck, ChevronLeft, DollarSign,
   TrendingUp, Download, PiggyBank, Receipt,
 } from 'lucide-react';
-import { RawSite } from '@/types/site-detail';
 import { SITE_STATUS_META, normSiteStatus, fmtKes, downloadAttendanceCSV } from '@/lib/utils/site-helpers';
 import { useSiteDetail } from '@/hooks/sites/useSiteDetail';
+import { ROUTES } from '@/lib/routes';
 import { ProjectCompletionGauge } from '@/components/sites/ProjectCompletionGauge';
 import { ExpenditureGauge } from '@/components/sites/ExpenditureGauge';
 import { WeeklyAttendanceChart } from '@/components/sites/WeeklyAttendanceChart';
@@ -19,7 +19,8 @@ import { AllWorkersScreen } from '@/components/sites/AllWorkersScreen';
 import { DateRangePicker } from '@/components/sites/DateRangePicker';
 import { FieldOperatorCard } from '@/components/sites/FieldOperatorCard';
 
-export function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => void }) {
+export function SiteDetailView({ siteId }: { siteId: number }) {
+  const router = useRouter();
 
   useEffect(() => {
     const sidebar = document.querySelector('aside') as HTMLElement | null;
@@ -27,16 +28,13 @@ export function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => 
     return () => { if (sidebar) sidebar.style.display = ''; };
   }, []);
 
-  const ss       = normSiteStatus(site.siteStatus);
-  const siteMeta = SITE_STATUS_META[ss];
-
   const {
-    detail, loadingDetail,
+    detail, loadingDetail, refreshDetail,
     analytics, loadingAnalytics,
     rangeRecords, rangePayouts, loadingRange,
     rangeFrom, rangeTo, setRangeFrom, setRangeTo, todayStr, rangeLabel,
     derived,
-  } = useSiteDetail(site);
+  } = useSiteDetail(siteId);
 
   const [showAllWorkers, setShowAllWorkers] = useState(false);
 
@@ -49,6 +47,11 @@ export function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => 
   const PREVIEW_LIMIT  = 5;
   const previewRecords = rangeRecords.slice(0, PREVIEW_LIMIT);
   const hasMore        = rangeRecords.length > PREVIEW_LIMIT;
+
+  const handleBack = () => router.push(ROUTES.projects.sites);
+
+  const siteName = detail?.name ?? '';
+  const siteMeta = detail ? SITE_STATUS_META[normSiteStatus(detail.siteStatus)] : null;
 
   return (
     <>
@@ -70,7 +73,7 @@ export function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => 
             WebkitBackdropFilter: 'blur(24px)',
             boxShadow: '0 1px 0 rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.5)',
           }}>
-          <button onClick={onBack} className="flex items-center gap-2 text-base font-semibold"
+          <button onClick={handleBack} className="flex items-center gap-2 text-base font-semibold"
             style={{ color: 'var(--gv-brand)' }}>
             <ChevronLeft className="w-5 h-5" />Back to Sites
           </button>
@@ -86,10 +89,14 @@ export function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => 
               <div className="flex items-start justify-between gap-4">
                 {loadingDetail
                   ? <div className="h-9 w-64 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
-                  : <h1 className="text-4xl font-bold text-white leading-tight">{detail?.name ?? site.name}</h1>}
-                <span className={`text-base font-semibold px-4 py-1.5 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
-                  {siteMeta.label}
-                </span>
+                  : <h1 className="text-4xl font-bold text-white leading-tight">{siteName}</h1>}
+                {loadingDetail || !siteMeta
+                  ? <div className="h-8 w-24 rounded-full animate-pulse flex-shrink-0" style={{ background: 'var(--gv-glass-bg-strong)' }} />
+                  : (
+                    <span className={`text-base font-semibold px-4 py-1.5 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
+                      {siteMeta.label}
+                    </span>
+                  )}
               </div>
               {loadingDetail ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -134,7 +141,12 @@ export function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => 
 
               <div>
                 <p className="gv-label mb-2">Field Operator</p>
-                <FieldOperatorCard siteId={site.id} />
+                <FieldOperatorCard
+                  siteId={siteId}
+                  operator={detail?.operator ?? null}
+                  loading={loadingDetail}
+                  onOperatorChange={refreshDetail}
+                />
               </div>
 
               <div style={{ borderTop: '1px solid var(--gv-glass-border)', paddingTop: '1.25rem' }}>
@@ -302,7 +314,7 @@ export function SiteDetailView({ site, onBack }: { site: RawSite; onBack: () => 
                   <p className="text-2xl font-semibold text-white">Workers on Site</p>
                   <button
                     type="button"
-                    onClick={() => downloadAttendanceCSV(rangeRecords, rangeLabel, site.name)}
+                    onClick={() => downloadAttendanceCSV(rangeRecords, rangeLabel, siteName)}
                     disabled={rangeRecords.length === 0}
                     className="w-8 h-8 rounded-xl flex items-center justify-center transition-opacity"
                     style={{

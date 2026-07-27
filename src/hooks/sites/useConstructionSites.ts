@@ -3,10 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchSites, fetchOverviewKPIs } from '@/lib/api/sites';
 import { Site, ProjectStatus, OverviewKPIs } from '@/types/site';
-import { RawSite } from '@/types/site-detail';
 import { normProjectStatus } from '@/lib/utils/site-helpers';
-
-const LS_KEY = 'gv_selected_site';
 
 export function useConstructionSites() {
   const [sites, setSites]             = useState<Site[]>([]);
@@ -16,16 +13,6 @@ export function useConstructionSites() {
   const [sitesError, setSitesError]     = useState<string | null>(null);
   const [search, setSearch]             = useState('');
   const [projectFilter, setProjectFilter] = useState<ProjectStatus | 'ALL'>('ALL');
-  const [selectedSite, setSelectedSite]   = useState<RawSite | null>(null);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) setSelectedSite(JSON.parse(raw) as RawSite);
-    } catch {
-
-    }
-  }, []);
 
   const load = useCallback(() => {
     setLoadingSites(true);
@@ -47,16 +34,6 @@ export function useConstructionSites() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  function openSite(site: RawSite) {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(site)); } catch {}
-    setSelectedSite(site);
-  }
-
-  function closeSite() {
-    try { localStorage.removeItem(LS_KEY); } catch {}
-    setSelectedSite(null);
-  }
 
   const totalSites    = kpis?.totalSites    ?? 0;
   const planningSites = kpis?.planningSites ?? 0;
@@ -88,9 +65,6 @@ export function useConstructionSites() {
     setSearch,
     projectFilter,
     setProjectFilter,
-    selectedSite,
-    openSite,
-    closeSite,
     load,
     stats: { totalSites, planningSites, activeSites, pausedSites, doneSites },
   };

@@ -5,7 +5,7 @@ import {
   Site, SiteDetail, SiteWorker, AttendanceRecord,
   SiteTask, CreateSitePayload, OverviewKPIs,
 } from '@/types/site';
-import { SiteAnalytics, FieldOperator } from '@/types/site-detail';
+import { SiteAnalytics, SiteDetailExtended, FieldOperator } from '@/types/site-detail';
 import { DashboardMetrics } from '@/types/dashboard';
 
 function unwrapArray<T>(response: unknown): T[] {
@@ -33,8 +33,6 @@ function unwrapObject<T>(response: unknown): T {
   return response as T;
 }
 
-// Backend returns firstName/middleName/lastName (camelCase) per the confirmed
-// operator payload shape; snake_case fallbacks kept in case other endpoints differ.
 function normalizeOperator(raw: unknown): FieldOperator | null {
   if (!raw || typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;
@@ -67,9 +65,11 @@ export async function fetchSites(): Promise<Site[]> {
   return unwrapArray<Site>(data);
 }
 
-export async function fetchSiteById(siteId: number): Promise<SiteDetail> {
+export async function fetchSiteById(siteId: number): Promise<SiteDetailExtended> {
   const { data } = await api.get(API.sites.detail(siteId));
-  return unwrapObject<SiteDetail>(data);
+  const raw = unwrapObject<Record<string, unknown>>(data);
+  const operator = normalizeOperator(raw.operator);
+  return { ...(raw as unknown as SiteDetailExtended), operator };
 }
 
 export async function createSite(payload: CreateSitePayload): Promise<Site> {
@@ -82,8 +82,6 @@ export async function fetchWorkersBySite(siteId: number): Promise<SiteWorker[]> 
   return unwrapArray<SiteWorker>(data);
 }
 
-// Same backend endpoint as fetchAttendanceSummary() in attendance.ts, called
-// here without a date range — backend defaults start/end to today when omitted.
 export async function fetchAttendanceBySite(siteId: number): Promise<AttendanceRecord[]> {
   const { data } = await api.get(API.attendance.summary, {
     params: { site_id: siteId },
@@ -118,28 +116,14 @@ export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   return unwrapObject<DashboardMetrics>(data);
 }
 
-// ---- Field operator assignment ----
-
 export async function fetchUnassignedFieldOperators(): Promise<FieldOperator[]> {
   const { data } = await api.get(API.sites.unassignedOperators);
   return normalizeOperatorList(unwrapArray<unknown>(data));
 }
 
-export async function fetchSiteOperator(siteId: number): Promise<FieldOperator | null> {
-  try {
-    const { data } = await api.get(API.sites.operator(siteId));
-    return normalizeOperator(unwrapObject<unknown>(data));
-  } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.status === 404) return null;
-    throw err;
-  }
-}
-
 export async function assignFieldOperator(siteId: number, operatorId: number): Promise<void> {
   await api.patch(API.sites.assignOperator(siteId, operatorId));
 }
-
-// new_operator_id is a query param on this endpoint, not a request body field.
 export async function replaceFieldOperator(siteId: number, operatorId: number): Promise<void> {
   await api.patch(API.sites.replaceOperator(siteId), null, {
     params: { new_operator_id: operatorId },
