@@ -2,13 +2,12 @@
 import { useState, useEffect } from 'react';
 import { Wallet, X, Loader2 } from 'lucide-react';
 import { SkillType } from '@/types/worker-dashboard';
-import { DarkSelect } from '@/components/shared/DarkSelect';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-        {label}{required && <span className="text-destructive ml-0.5">*</span>}
+        {label}{required && <span className="text-muted-foreground ml-0.5">*</span>}
       </label>
       {children}
     </div>
@@ -17,7 +16,21 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 const inputCls = 'w-full px-3 py-2 rounded-lg text-sm bg-[color:var(--muted)] border border-[color:var(--border)] text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-colors';
 
-function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) { return <input {...props} className={inputCls} />; }
+function TextInput({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={`${inputCls} ${className ?? ''}`} />;
+}
+
+function DarkSelect(props: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
+  const selectCls = 'w-full appearance-none px-3 py-2 pr-9 rounded-lg text-sm bg-[color:var(--gv-glass-bg)] border border-[color:var(--border)] text-[color:var(--foreground)] cursor-pointer outline-none transition-colors focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white';
+  return (
+    <div className="relative">
+      <select {...props} className={selectCls}>{props.children}</select>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="absolute right-3 top-1/2 -translate-y-1/2 text-(--gv-text-subtle) pointer-events-none">
+        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}
 
 function SubmitBtn({ loading, label }: { loading: boolean; label: string }) {
   return (
@@ -106,7 +119,15 @@ export function AddWorkerTypeOverlay({ open, onClose, onSubmit }: AddWorkerTypeO
                 </DarkSelect>
               </Field>
               <Field label="Amount (per day)" required>
-                <TextInput type="number" min="0" step="1" placeholder="e.g. 1500" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} />
+                <TextInput
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 1500"
+                  value={form.amount}
+                  onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
+                  className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                />
               </Field>
               {error && <p className="text-xs text-destructive bg-(--destructive)/10 px-3 py-2 rounded-lg">{error}</p>}
               <div className="flex flex-col gap-2 pt-2">
