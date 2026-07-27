@@ -58,7 +58,7 @@ export function LoginForm({
         </div>
         <div className="text-right mt-1.5">
           <Link
-            href="signin/forgot-password"
+            href="/signin/forgot-password"
             className="text-xs text-blue-300/70 hover:text-blue-200 transition-colors"
           >
             Forgot password?
