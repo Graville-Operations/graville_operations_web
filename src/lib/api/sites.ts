@@ -133,3 +133,4 @@ export async function replaceFieldOperator(siteId: number, userId: number): Prom
 export async function unassignFieldOperator(siteId: number): Promise<void> {
   await api.delete(API.sites.operator(siteId));
 }
+

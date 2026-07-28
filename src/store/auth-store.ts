@@ -6,6 +6,7 @@ import {
 } from '@/lib/auth';
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/constants';
+import { useSiteStore } from '@/store/site-store';
 
 interface AuthState {
   user: User | null;
@@ -27,69 +28,67 @@ export const useAuthStore = create<AuthState>((set) => ({
     const user = getUser();
     const token = getToken();
     const role = getRole();
-    if (token && user) set({ user, token, role });
+    if (token && user) {
+      set({ user, token, role });
+      useSiteStore.getState().fetchSites(); // idempotent — no-op if already cached
+    }
   },
 
   login: async (email, password) => {
-  set({ isLoading: true });
-  try {
-    
-    const loginRes = await axios.post(
-      `${API_BASE_URL}/auth/login`,
-      { email, password },
-      { headers: { 'Content-Type': 'application/json' } }
-    );
+    set({ isLoading: true });
+    try {
+      const loginRes = await axios.post(
+        `${API_BASE_URL}/auth/login`,
+        { email, password },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
 
-    const body = loginRes.data; 
+      const body = loginRes.data;
+      if (!body?.data) throw new Error(body?.message || 'Login failed');
 
-    if (!body?.data) {
-      throw new Error(body?.message || 'Login failed');
+      const payload = body.data;
+      if (!payload?.token) throw new Error(body?.message || 'Login failed — no token returned');
+
+      const meRes = await axios.get(
+        `${API_BASE_URL}/auth/me`,
+        { headers: { Authorization: `Bearer ${payload.token}` } }
+      );
+
+      const meBody = meRes.data;
+      const meData = meBody?.data;
+      if (!meData || !meData.email) {
+        throw new Error(meBody?.message || 'Failed to fetch user profile');
+      }
+      const user: User = {
+        ...meData,
+        first_name:   meData.firstName  ?? '',
+        last_name:    meData.lastName   ?? '',
+        account_type: meData.role       ?? '',
+        phone_no:     meData.phone      ?? '',
+        expires_at:   payload.expires_at ?? '',
+      };
+      saveToken(payload.token);
+      saveRole(payload.role);
+      saveUser(user);
+      saveExpiresAt(payload.expires_at ?? '');
+
+      set({
+        token: payload.token,
+        role:  payload.role,
+        user,
+        isLoading: false,
+      });
+
+      useSiteStore.getState().fetchSites();
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
     }
-
-    const payload = body.data;
-
-    if (!payload?.token) {
-      throw new Error(body?.message || 'Login failed — no token returned');
-    }
-
-    const meRes = await axios.get(
-      `${API_BASE_URL}/auth/me`,
-      { headers: { Authorization: `Bearer ${payload.token}` } }
-    );
-
-    const meBody = meRes.data;
-    const meData = meBody?.data;
-
-    if (!meData || !meData.email) {
-      throw new Error(meBody?.message || 'Failed to fetch user profile');
-    }
-    const user: User = {
-      ...meData,
-      first_name:   meData.firstName  ?? '',
-      last_name:    meData.lastName   ?? '',
-      account_type: meData.role       ?? '',
-      phone_no:     meData.phone      ?? '',
-      expires_at:   payload.expires_at ?? '',
-    };
-    saveToken(payload.token);
-    saveRole(payload.role);
-    saveUser(user);
-    saveExpiresAt(payload.expires_at ?? '');
-
-    set({
-      token: payload.token,
-      role:  payload.role,
-      user,
-      isLoading: false,
-    });
-  } catch (error) {
-    set({ isLoading: false });
-    throw error;
-  }
-},
+  },
 
   logout: () => {
     clearSession();
+    useSiteStore.getState().clear();
     set({ user: null, token: null, role: null });
   },
 }));
