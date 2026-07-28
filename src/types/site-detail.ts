@@ -1,4 +1,6 @@
-import { SiteDetail, AttendanceRecord } from './site';
+import { AttendanceRecord, FieldOperator } from './site';
+
+export type { FieldOperator };
 
 export interface RawSite {
   id: number;
@@ -49,16 +51,4 @@ export interface SiteAnalytics {
   previousAttendance: number;
   taskBreakdown: TaskBreakdownItem[];
   attendanceBreakdown: AttendanceBreakdownItem[];
-}
-
-export interface FieldOperator {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-}
-
-export interface SiteDetailExtended extends SiteDetail {
-  estimatedValue?: number;
-  operator?: FieldOperator | null;
 }

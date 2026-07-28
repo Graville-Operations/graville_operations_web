@@ -1,13 +1,11 @@
 export const API = {
-auth: {
+  auth: {
   login: "/auth/login",
   me: "/auth/me",
   logout: "/auth/logout",
   changePassword: "/auth/change-password",
   verifyOtp: "/auth/verify-otp",
   meMenus: "/auth/me/menus",
-  forgotPassword: "/auth/forgot-password",
-  resetPassword: "/auth/reset-password",
 },
   users: {
     list: "/users/list",
@@ -74,7 +72,7 @@ auth: {
     dashboardMetrics: "/sites/dashboard-metrics",
     unassignedOperators: "/sites/operators/unassigned",
     assignOperator: (siteId: number | string, operatorId: number | string) =>
-      `/sites/${siteId}/opertor/${operatorId}`,
+      `/sites/${siteId}/operator/${operatorId}`,
     operator: (siteId: number | string) => `/sites/${siteId}/operator`,
     replaceOperator: (siteId: number | string) => `/sites/${siteId}/operator/replace`,
   },

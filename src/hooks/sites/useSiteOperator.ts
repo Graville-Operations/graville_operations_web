@@ -9,6 +9,10 @@ import {
 } from '@/lib/api/sites';
 import { FieldOperator } from '@/types/site-detail';
 
+// `operator` is now sourced from GET /sites/{id} (fetched once by useSiteDetail)
+// rather than a dedicated GET /sites/{id}/operator call. This hook only owns
+// the write actions; on success it calls onOperatorChange to have the caller
+// refetch site detail, which is the single source of truth for operator state.
 export function useSiteOperator(
   siteId: number,
   operator: FieldOperator | null,

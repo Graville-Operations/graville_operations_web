@@ -4,15 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { fetchSiteById, fetchSiteAnalytics } from '@/lib/api/sites';
 import { fetchAttendanceSummary } from '@/lib/api/attendance';
-import { SiteAnalytics, SiteDetailExtended } from '@/types/site-detail';
-import { AttendanceRecord } from '@/types/site';
+import { SiteAnalytics } from '@/types/site-detail';
+import { AttendanceRecord, SiteDetail } from '@/types/site';
 import { normalizeTaskBreakdown } from '@/lib/utils/site-helpers';
 
 export function useSiteDetail(siteId: number) {
   const [analytics, setAnalytics]         = useState<SiteAnalytics | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
-  const [detail, setDetail]               = useState<SiteDetailExtended | null>(null);
+  const [detail, setDetail]               = useState<SiteDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(true);
 
   const [rangeRecords, setRangeRecords] = useState<AttendanceRecord[]>([]);
@@ -39,6 +39,9 @@ export function useSiteDetail(siteId: number) {
       .finally(() => setLoadingAnalytics(false));
   }, [siteId]);
 
+  // Also the single source of truth for the assigned field operator — the
+  // /sites/{id} response includes the operator nested inline, so a refetch
+  // here is all FieldOperatorCard needs after assign/replace/unassign.
   const loadDetail = useCallback(() => {
     setLoadingDetail(true);
     fetchSiteById(siteId)
