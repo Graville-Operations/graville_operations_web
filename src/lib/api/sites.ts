@@ -1,11 +1,10 @@
-import axios from 'axios';
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import {
   Site, SiteDetail, SiteWorker, AttendanceRecord,
   SiteTask, CreateSitePayload, OverviewKPIs,
 } from '@/types/site';
-import { SiteAnalytics, SiteDetailExtended, FieldOperator } from '@/types/site-detail';
+import { SiteAnalytics, FieldOperator } from '@/types/site-detail';
 import { DashboardMetrics } from '@/types/dashboard';
 
 function unwrapArray<T>(response: unknown): T[] {
@@ -65,11 +64,11 @@ export async function fetchSites(): Promise<Site[]> {
   return unwrapArray<Site>(data);
 }
 
-export async function fetchSiteById(siteId: number): Promise<SiteDetailExtended> {
+export async function fetchSiteById(siteId: number): Promise<SiteDetail> {
   const { data } = await api.get(API.sites.detail(siteId));
   const raw = unwrapObject<Record<string, unknown>>(data);
   const operator = normalizeOperator(raw.operator);
-  return { ...(raw as unknown as SiteDetailExtended), operator };
+  return { ...(raw as unknown as SiteDetail), operator };
 }
 
 export async function createSite(payload: CreateSitePayload): Promise<Site> {
@@ -121,12 +120,13 @@ export async function fetchUnassignedFieldOperators(): Promise<FieldOperator[]> 
   return normalizeOperatorList(unwrapArray<unknown>(data));
 }
 
-export async function assignFieldOperator(siteId: number, operatorId: number): Promise<void> {
-  await api.patch(API.sites.assignOperator(siteId, operatorId));
+export async function assignFieldOperator(siteId: number, userId: number): Promise<void> {
+  await api.patch(API.sites.assignOperator(siteId, userId));
 }
-export async function replaceFieldOperator(siteId: number, operatorId: number): Promise<void> {
+
+export async function replaceFieldOperator(siteId: number, userId: number): Promise<void> {
   await api.patch(API.sites.replaceOperator(siteId), null, {
-    params: { new_operator_id: operatorId },
+    params: { new_user_id: userId },
   });
 }
 
