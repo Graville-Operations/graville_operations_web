@@ -9,22 +9,11 @@ import {
   PaymentHistory,
 } from '@/types/invoice';
 
-export interface Site {
-  id: number;
-  name: string;
-  location: string;
-}
-
 export interface SupplierInvoiceFilters {
   siteId?: string;
   startDate?: string;
   endDate?: string;
   status?: InvoicePaymentStatus;
-}
-
-export async function fetchSites(): Promise<Site[]> {
-  const { data } = await api.get(API.sites.list);
-  return data?.data?.items ?? data?.data ?? [];
 }
 
 export async function fetchSupplierInvoices(

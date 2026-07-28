@@ -1,28 +1,23 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchSites, fetchOverviewKPIs } from '@/lib/api/sites';
-import { Site, ProjectStatus, OverviewKPIs } from '@/types/site';
+import { fetchOverviewKPIs } from '@/lib/api/sites';
+import { ProjectStatus, OverviewKPIs } from '@/types/site';
 import { normProjectStatus } from '@/lib/utils/site-helpers';
+import { useSiteStore } from '@/store/site-store';
 
 export function useConstructionSites() {
-  const [sites, setSites]             = useState<Site[]>([]);
-  const [kpis, setKpis]               = useState<OverviewKPIs | null>(null);
-  const [loadingSites, setLoadingSites] = useState(true);
-  const [loadingKpis, setLoadingKpis]   = useState(true);
-  const [sitesError, setSitesError]     = useState<string | null>(null);
-  const [search, setSearch]             = useState('');
+  const sites = useSiteStore((s) => s.sites);
+  const loadingSites = useSiteStore((s) => s.isLoading);
+  const sitesError = useSiteStore((s) => s.error);
+  const fetchSitesAction = useSiteStore((s) => s.fetchSites);
+
+  const [kpis, setKpis] = useState<OverviewKPIs | null>(null);
+  const [loadingKpis, setLoadingKpis] = useState(true);
+  const [search, setSearch] = useState('');
   const [projectFilter, setProjectFilter] = useState<ProjectStatus | 'ALL'>('ALL');
 
-  const load = useCallback(() => {
-    setLoadingSites(true);
-    setSitesError(null);
-    fetchSites()
-      .then((data) => setSites(data))
-      .catch((err: unknown) =>
-        setSitesError(err instanceof Error ? err.message : 'Failed to load sites'))
-      .finally(() => setLoadingSites(false));
-
+  const loadKpis = useCallback(() => {
     setLoadingKpis(true);
     fetchOverviewKPIs()
       .then((res) => {
@@ -33,7 +28,16 @@ export function useConstructionSites() {
       .finally(() => setLoadingKpis(false));
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const load = useCallback(() => {
+    fetchSitesAction(true); 
+    loadKpis();
+  }, [fetchSitesAction, loadKpis]);
+
+  useEffect(() => {
+    fetchSitesAction(); 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadKpis();
+  }, [fetchSitesAction, loadKpis]);
 
   const totalSites    = kpis?.totalSites    ?? 0;
   const planningSites = kpis?.planningSites ?? 0;

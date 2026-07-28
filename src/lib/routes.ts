@@ -55,7 +55,8 @@ export const ROUTES = {
     myPermits:        '/permits/my-permits',
   },
   workers: {
-    dashboard: '/workers/dashboard',
+  dashboard: '/workers/dashboard',
+  siteWorkers: (siteId: number | string) => `/workers/site/${siteId}`,
   },
   sections: {
     departments: {

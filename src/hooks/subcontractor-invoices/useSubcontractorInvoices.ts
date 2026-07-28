@@ -5,16 +5,11 @@ import {
   fetchSubcontractorInvoices,
   fetchSubcontractorInvoiceDetail,
 } from '@/lib/api/subcontractor-invoices';
-import { fetchSites } from '@/lib/api/sites';
 import type { SubcontractorInvoiceListItem, SiteOption } from '@/types/subcontractor-invoice';
+import { useSiteStore } from '@/store/site-store';
 
 export type DateMode = 'single' | 'range';
 
-// Background refresh cadence — keeps the table in sync with changes made by
-// other users/tabs without the person needing to hit F5. A single
-// visibilitychange listener covers both "tab switch" and "window refocus"
-// in modern browsers, so we don't add a separate focus listener too —
-// that tends to double the number of calls when both fire together.
 const POLL_INTERVAL_MS = 45_000;
 
 export function useSubcontractorInvoices() {
@@ -23,11 +18,15 @@ export function useSubcontractorInvoices() {
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
 
-  const [sites, setSites] = useState<SiteOption[]>([]);
+  const storeSites = useSiteStore((s) => s.sites);
+  const fetchSitesAction = useSiteStore((s) => s.fetchSites);
+  const sites: SiteOption[] = useMemo(
+    () => storeSites.map((s) => ({ id: s.id, name: s.name })),
+    [storeSites],
+  );
   const [siteFilter, setSiteFilter] = useState('');
 
   const [statusFilter, setStatusFilter] = useState('');
-
   const [search, setSearch] = useState('');
 
   const [dateMode, setDateMode] = useState<DateMode>('single');
@@ -35,22 +34,15 @@ export function useSubcontractorInvoices() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  // Tracks the filters currently in effect so a background poll (which
-  // fires from a timer/focus listener, not a render) always requests with
-  // the latest siteFilter/statusFilter instead of stale closure values.
   const filtersRef = useRef({ siteFilter, statusFilter });
   useEffect(() => {
     filtersRef.current = { siteFilter, statusFilter };
   }, [siteFilter, statusFilter]);
 
   useEffect(() => {
-    fetchSites()
-      .then((siteList) => setSites(siteList.map((s) => ({ id: s.id, name: s.name }))))
-      .catch((err) => console.error('[Sites] fetch error:', err));
-  }, []);
+    fetchSitesAction(); // idempotent — no-op if already cached from login
+  }, [fetchSitesAction]);
 
-  // silent = true skips the loading spinner/shimmer, used for background
-  // polling and focus-refresh so the table doesn't visibly flash.
   const loadInvoices = useCallback(async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
@@ -195,7 +187,7 @@ async function fetchCreatedByWithRetry(
     } catch (err) {
       lastErr = err;
       if (attempt < attempts - 1) {
-        await delay(400 * (attempt + 1)); // 400ms, then 800ms
+        await delay(400 * (attempt + 1));
       }
     }
   }

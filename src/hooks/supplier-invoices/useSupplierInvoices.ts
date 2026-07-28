@@ -3,14 +3,16 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Invoice, InvoicePaymentStatus, normaliseInvoice } from '@/types/invoice';
-import { fetchSites, fetchSupplierInvoices, Site } from '@/lib/api/supplier-invoices';
+import { fetchSupplierInvoices } from '@/lib/api/supplier-invoices';
 import { ROUTES } from '@/lib/routes';
+import { useSiteStore } from '@/store/site-store';
 
 export function useSupplierInvoices() {
   const router = useRouter();
 
   const [invoices, setInvoices]   = useState<Invoice[]>([]);
-  const [sites, setSites]         = useState<Site[]>([]);
+  const sites = useSiteStore((s) => s.sites);
+  const fetchSitesAction = useSiteStore((s) => s.fetchSites);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch]       = useState('');
   const [siteId, setSiteId]       = useState('');
@@ -24,10 +26,8 @@ export function useSupplierInvoices() {
   }, [siteId, startDate, endDate, statusFilter]);
 
   useEffect(() => {
-    fetchSites()
-      .then(setSites)
-      .catch((err) => console.error('Failed to fetch sites:', err));
-  }, []);
+    fetchSitesAction(); // idempotent — no-op if already cached from login
+  }, [fetchSitesAction]);
 
   const loadInvoices = useCallback(
     async (sid: string, start: string, end: string, status: InvoicePaymentStatus | null) => {
@@ -54,9 +54,6 @@ export function useSupplierInvoices() {
     loadInvoices(siteId, startDate, endDate, statusFilter);
   }, [siteId, startDate, endDate, statusFilter, loadInvoices]);
 
-  // Refetch whenever the page becomes visible again (e.g. navigating back
-  // from a detail page after a status update or payment) or the window
-  // regains focus, so the table never shows stale payment statuses.
   useEffect(() => {
     const refetch = () => {
       const { siteId: sid, startDate: s, endDate: e, statusFilter: st } = filtersRef.current;
