@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Site } from '@/types';
 import { ClientInvoiceItemDraft, NewClientInvoiceForm } from '@/types/client-invoice';
-import { fetchSites, createClientInvoice } from '@/lib/api/client-invoices';
+import { fetchSites } from '@/lib/api/sites';
+import { createClientInvoice } from '@/lib/api/client-invoices';
 import { todayISO } from '@/lib/utils/date';
 import { ROUTES } from '@/lib/routes';
 

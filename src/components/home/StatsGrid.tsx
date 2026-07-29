@@ -1,4 +1,4 @@
-// src/components/home/StatsGrid.tsx
+
 import { Users, TrendingUp, Building2 } from 'lucide-react';
 import { OverviewKPIs } from '@/types/site';
 import { InvoiceSummaryItem } from '@/types/invoice-summary';
