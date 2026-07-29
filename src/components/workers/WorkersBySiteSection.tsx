@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { SiteWorkersList } from '@/components/workers/SiteWorkersList';
 import { useSiteWorkers } from '@/hooks/workers/useSiteWorkers';
 import EmptyState from '@/components/ui/emptystate';
@@ -22,6 +22,10 @@ export function WorkersBySiteSection({ sites, sitesLoading }: WorkersBySiteSecti
 
   const visibleWorkers = workers.slice(0, DISPLAY_LIMIT);
   const hasMore = workers.length > DISPLAY_LIMIT;
+
+  const goToAll = () => {
+    if (selectedSiteId != null) router.push(ROUTES.workers.siteWorkers(selectedSiteId));
+  };
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -54,18 +58,23 @@ export function WorkersBySiteSection({ sites, sitesLoading }: WorkersBySiteSecti
             description="Select a site above to view its workers."
             fullScreen={false}
           />
+        ) : workers.length === 0 ? (
+          <EmptyState
+            title="No workers on this site"
+            description="Workers checked in at this site will show up here."
+            fullScreen={false}
+          />
         ) : (
           <>
             <SiteWorkersList workers={visibleWorkers} />
             {hasMore && (
-              <div className="px-4 py-2.5 border-t border-border">
-                <button
-                  onClick={() => router.push(ROUTES.workers.siteWorkers(selectedSiteId))}
-                  className="text-sm font-medium text-primary hover:opacity-80 transition-opacity cursor-pointer"
-                >
-                  View All ({workers.length})
-                </button>
-              </div>
+              <button
+                onClick={goToAll}
+                className="w-full flex items-center justify-center gap-1.5 px-4 py-3 border-t border-border text-sm font-medium text-primary hover:bg-(--gv-glass-bg-strong) transition-colors cursor-pointer"
+              >
+                View All Workers
+                <ChevronRight size={14} />
+              </button>
             )}
           </>
         )}

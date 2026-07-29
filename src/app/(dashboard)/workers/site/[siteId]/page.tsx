@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { SiteWorkersList } from '@/components/workers/SiteWorkersList';
 import { useSiteWorkers } from '@/hooks/workers/useSiteWorkers';
 import { useConstructionSites } from '@/hooks/sites/useConstructionSites';
+import EmptyState from '@/components/ui/emptystate';
 
 export default function SiteWorkersPage() {
   const params = useParams<{ siteId: string }>();
@@ -33,6 +34,12 @@ export default function SiteWorkersPage() {
             <div key={i} className="h-12 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
           ))}
         </div>
+      ) : workers.length === 0 ? (
+        <EmptyState
+          title="No workers on this site"
+          description="Workers checked in at this site will show up here."
+          fullScreen={false}
+        />
       ) : (
         <SiteWorkersList workers={workers} />
       )}

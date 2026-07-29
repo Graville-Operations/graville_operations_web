@@ -7,6 +7,7 @@ import { getTaskHandoff } from '@/lib/task-handoff';
 import { getSite } from '@/lib/sites-cache';
 import type { Task, SubTask } from '@/lib/types';
 import { fetchSubtasks } from '@/lib/api/quality';
+import { ROUTES } from '@/lib/routes';
 
 export function useTaskDetail() {
   const params = useParams();
@@ -72,11 +73,13 @@ export function useTaskDetail() {
   const site = resolvedSiteId !== undefined ? getSite(resolvedSiteId) : undefined;
 
   const goToCreateSubtask = useCallback(() => {
-    router.push(`/quality/dashboard/${resolvedSiteId}/tasks/${taskId}/subtasks/create`);
+    if (resolvedSiteId === undefined) return;
+    router.push(ROUTES.quality.subtaskCreate(resolvedSiteId, taskId));
   }, [router, resolvedSiteId, taskId]);
 
   const goBack = useCallback(() => {
-    router.push(`/quality/dashboard/${resolvedSiteId}`);
+    if (resolvedSiteId === undefined) return;
+    router.push(ROUTES.quality.siteDetail(resolvedSiteId));
   }, [router, resolvedSiteId]);
 
   return {
