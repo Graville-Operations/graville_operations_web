@@ -1,6 +1,8 @@
+// src/lib/api.ts
 import axios from 'axios';
 import { API_BASE_URL } from './constants';
 import { API } from './endpoints';
+import { ROUTES } from './routes';
 import { getToken, clearSession } from './auth';
 
 const api = axios.create({
@@ -33,7 +35,7 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !isAuthRoute) {
       clearSession();
-      if (typeof window !== 'undefined') window.location.href = '/signin';
+      if (typeof window !== 'undefined') window.location.href = ROUTES.signin;
     }
     return Promise.reject(error);
   }
