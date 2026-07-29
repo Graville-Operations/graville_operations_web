@@ -54,7 +54,7 @@ export function StatsGrid({ kpis, loading, invoiceSummary, invoiceSummaryLoading
       iconColor: '#33907c',
       change: `${kpis?.presentToday ?? 0} today`,
       positive: true,
-      href: ROUTES.workers,
+      href: ROUTES.workers.dashboard,
     },
     {
       label: 'Completed Tasks',

@@ -98,7 +98,7 @@ export function useCreatePermit() {
   };
 
   const goBack = () => (step === "confirm" ? setStep("form") : router.back());
-  const viewMyPermits = () => router.push(ROUTES.permits.mine);
+  const viewMyPermits = () => router.push(ROUTES.permits.myPermits);
 
   const selectedCategory = categories.find((c) => c.id === Number(form.categoryId));
 

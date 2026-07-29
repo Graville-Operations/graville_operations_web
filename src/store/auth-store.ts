@@ -1,11 +1,12 @@
+
 import { create } from 'zustand';
 import { User } from '@/types';
 import {
   saveToken, saveRole, saveUser, saveExpiresAt,
   clearSession, getUser, getToken, getRole,
 } from '@/lib/auth';
-import axios from 'axios';
-import { API_BASE_URL } from '@/lib/constants';
+import api from '@/lib/api';
+import { API } from '@/lib/endpoints';
 import { useSiteStore } from '@/store/site-store';
 
 interface AuthState {
@@ -30,43 +31,46 @@ export const useAuthStore = create<AuthState>((set) => ({
     const role = getRole();
     if (token && user) {
       set({ user, token, role });
-      useSiteStore.getState().fetchSites(); // idempotent — no-op if already cached
+      useSiteStore.getState().fetchSites(); 
     }
   },
 
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const loginRes = await axios.post(
-        `${API_BASE_URL}/auth/login`,
-        { email, password },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-
+      const loginRes = await api.post(API.auth.login, { email, password });
       const body = loginRes.data;
-      if (!body?.data) throw new Error(body?.message || 'Login failed');
+
+      if (!body?.data) {
+        throw new Error(body?.message || 'Login failed');
+      }
 
       const payload = body.data;
-      if (!payload?.token) throw new Error(body?.message || 'Login failed — no token returned');
 
-      const meRes = await axios.get(
-        `${API_BASE_URL}/auth/me`,
-        { headers: { Authorization: `Bearer ${payload.token}` } }
-      );
+      if (!payload?.token) {
+        throw new Error(body?.message || 'Login failed — no token returned');
+      }
+
+      const meRes = await api.get(API.auth.me, {
+        headers: { Authorization: `Bearer ${payload.token}` },
+      });
 
       const meBody = meRes.data;
       const meData = meBody?.data;
+
       if (!meData || !meData.email) {
         throw new Error(meBody?.message || 'Failed to fetch user profile');
       }
+
       const user: User = {
         ...meData,
-        first_name:   meData.firstName  ?? '',
-        last_name:    meData.lastName   ?? '',
-        account_type: meData.role       ?? '',
-        phone_no:     meData.phone      ?? '',
-        expires_at:   payload.expires_at ?? '',
+        first_name: meData.firstName ?? '',
+        last_name: meData.lastName ?? '',
+        account_type: meData.role ?? '',
+        phone_no: meData.phone ?? '',
+        expires_at: payload.expires_at ?? '',
       };
+
       saveToken(payload.token);
       saveRole(payload.role);
       saveUser(user);
@@ -74,11 +78,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       set({
         token: payload.token,
-        role:  payload.role,
+        role: payload.role,
         user,
         isLoading: false,
       });
-
+    
       useSiteStore.getState().fetchSites();
     } catch (error) {
       set({ isLoading: false });
