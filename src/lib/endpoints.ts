@@ -68,6 +68,8 @@ export const API = {
     list: "/sites/list",
     create: "/sites/create",
     detail: (id: number) => `/sites/${id}`,
+    update: (id: number) => `/sites/${id}`,
+    updateEstimatedValue: (id: number) => `/sites/${id}/estimated-value`,
     analytics: (id: number | string) => `/sites/analytics/${id}`,
     dashboardMetrics: "/sites/dashboard-metrics",
     unassignedOperators: "/sites/operators/unassigned",

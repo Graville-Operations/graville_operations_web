@@ -42,6 +42,16 @@ export async function fetchSiteDetail(siteId: number): Promise<SiteDetail> {
   return (res.data?.data ?? res.data) as SiteDetail;
 }
 
+export async function updateSiteEstimatedValue(
+  siteId: number,
+  estimatedValue: number
+): Promise<SiteDetail> {
+  const res = await api.patch(API.sites.updateEstimatedValue(siteId), {
+    estimated_value: estimatedValue,
+  });
+  return (res.data?.data ?? res.data) as SiteDetail;
+}
+
 export async function fetchSiteTasks(
   siteId: number,
   onRetry?: (attempt: number, max: number) => void

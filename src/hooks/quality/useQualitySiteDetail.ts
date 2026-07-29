@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { setTaskHandoff } from '@/lib/task-handoff';
 import { getSite } from '@/lib/sites-cache';
+import { ROUTES } from '@/lib/routes';
 import type { Task } from '@/lib/types';
-import { fetchSiteDetail, fetchSiteTasks, SiteDetail } from '@/lib/api/quality';
+import { fetchSiteDetail, fetchSiteTasks, updateSiteEstimatedValue, SiteDetail } from '@/lib/api/quality';
 
 export function useQualitySiteDetail() {
   const router = useRouter();
@@ -56,17 +57,25 @@ export function useQualitySiteDetail() {
   const openTask = useCallback(
     (task: Task) => {
       setTaskHandoff(task);
-      router.push(`/quality/dashboard/${siteId}/tasks/${task.id}`);
+      router.push(ROUTES.quality.taskDetail(siteId, task.id));
     },
     [router, siteId]
   );
 
   const goToCreateTask = useCallback(
-    () => router.push(`/quality/dashboard/${siteId}/tasks/create`),
+    () => router.push(ROUTES.quality.taskCreate(siteId)),
     [router, siteId]
   );
 
-  const goBack = useCallback(() => router.push('/quality/dashboard'), [router]);
+  const goBack = useCallback(() => router.push(ROUTES.quality.dashboard), [router]);
+
+  const updateEstimatedValue = useCallback(
+    async (newValue: number) => {
+      const updated = await updateSiteEstimatedValue(siteId, newValue);
+      setSite(updated);
+    },
+    [siteId]
+  );
 
   return {
     siteId,
@@ -82,5 +91,6 @@ export function useQualitySiteDetail() {
     openTask,
     goToCreateTask,
     goBack,
+    updateEstimatedValue,
   };
 }
