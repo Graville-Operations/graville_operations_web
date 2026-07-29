@@ -6,6 +6,7 @@ import { cacheBust } from '@/lib/persistent-cache';
 import { getSite, type Site } from '@/lib/sites-cache';
 import { createTask } from '@/lib/api/quality';
 import { extractErrorMessage } from '@/lib/utils/extract-error-message';
+import { ROUTES } from '@/lib/routes';
 
 interface TaskFormState {
   name: string;
@@ -63,14 +64,14 @@ export function useCreateTaskForm() {
         end_date:    form.end_date,
       });
       cacheBust(`tasks:${siteId}`);
-      router.push(`/quality/dashboard/${siteId}`);
+      router.push(ROUTES.quality.siteDetail(siteId));
     } catch (err) {
       setError(extractErrorMessage(err, 'Failed to create task'));
       setSubmitting(false);
     }
   }, [form, siteId, router]);
 
-  const goBack = useCallback(() => router.push(`/quality/dashboard/${siteId}`), [router, siteId]);
+  const goBack = useCallback(() => router.push(ROUTES.quality.siteDetail(siteId)), [router, siteId]);
 
   return {
     siteId,
