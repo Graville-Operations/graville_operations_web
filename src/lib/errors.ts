@@ -5,12 +5,12 @@ export function getLoginErrorMessage(err: unknown, fallback: string): string {
     if (!err.response) return 'Network error. Check your internet connection.';
     const data = err.response.data;
     if (typeof data?.message === 'string') return data.message;
-    return `Login failed (${err.response.status}).`;
+    return fallback;
   }
 
-  if (err instanceof Error) return err.message; 
+  if (err instanceof Error) return err.message;
 
-  return 'Login failed';
+  return fallback;
 }
 
 export function getApiErrorMessage(err: unknown, fallback: string): string {
@@ -19,7 +19,7 @@ export function getApiErrorMessage(err: unknown, fallback: string): string {
     const data = err.response.data;
     if (typeof data?.message === 'string') return data.message;
     if (typeof data?.detail === 'string') return data.detail;
-    return `${fallback} (${err.response.status}).`;
+    return fallback;
   }
 
   if (err instanceof Error) return err.message;

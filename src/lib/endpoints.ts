@@ -1,12 +1,14 @@
 export const API = {
   auth: {
-  login: "/auth/login",
-  me: "/auth/me",
-  logout: "/auth/logout",
-  changePassword: "/auth/change-password",
-  verifyOtp: "/auth/verify-otp",
-  meMenus: "/auth/me/menus",
-},
+    login: "/auth/login",
+    me: "/auth/me",
+    logout: "/auth/logout",
+    changePassword: "/auth/change-password",
+    verifyOtp: "/auth/verify-otp",
+    meMenus: "/auth/me/menus",
+    forgotPassword: "/auth/forgot-password",
+    resetPassword: "/auth/reset-password",
+  },
   users: {
     list: "/users/list",
     create: "/users/create",
@@ -43,10 +45,10 @@ export const API = {
     summary: "/invoices/summary",
   },
   clientInvoices: {
-  all: "/client-invoices/all",
-  detail: (id: number | string) => `/client-invoices/details/${id}`,
-  create: "/client-invoices/create",
-},
+    all: "/client-invoices/all",
+    detail: (id: number | string) => `/client-invoices/details/${id}`,
+    create: "/client-invoices/create",
+  },
   subcontractorInvoices: {
     all: "/subcontractor-invoices/all",
     detail: (id: number) => `/subcontractor-invoices/details/${id}`,
@@ -83,25 +85,37 @@ export const API = {
     analytics: "/attendance/analytics",
     checkIn: "/attendance/check-in",
   },
- tasks: {
-  listBySite: (siteId: number) => `/tasks/list/${siteId}`,
-  create: "/tasks/task/create",
-  update: (taskId: number) => `/tasks/task/update/${taskId}`,
-  listSubtasksByTask: (taskId: number) => `/tasks/sub-task/list/${taskId}`,
-  createSubtask: "/tasks/sub-task/create",
-  updateSubtask: (subtaskId: number) => `/tasks/sub-task/update/${subtaskId}`,
-},
+  tasks: {
+    listBySite: (siteId: number) => `/tasks/list/${siteId}`,
+    create: "/tasks/task/create",
+    update: (taskId: number) => `/tasks/task/update/${taskId}`,
+    listSubtasksByTask: (taskId: number) => `/tasks/sub-task/list/${taskId}`,
+    createSubtask: "/tasks/sub-task/create",
+    updateSubtask: (subtaskId: number) => `/tasks/sub-task/update/${subtaskId}`,
+  },
   analytics: {
     overview: "/analytics/overview",
   },
   departments: {
-  list: "/departments/list",
-  create: "/departments/create",
-  detail: (id: number) => `/departments/${id}`,
-  menus: (id: number) => `/departments/${id}/menus`,
-  members: (id: number) => `/departments/${id}/members`,
-  assignUsers: (id: number) => `/departments/${id}/assign-users`,
-},
+    list: "/departments/list",
+    create: "/departments/create",
+    detail: (id: number) => `/departments/${id}`,
+    menus: (id: number) => `/departments/${id}/menus`,
+    members: (id: number) => `/departments/${id}/members`,
+    assignUsers: (id: number) => `/departments/${id}/assign-users`,
+  },
+  permits: {
+    myPermits: "/permits/my-pemits", 
+    all: "/permits/all",
+    get: (id: number) => `/permits/get/${id}`,
+    create: "/permits/create",
+    submit: (id: number) => `/permits/submit/${id}`,
+    takeAction: (id: number) => `/permits/take-action/${id}`,
+    pending: "/permits/pending",
+    categories: "/permits/categories",
+    createCategory: "/permits/category/create",
+    updateCategory: (id: number) => `/permits/category/${id}`,
+  },
   stores: {
     summary: (siteId: number) => `/store/site/${siteId}`,
     materials: (siteId: number) => `/store/materials/${siteId}/all`,
@@ -110,7 +124,7 @@ export const API = {
     dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
   },
- invoiceActions: {
+  invoiceActions: {
     updateStatus: (invoiceType: string, invoiceId: number | string) =>
       `/invoices/${invoiceType}/${invoiceId}/status`,
     recordPayment: (invoiceType: string, invoiceId: number | string) =>
