@@ -7,6 +7,7 @@ import {
 } from '@/lib/auth';
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
+import { useSiteStore } from '@/store/site-store';
 
 interface AuthState {
   user: User | null;
@@ -28,7 +29,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     const user = getUser();
     const token = getToken();
     const role = getRole();
-    if (token && user) set({ user, token, role });
+    if (token && user) {
+      set({ user, token, role });
+      useSiteStore.getState().fetchSites(); 
+    }
   },
 
   login: async (email, password) => {
@@ -78,6 +82,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         user,
         isLoading: false,
       });
+    
+      useSiteStore.getState().fetchSites();
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -86,6 +92,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: () => {
     clearSession();
+    useSiteStore.getState().clear();
     set({ user: null, token: null, role: null });
   },
 }));

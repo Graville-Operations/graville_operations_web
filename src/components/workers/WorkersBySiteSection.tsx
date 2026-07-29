@@ -1,10 +1,14 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 import { SiteWorkersList } from '@/components/workers/SiteWorkersList';
 import { useSiteWorkers } from '@/hooks/workers/useSiteWorkers';
 import EmptyState from '@/components/ui/emptystate';
+import { ROUTES } from '@/lib/routes';
 import type { Site } from '@/types/site';
+
+const DISPLAY_LIMIT = 5;
 
 interface WorkersBySiteSectionProps {
   sites: Site[];
@@ -12,8 +16,12 @@ interface WorkersBySiteSectionProps {
 }
 
 export function WorkersBySiteSection({ sites, sitesLoading }: WorkersBySiteSectionProps) {
+  const router = useRouter();
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const { workers, loading } = useSiteWorkers(selectedSiteId);
+
+  const visibleWorkers = workers.slice(0, DISPLAY_LIMIT);
+  const hasMore = workers.length > DISPLAY_LIMIT;
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -47,7 +55,19 @@ export function WorkersBySiteSection({ sites, sitesLoading }: WorkersBySiteSecti
             fullScreen={false}
           />
         ) : (
-          <SiteWorkersList workers={workers} />
+          <>
+            <SiteWorkersList workers={visibleWorkers} />
+            {hasMore && (
+              <div className="px-4 py-2.5 border-t border-border">
+                <button
+                  onClick={() => router.push(ROUTES.workers.siteWorkers(selectedSiteId))}
+                  className="text-sm font-medium text-primary hover:opacity-80 transition-opacity cursor-pointer"
+                >
+                  View All ({workers.length})
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

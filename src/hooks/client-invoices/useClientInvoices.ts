@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Site } from '@/types';
 import { ClientInvoiceListItem, DateFilterMode, InvoicePaymentStatus } from '@/types/client-invoice';
-import { fetchSites, fetchClientInvoices } from '@/lib/api/client-invoices';
+import { fetchClientInvoices } from '@/lib/api/client-invoices';
 import { parseBackendDate, todayISO } from '@/lib/utils/date';
+import { useSiteStore } from '@/store/site-store';
 
 export function useClientInvoices() {
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -16,7 +17,9 @@ export function useClientInvoices() {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [sites, setSites] = useState<Site[]>([]);
+
+  const sites = useSiteStore((s) => s.sites);
+  const fetchSitesAction = useSiteStore((s) => s.fetchSites);
 
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [siteOpen, setSiteOpen] = useState(false);
@@ -30,9 +33,6 @@ export function useClientInvoices() {
 
   const [statusFilter, setStatusFilter] = useState<InvoicePaymentStatus | null>(null);
 
-  // Keep the latest site/status filters in a ref so the visibility
-  // listener (registered once) always refetches using current values,
-  // not whatever they were when the listener was first attached.
   const filtersRef = useRef({ selectedSite, statusFilter });
   useEffect(() => {
     filtersRef.current = { selectedSite, statusFilter };
@@ -50,10 +50,8 @@ export function useClientInvoices() {
   }, []);
 
   useEffect(() => {
-    fetchSites(100)
-      .then(setSites)
-      .catch((err) => console.error('[Sites]', err));
-  }, []);
+    fetchSitesAction(); // idempotent — no-op if already cached from login
+  }, [fetchSitesAction]);
 
   const loadInvoices = async (siteId?: number, status?: InvoicePaymentStatus | null) => {
     try {
@@ -73,9 +71,6 @@ export function useClientInvoices() {
     loadInvoices(selectedSite?.id, statusFilter);
   }, [selectedSite, statusFilter]);
 
-  // Refetch whenever the page becomes visible again (e.g. navigating back
-  // from a detail page after a status update or payment) or the window
-  // regains focus, so the table never shows stale payment statuses.
   useEffect(() => {
     const refetch = () => {
       const { selectedSite: site, statusFilter: status } = filtersRef.current;

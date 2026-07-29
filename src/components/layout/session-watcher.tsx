@@ -15,10 +15,10 @@ function isSessionExpired(): boolean {
   if (!token) return true;
 
   const expiresAt = getExpiresAt();
-  if (!expiresAt) return false; 
+  if (!expiresAt) return false;
 
   const expiry = new Date(expiresAt);
-  if (isNaN(expiry.getTime())) return false; 
+  if (isNaN(expiry.getTime())) return false;
 
   return new Date() >= expiry;
 }
@@ -42,6 +42,7 @@ export default function SessionWatcher() {
       handleExpiry();
       return;
     }
+    useAuthStore.getState().loadFromStorage();
 
     intervalRef.current = setInterval(() => {
       if (isSessionExpired()) {
