@@ -6,6 +6,7 @@ import type { Worker } from '@/lib/types';
 import { fetchWorkersForSite, createSubtask } from '@/lib/api/quality';
 import { getWorkerName } from '@/lib/utils/worker-helpers';
 import { extractErrorMessage } from '@/lib/utils/extract-error-message';
+import { ROUTES } from '@/lib/routes';
 
 interface SubtaskFormState {
   name: string;
@@ -76,7 +77,7 @@ export function useCreateSubtaskForm() {
         task_id:     taskId,
         worker_ids:  selectedWorkers,
       });
-      router.push(`/quality/dashboard/${siteId}/tasks/${taskId}`);
+      router.push(ROUTES.quality.taskDetail(siteId, taskId));
     } catch (err) {
       setError(extractErrorMessage(err, 'Failed to create subtask'));
       setSubmitting(false);
@@ -84,7 +85,7 @@ export function useCreateSubtaskForm() {
   }, [form, taskId, selectedWorkers, router, siteId]);
 
   const goBack = useCallback(
-    () => router.push(`/quality/dashboard/${siteId}/tasks/${taskId}`),
+    () => router.push(ROUTES.quality.taskDetail(siteId, taskId)),
     [router, siteId, taskId]
   );
 

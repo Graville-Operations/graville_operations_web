@@ -183,7 +183,6 @@ export function InvoiceDetailView({ invoiceId, initialData, onBack }: InvoiceDet
     return (
       <PaymentHistoryView
         invoiceId={invoice.id}
-        invoiceTotal={invoice.total}
         onBack={() => setShowHistoryPage(false)}
       />
     );

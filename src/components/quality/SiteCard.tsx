@@ -1,7 +1,7 @@
 'use client';
 
 import { Building2 } from 'lucide-react';
-import type { Site } from '@/lib/sites-cache';
+import type { Site } from '@/types/site';
 
 interface SiteCardProps {
   site: Site;

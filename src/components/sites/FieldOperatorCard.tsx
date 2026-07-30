@@ -120,7 +120,7 @@ export function FieldOperatorCard({ siteId, operator, loading, onOperatorChange 
   return (
     <div className="relative" ref={wrapperRef}>
       <div
-        className="flex items-center justify-between gap-6 px-4 py-3 rounded-xl"
+        className="inline-flex items-center gap-6 px-4 py-3 rounded-xl"
         style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}
       >
         <div className="flex flex-col gap-1.5">

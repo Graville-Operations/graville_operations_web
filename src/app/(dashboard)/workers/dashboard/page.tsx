@@ -1,11 +1,13 @@
 'use client';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, X } from 'lucide-react';
 import { useWorkersDashboard } from '@/hooks/workers/useWorkersDashboard';
 import { WorkerTypesList } from '@/components/workers/WorkerTypesList';
 import { AddWorkerTypeOverlay } from '@/components/workers/AddWorkerTypeOverlay';
 import { WorkersBySiteSection } from '@/components/workers/WorkersBySiteSection';
-import { useConstructionSites } from '@/hooks/sites/useConstructionSites';
+import { useSiteStore } from '@/store/site-store';
+import { ROUTES } from '@/lib/routes';
 
 type ToastType = 'success' | 'error';
 interface ToastState { message: string; type: ToastType; id: number; }
@@ -20,8 +22,15 @@ function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void 
 }
 
 export default function WorkersDashboardPage() {
+  const router = useRouter();
   const { workerTypes, loading, addWorkerType } = useWorkersDashboard();
-  const { sites, loadingSites } = useConstructionSites();
+  const sites = useSiteStore((s) => s.sites);
+  const loadingSites = useSiteStore((s) => s.isLoading);
+  const fetchSitesAction = useSiteStore((s) => s.fetchSites);
+
+  useEffect(() => {
+    fetchSitesAction(); 
+  }, [fetchSitesAction]);
 
   const [showAdd, setShowAdd] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -47,7 +56,9 @@ export default function WorkersDashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           <div className="flex flex-col gap-3 h-full">
-            <h2 className="text-lg font-semibold text-foreground">Worker Types</h2>
+            <div className="h-9 flex items-center">
+              <h2 className="text-lg font-semibold text-foreground">Worker Types</h2>
+            </div>
             {loading ? (
               <div className="gv-card p-4 space-y-3">
                 {[...Array(3)].map((_, i) => (
@@ -55,7 +66,11 @@ export default function WorkersDashboardPage() {
                 ))}
               </div>
             ) : (
-              <WorkerTypesList workerTypes={workerTypes} />
+              <WorkerTypesList
+                workerTypes={workerTypes}
+                limit={5}
+                onViewAll={() => router.push(ROUTES.workers.types)}
+              />
             )}
           </div>
           <WorkersBySiteSection sites={sites} sitesLoading={loadingSites} />

@@ -1,11 +1,7 @@
-"use client";
+'use client';
 
-import { useCreateSubtaskState } from "./useCreateSubtaskState";
-import { useCreateSubtaskLogic } from "./useCreateSubtaskLogic";
+import { useCreateSubtaskForm } from './useCreateSubtaskForm';
 
 export function useCreateSubtask() {
-  const state = useCreateSubtaskState();
-  const actions = useCreateSubtaskLogic(state);
-
-  return { ...state, ...actions };
+  return useCreateSubtaskForm();
 }

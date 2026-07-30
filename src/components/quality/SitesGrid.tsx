@@ -1,6 +1,6 @@
 'use client';
 
-import type { Site } from '@/lib/sites-cache';
+import type { Site } from '@/types/site';
 import { getAccentColor } from '@/lib/utils/task-status';
 import EmptyState from '@/components/ui/emptystate';
 import SiteCard from './SiteCard';

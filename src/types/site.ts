@@ -27,6 +27,13 @@ export interface Site {
   field_operator_id: number | null;
 }
 
+export interface FieldOperator {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+}
+
 export interface SiteDetail {
   id: number;
   name: string;
@@ -43,6 +50,8 @@ export interface SiteDetail {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string | null;
+  estimatedValue?: number;
+  operator?: FieldOperator | null;
 }
 
 export interface SiteWorker {

@@ -31,7 +31,7 @@ export function useLoginForm() {
       router.replace(ROUTES.home);
     } catch (err: unknown) {
       console.error('Login error:', err);
-      setError(getLoginErrorMessage(err));
+      setError(getLoginErrorMessage(err, 'Login failed. Please try again.'));
       setPassword('');
     }
   };

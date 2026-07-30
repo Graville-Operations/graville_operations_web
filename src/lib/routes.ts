@@ -55,7 +55,9 @@ export const ROUTES = {
     myPermits:        '/permits/my-permits',
   },
   workers: {
-    dashboard: '/workers/dashboard',
+  dashboard: '/workers/dashboard',
+  types: '/workers/types',
+  siteWorkers: (siteId: number | string) => `/workers/site/${siteId}`,
   },
   sections: {
     departments: {
@@ -80,9 +82,12 @@ export const ROUTES = {
   },
   quality: {
     dashboard: '/quality/dashboard',
-    taskDetail: (id: string) => `/quality/dashboard/tasks/${id}`,
-    taskCreate: '/quality/dashboard/tasks/create',
-    subtaskCreate: (taskId: string) => `/quality/dashboard/tasks/${taskId}/subtasks/create`,
+    siteDetail: (siteId: number | string) => `/quality/dashboard/${siteId}`,
+    taskCreate: (siteId: number | string) => `/quality/dashboard/${siteId}/tasks/create`,
+    taskDetail: (siteId: number | string, taskId: number | string) =>
+      `/quality/dashboard/${siteId}/tasks/${taskId}`,
+    subtaskCreate: (siteId: number | string, taskId: number | string) =>
+      `/quality/dashboard/${siteId}/tasks/${taskId}/subtasks/create`,
   },
 } as const;
 

@@ -22,6 +22,7 @@ export default function QualitySiteDetailPage() {
     openTask,
     goToCreateTask,
     goBack,
+    updateEstimatedValue,
   } = useQualitySiteDetail();
 
   const handleUpdateBQ = () => {
@@ -81,7 +82,7 @@ export default function QualitySiteDetailPage() {
             </div>
           </div>
         ) : (
-          <SiteInfoCard site={site} onUpdateBQ={handleUpdateBQ} />
+          <SiteInfoCard site={site} onUpdateBQ={handleUpdateBQ} onUpdateEstimatedValue={updateEstimatedValue} />
         )}
 
         <div>

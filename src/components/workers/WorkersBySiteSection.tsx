@@ -1,10 +1,14 @@
 'use client';
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { SiteWorkersList } from '@/components/workers/SiteWorkersList';
 import { useSiteWorkers } from '@/hooks/workers/useSiteWorkers';
 import EmptyState from '@/components/ui/emptystate';
+import { ROUTES } from '@/lib/routes';
 import type { Site } from '@/types/site';
+
+const DISPLAY_LIMIT = 5;
 
 interface WorkersBySiteSectionProps {
   sites: Site[];
@@ -12,8 +16,16 @@ interface WorkersBySiteSectionProps {
 }
 
 export function WorkersBySiteSection({ sites, sitesLoading }: WorkersBySiteSectionProps) {
+  const router = useRouter();
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const { workers, loading } = useSiteWorkers(selectedSiteId);
+
+  const visibleWorkers = workers.slice(0, DISPLAY_LIMIT);
+  const hasMore = workers.length > DISPLAY_LIMIT;
+
+  const goToAll = () => {
+    if (selectedSiteId != null) router.push(ROUTES.workers.siteWorkers(selectedSiteId));
+  };
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -46,8 +58,25 @@ export function WorkersBySiteSection({ sites, sitesLoading }: WorkersBySiteSecti
             description="Select a site above to view its workers."
             fullScreen={false}
           />
+        ) : workers.length === 0 ? (
+          <EmptyState
+            title="No workers on this site"
+            description="Workers checked in at this site will show up here."
+            fullScreen={false}
+          />
         ) : (
-          <SiteWorkersList workers={workers} />
+          <>
+            <SiteWorkersList workers={visibleWorkers} />
+            {hasMore && (
+              <button
+                onClick={goToAll}
+                className="w-full flex items-center justify-center gap-1.5 px-4 py-3 border-t border-border text-sm font-medium text-primary hover:bg-(--gv-glass-bg-strong) transition-colors cursor-pointer"
+              >
+                View All Workers
+                <ChevronRight size={14} />
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

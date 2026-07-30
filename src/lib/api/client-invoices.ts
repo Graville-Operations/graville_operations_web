@@ -1,6 +1,5 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
-import { Site } from '@/types';
 import {
   ClientInvoiceListItem,
   ClientInvoiceDetail,
@@ -20,17 +19,11 @@ function unwrapList<T>(data: unknown): T[] {
   return (payload as { items?: T[] })?.items ?? [];
 }
 
-// NOTE: duplicates fetchSites in lib/api/sites.ts — consider importing
-// that one instead of keeping a separate copy here.
-export async function fetchSites(limit = 100): Promise<Site[]> {
-  const { data } = await api.get(API.sites.list, { params: { limit } });
-  return unwrapList<Site>(data);
-}
-
 export async function fetchClientInvoices(
   siteId?: number,
   status?: InvoicePaymentStatus
 ): Promise<{ items: ClientInvoiceListItem[]; total: number }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: Record<string, any> = { limit: 100 };
   if (siteId) params.site_id = siteId;
   if (status) params.payment_status = status;
