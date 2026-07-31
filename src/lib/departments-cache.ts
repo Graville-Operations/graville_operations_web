@@ -20,9 +20,7 @@ export interface User {
   role: string;
 }
 
-// Only used for the in-memory detail/menus/users caches below — the
-// persisted department list has no TTL, it's valid until explicitly busted.
-export const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+export const CACHE_TTL = 5 * 60 * 1000;
 
 const LS_DEPT_LIST = 'gv:departments:list';
 
@@ -52,11 +50,6 @@ function lsRemove(key: string) {
   } catch {}
 }
 
-// ── Department list: persists indefinitely, no TTL ───────────────────────
-// Departments rarely change, so once fetched (first login / first visit
-// this browser), the list is trusted until bustDeptCache() runs — which
-// should only happen after creating, editing, or deleting a department.
-
 let deptListCache: Department[] | null = null;
 
 export function getDeptCache(): Department[] | null {
@@ -80,8 +73,6 @@ export function bustDeptCache() {
   lsRemove(LS_DEPT_LIST);
 }
 
-// ── Single department detail: in-memory only, session-scoped ────────────
-
 const deptDetailCache = new Map<number, { value: Department; ts: number }>();
 
 export function getCachedDepartment(id: number): Department | null {
@@ -98,8 +89,6 @@ export function getCachedDepartment(id: number): Department | null {
 export function setCachedDepartment(dept: Department) {
   deptDetailCache.set(dept.id, { value: dept, ts: Date.now() });
 }
-
-// ── Menus & Users per department: in-memory only, session-scoped ────────
 
 const deptMenusCache = new Map<number, { value: Menu[]; ts: number }>();
 const deptUsersCache = new Map<number, { value: User[]; ts: number }>();
@@ -128,4 +117,11 @@ export function bustDeptDetailCache(deptId: number) {
   deptDetailCache.delete(deptId);
   deptMenusCache.delete(deptId);
   deptUsersCache.delete(deptId);
+}
+
+export function clearAllDeptCaches(): void {
+  deptDetailCache.clear();
+  deptMenusCache.clear();
+  deptUsersCache.clear();
+  bustDeptCache();
 }

@@ -1,5 +1,6 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
+import { unwrapArray, unwrapObject } from '@/lib/api-response';
 import {
   CompanyInvoice,
   RawCompanyInvoice,
@@ -7,7 +8,6 @@ import {
   InvoicePaymentStatus,
   PaymentHistory,
 } from '@/types/company_invoices';
-import { RawPaginatedResponse } from '@/types/invoice';
 
 export interface CompanyInvoiceFilters {
   startDate?: string;
@@ -22,15 +22,14 @@ export async function fetchCompanyInvoices(
   if (filters.startDate) params.start_date = filters.startDate;
   if (filters.endDate)   params.end_date   = filters.endDate;
   if (filters.status)    params.payment_status = filters.status;
-  
+
   const { data } = await api.get(API.companyInvoices.all, { params });
-  const res = data as RawPaginatedResponse<RawCompanyInvoice>;
-  return res?.data?.items ?? [];
+  return unwrapArray<RawCompanyInvoice>(data);
 }
 
 export async function fetchCompanyInvoiceDetail(id: string): Promise<CompanyInvoice> {
   const { data } = await api.get(API.companyInvoices.detail(id));
-  return normaliseCompanyInvoice((data?.data ?? data) as RawCompanyInvoice);
+  return normaliseCompanyInvoice(unwrapObject<RawCompanyInvoice>(data));
 }
 
 export interface CreateCompanyInvoiceItemPayload {
@@ -61,7 +60,7 @@ export async function updateCompanyInvoiceStatus(
   status: InvoicePaymentStatus
 ): Promise<UpdateInvoiceStatusResponse> {
   const { data } = await api.patch(API.invoiceActions.updateStatus('company', id), { status });
-  return (data?.data ?? data) as UpdateInvoiceStatusResponse;
+  return unwrapObject<UpdateInvoiceStatusResponse>(data);
 }
 
 export interface RecordPaymentPayload {
@@ -83,12 +82,12 @@ export async function recordCompanyInvoicePayment(
   payload: RecordPaymentPayload
 ): Promise<RecordPaymentResponse> {
   const { data } = await api.post(API.invoiceActions.recordPayment('company', id), payload);
-  return (data?.data ?? data) as RecordPaymentResponse;
+  return unwrapObject<RecordPaymentResponse>(data);
 }
 
 export async function fetchCompanyInvoicePaymentHistory(
   id: number | string
 ): Promise<PaymentHistory> {
   const { data } = await api.get(API.invoiceActions.paymentHistory('company', id));
-  return (data?.data ?? data) as PaymentHistory;
+  return unwrapObject<PaymentHistory>(data);
 }

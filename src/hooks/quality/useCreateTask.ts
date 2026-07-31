@@ -1,11 +1,7 @@
-"use client";
+'use client';
 
-import { useCreateTaskState } from "./useCreateTaskState";
-import { useCreateTaskLogic } from "./useCreateTaskLogic";
+import { useCreateTaskForm } from './useCreateTaskForm';
 
 export function useCreateTask() {
-  const state = useCreateTaskState();
-  const actions = useCreateTaskLogic(state);
-
-  return { ...state, ...actions };
+  return useCreateTaskForm();
 }

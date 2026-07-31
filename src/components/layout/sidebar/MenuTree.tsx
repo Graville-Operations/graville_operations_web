@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { MenuItem, SubMenu, SubSubMenu } from '@/types';
+import { MenuItem, SubMenu, SubSubMenu } from '@/types/menu';
 import { SubmenuList } from './SubmenuList';
 
 interface MenuTreeProps {

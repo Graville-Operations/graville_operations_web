@@ -1,30 +1,14 @@
+import { unwrapArray } from '@/lib/api-response';
 import { Menu, User } from '@/types/department-detail';
 
-export function extractArray(data: unknown): any[] {
-  if (Array.isArray(data)) return data;
-  if (!data || typeof data !== 'object') return [];
-  const d = data as Record<string, unknown>;
-
-  const probes: unknown[] = [
-    d?.data,
-    (d?.data as any)?.items,
-    (d?.data as any)?.data,
-    (d?.data as any)?.results,
-    d?.items,
-    d?.results,
-    d?.list,
-    d?.records,
-    d?.rows,
-    d?.menus,
-    d?.users,
-    d?.members,
-    d?.departments,
-  ];
-  for (const p of probes) {
-    if (Array.isArray(p) && p.length > 0) return p as any[];
-  }
-  for (const key of Object.keys(d)) {
-    if (Array.isArray(d[key])) return d[key] as any[];
+function extractMenusArray(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== 'object') return [];
+  const inner = (raw as Record<string, unknown>).data;
+  if (Array.isArray(inner)) return inner;
+  if (inner && typeof inner === 'object') {
+    const innerData = (inner as Record<string, unknown>).data;
+    if (Array.isArray(innerData)) return innerData;
   }
   return [];
 }
@@ -53,11 +37,11 @@ function toUser(u: any): User {
 }
 
 export function parseMenus(raw: unknown): Menu[] {
-  return extractArray(raw).map(toMenu).filter((m) => m.id > 0);
+  return extractMenusArray(raw).map(toMenu).filter((m) => m.id > 0);
 }
 
 export function parseUsers(raw: unknown, tag = ''): User[] {
-  const arr = extractArray(raw);
+  const arr = unwrapArray<any>(raw);
   if (process.env.NODE_ENV !== 'production' && arr.length === 0) {
     console.warn(`[parseUsers${tag ? ' ' + tag : ''}] got 0 items from:`, JSON.stringify(raw).slice(0, 250));
   }

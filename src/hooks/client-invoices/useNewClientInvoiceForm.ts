@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Site } from '@/types';
 import { ClientInvoiceItemDraft, NewClientInvoiceForm } from '@/types/client-invoice';
-import { fetchSites } from '@/lib/api/sites';
 import { createClientInvoice } from '@/lib/api/client-invoices';
-import { todayISO } from '@/lib/utils/date';
+import { useSiteStore } from '@/store/site-store';
+import { todayISO } from '@/lib/utils/date';[]
 import { ROUTES } from '@/lib/routes';
 
 const emptyItem = (): ClientInvoiceItemDraft => ({
@@ -18,9 +17,10 @@ const emptyItem = (): ClientInvoiceItemDraft => ({
 export function useNewClientInvoiceForm() {
   const router = useRouter();
   const notesRef = useRef<HTMLTextAreaElement>(null);
+  const sites = useSiteStore((s) => s.sites);
+  const sitesLoading = useSiteStore((s) => s.isLoading);
+  const fetchSitesAction = useSiteStore((s) => s.fetchSites);
 
-  const [sites, setSites] = useState<Site[]>([]);
-  const [sitesLoading, setSitesLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const today = todayISO();
@@ -35,11 +35,8 @@ export function useNewClientInvoiceForm() {
   const [items, setItems] = useState<ClientInvoiceItemDraft[]>([emptyItem()]);
 
   useEffect(() => {
-    fetchSites()
-      .then(setSites)
-      .catch(() => setSites([]))
-      .finally(() => setSitesLoading(false));
-  }, []);
+    fetchSitesAction(); // idempotent — no-op if already cached from login
+  }, [fetchSitesAction]);
 
   useEffect(() => {
     if (notesRef.current) {

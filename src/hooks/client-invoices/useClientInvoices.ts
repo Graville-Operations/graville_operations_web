@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Site } from '@/types';
+import { Site } from '@/lib/types';
 import { ClientInvoiceListItem, DateFilterMode, InvoicePaymentStatus } from '@/types/client-invoice';
 import { fetchClientInvoices } from '@/lib/api/client-invoices';
 import { parseBackendDate, todayISO } from '@/lib/utils/date';

@@ -1,6 +1,6 @@
 import { RefObject } from 'react';
 import { ChevronDown, X } from 'lucide-react';
-import { Site } from '@/types';
+import { Site } from '@/lib/types';
 
 interface SiteFilterDropdownProps {
   siteRef: RefObject<HTMLDivElement | null>;

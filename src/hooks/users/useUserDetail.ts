@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ApiUser } from '@/types';
+import { ApiUser } from '@/types/users';
 import { UserDetail } from '@/types/users';
 import { fetchUser, fetchUserDepartments } from '@/lib/api/users';
 

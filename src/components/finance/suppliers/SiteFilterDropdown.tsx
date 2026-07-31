@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { Site } from '@/lib/api/supplier-invoices';
+import { Site } from '@/types/site';
 
 interface SiteFilterDropdownProps {
   sites: Site[];

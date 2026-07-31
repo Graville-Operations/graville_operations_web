@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useApi } from '@/hooks/useApi';
 import { useCachedLookup } from '@/hooks/useCachedLookup';
 import { API } from '@/lib/endpoints';
-import { unwrapList } from '@/lib/api/store';
+import { unwrapArray } from '@/lib/api-response';
 import type { Site, UsageLog } from '@/types/store';
 
 function toLocalDateString(d: Date): string {
@@ -18,7 +18,7 @@ export function useStoreActivity() {
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
 
   const { data: sitesRaw, loading: isSitesLoading } = useCachedLookup<unknown>(API.sites.list);
-  const sites = useMemo(() => unwrapList<Site>(sitesRaw), [sitesRaw]);
+  const sites = useMemo(() => unwrapArray<Site>(sitesRaw), [sitesRaw]);
 
   const usageParams = useMemo(() => {
     const p: Record<string, unknown> = { limit: 100 };
@@ -32,7 +32,7 @@ export function useStoreActivity() {
     data: usageRaw, loading: isUsageLoading, error: usageError, refetch,
   } = useApi<unknown>(API.stores.dailyUsageAll, { params: usageParams });
 
-  const usageLogs = useMemo(() => unwrapList<UsageLog>(usageRaw), [usageRaw]);
+  const usageLogs = useMemo(() => unwrapArray<UsageLog>(usageRaw), [usageRaw]);
 
   return {
     startDate, setStartDate,
