@@ -1,5 +1,5 @@
 import { RefObject } from 'react';
-import { Site } from '@/types';
+import { Site } from '@/lib/types';
 import { NewClientInvoiceForm } from '@/types/client-invoice';
 
 interface InvoiceDetailsFieldsProps {

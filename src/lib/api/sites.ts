@@ -1,36 +1,12 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
+import { unwrapArray, unwrapObject } from '@/lib/api-response';
 import {
   Site, SiteDetail, SiteWorker, AttendanceRecord,
   SiteTask, CreateSitePayload, OverviewKPIs,
 } from '@/types/site';
 import { SiteAnalytics, FieldOperator } from '@/types/site-detail';
 import { DashboardMetrics } from '@/types/dashboard';
-
-function unwrapArray<T>(response: unknown): T[] {
-  if (Array.isArray(response)) return response as T[];
-  if (response && typeof response === 'object') {
-    const obj = response as Record<string, unknown>;
-    if (obj.data && typeof obj.data === 'object') {
-      const inner = obj.data as Record<string, unknown>;
-      if (Array.isArray(inner.items))   return inner.items   as T[];
-      if (Array.isArray(inner.results)) return inner.results as T[];
-    }
-    if (Array.isArray(obj.data))  return obj.data  as T[];
-    if (Array.isArray(obj.items)) return obj.items as T[];
-  }
-  return [];
-}
-
-function unwrapObject<T>(response: unknown): T {
-  if (response && typeof response === 'object') {
-    const obj = response as Record<string, unknown>;
-    if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
-      return obj.data as T;
-    }
-  }
-  return response as T;
-}
 
 function normalizeOperator(raw: unknown): FieldOperator | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -90,12 +66,11 @@ export async function fetchAttendanceBySite(siteId: number): Promise<AttendanceR
 
 export async function fetchTasksBySiteId(siteId: number): Promise<SiteTask[]> {
   const { data } = await api.get(API.tasks.listBySite(siteId));
-  if (Array.isArray(data))      return data as SiteTask[];
-  if (data?.data && Array.isArray(data.data)) return data.data as SiteTask[];
-  if (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
-    return [data.data as SiteTask];
-  }
-  return [];
+  const arr = unwrapArray<SiteTask>(data);
+  if (arr.length > 0) return arr;
+
+  const obj = unwrapObject<SiteTask | null>(data);
+  return obj ? [obj] : [];
 }
 
 export async function fetchOverviewKPIs(): Promise<OverviewKPIs> {
@@ -105,9 +80,8 @@ export async function fetchOverviewKPIs(): Promise<OverviewKPIs> {
 
 export async function fetchSiteAnalytics(siteId: number | string): Promise<SiteAnalytics | null> {
   const { data } = await api.get(API.sites.analytics(siteId));
-  if (!data || typeof data !== 'object') return null;
-  const obj = data as Record<string, unknown>;
-  return (obj.data && typeof obj.data === 'object' ? obj.data : data) as SiteAnalytics | null;
+  if (!data) return null;
+  return unwrapObject<SiteAnalytics>(data);
 }
 
 export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
@@ -133,4 +107,3 @@ export async function replaceFieldOperator(siteId: number, userId: number): Prom
 export async function unassignFieldOperator(siteId: number): Promise<void> {
   await api.delete(API.sites.operator(siteId));
 }
-

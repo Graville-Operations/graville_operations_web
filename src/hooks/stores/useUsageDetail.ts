@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useApi } from '@/hooks/useApi';
 import { API } from '@/lib/endpoints';
-import { unwrapRecord } from '@/lib/api/store';
+import { unwrapObject } from '@/lib/api-response';
 import type { ActivityTab } from '@/types/store';
 
 export function useUsageDetail(usageId: number) {
@@ -10,7 +10,7 @@ export function useUsageDetail(usageId: number) {
   const [tabReady, setTabReady] = useState(true);
 
   const { data: raw, loading, error, refetch } = useApi<unknown>(API.stores.dailyUsage(usageId));
-  const log = useMemo(() => unwrapRecord(raw), [raw]);
+  const log = useMemo(() => unwrapObject<Record<string, unknown>>(raw), [raw]);
 
   const handleTabChange = useCallback((next: ActivityTab) => {
     setTab((current) => {

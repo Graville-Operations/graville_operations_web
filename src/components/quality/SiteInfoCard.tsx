@@ -104,7 +104,7 @@ export default function SiteInfoCard({ site, onUpdateBQ, onUpdateEstimatedValue 
           )}
         </div>
 
-        <div className="flex flex-col justify-between h-full">
+        <div className="flex flex-col gap-6 h-full">
           <div>
             <p className="gv-label mb-2">Bill of Quantities</p>
             <button
@@ -164,7 +164,7 @@ export default function SiteInfoCard({ site, onUpdateBQ, onUpdateEstimatedValue 
                   className="gv-btn-outline gap-2 text-sm w-1/2"
                 >
                   <Wallet size={14} />
-                  {site.estimatedValue?.toLocaleString(undefined, { style: 'currency', currency: 'KES' })}
+                  Add/Update Est. Value: {site.estimatedValue?.toLocaleString(undefined, { style: 'currency', currency: 'KES' })}
                 </button>
                 {saved && (
                   <span className="flex items-center gap-1 text-xs text-emerald-400">

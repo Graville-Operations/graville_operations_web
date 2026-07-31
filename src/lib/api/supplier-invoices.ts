@@ -1,9 +1,9 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
+import { unwrapArray, unwrapObject } from '@/lib/api-response';
 import {
   Invoice,
   RawInvoice,
-  RawPaginatedResponse,
   normaliseInvoice,
   InvoicePaymentStatus,
   PaymentHistory,
@@ -26,13 +26,12 @@ export async function fetchSupplierInvoices(
   if (filters.status)    params.payment_status = filters.status;
 
   const { data } = await api.get(API.invoices.all, { params });
-  const res = data as RawPaginatedResponse<RawInvoice>;
-  return res?.data?.items ?? [];
+  return unwrapArray<RawInvoice>(data);
 }
 
 export async function fetchSupplierInvoiceDetail(id: string): Promise<Invoice> {
   const { data } = await api.get(API.invoices.detail(Number(id)));
-  return normaliseInvoice(data?.data ?? data);
+  return normaliseInvoice(unwrapObject<RawInvoice>(data));
 }
 
 export interface UpdateInvoiceStatusResponse {
@@ -46,7 +45,7 @@ export async function updateSupplierInvoiceStatus(
   status: InvoicePaymentStatus
 ): Promise<UpdateInvoiceStatusResponse> {
   const { data } = await api.patch(API.invoiceActions.updateStatus('supplier', id), { status });
-  return (data?.data ?? data) as UpdateInvoiceStatusResponse;
+  return unwrapObject<UpdateInvoiceStatusResponse>(data);
 }
 
 export interface RecordPaymentPayload {
@@ -68,12 +67,12 @@ export async function recordSupplierInvoicePayment(
   payload: RecordPaymentPayload
 ): Promise<RecordPaymentResponse> {
   const { data } = await api.post(API.invoiceActions.recordPayment('supplier', id), payload);
-  return (data?.data ?? data) as RecordPaymentResponse;
+  return unwrapObject<RecordPaymentResponse>(data);
 }
 
 export async function fetchSupplierInvoicePaymentHistory(
   id: number | string
 ): Promise<PaymentHistory> {
   const { data } = await api.get(API.invoiceActions.paymentHistory('supplier', id));
-  return (data?.data ?? data) as PaymentHistory;
+  return unwrapObject<PaymentHistory>(data);
 }

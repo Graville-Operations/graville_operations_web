@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ApiUser } from '@/types';
+import { ApiUser } from '@/types/users';
 import { API } from '@/lib/endpoints';
-import { unwrapList } from '@/lib/api/users';
+import { unwrapArray } from '@/lib/api-response';
 import { useCachedLookup } from '@/hooks/useCachedLookup';
 
 export function useUsers() {
   const { data, loading: isLoading, refetch } = useCachedLookup<unknown>(API.users.list);
-  const users = useMemo(() => (data ? unwrapList<ApiUser>(data) : []), [data]);
+  const users = useMemo(() => (data ? unwrapArray<ApiUser>(data) : []), [data]);
 
   const [filtered, setFiltered] = useState<ApiUser[]>([]);
   const [search, setSearch] = useState('');

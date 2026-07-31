@@ -1,5 +1,6 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
+import { unwrapObject } from '@/lib/api-response';
 import type {
   SubcontractorInvoiceListItem,
   SubcontractorInvoiceDetail,
@@ -28,8 +29,9 @@ export async function fetchSubcontractorInvoices(
   if (paymentStatus) params.payment_status = paymentStatus;
 
   const { data } = await api.get(API.subcontractorInvoices.all, { params });
-  const items: SubcontractorInvoiceListItem[] = data?.data?.items ?? [];
-  const total: number = data?.data?.total ?? items.length;
+  const inner = unwrapObject<{ items?: SubcontractorInvoiceListItem[]; total?: number }>(data);
+  const items = inner?.items ?? [];
+  const total = inner?.total ?? items.length;
   return { items, total };
 }
 
@@ -37,7 +39,7 @@ export async function fetchSubcontractorInvoiceDetail(
   id: number,
 ): Promise<SubcontractorInvoiceDetail> {
   const { data } = await api.get(API.subcontractorInvoices.detail(id));
-  return data?.data ?? data;
+  return unwrapObject<SubcontractorInvoiceDetail>(data);
 }
 
 export async function createSubcontractorInvoice(
@@ -46,9 +48,6 @@ export async function createSubcontractorInvoice(
   await api.post(API.subcontractorInvoices.create, payload);
 }
 
-// --- Status / payment actions -------------------------------------------
-
-// NOTE: confirm this is the correct key used in INVOICE_MODELS (invoice_registry.py)
 const INVOICE_TYPE = 'subcontractor';
 
 export async function updateSubcontractorInvoiceStatus(
@@ -64,20 +63,11 @@ export async function recordSubcontractorInvoicePayment(
 ): Promise<void> {
   await api.post(API.invoiceActions.recordPayment(INVOICE_TYPE, id), payload);
 }
-
-// The backend returns:
-// {
-//   invoice_id, total_invoice_value, total_paid, remaining_balance,
-//   payments: [{ id, amount, payment_date, notes, recorded_by }, ...]
-// }
-// under `data.data` — i.e. the array is nested inside a summary object,
-// not returned bare. This maps that shape into the camelCase
-// PaymentHistorySummary used by the UI.
 export async function fetchSubcontractorInvoicePaymentHistory(
   id: number,
 ): Promise<PaymentHistorySummary> {
   const { data } = await api.get(API.invoiceActions.paymentHistory(INVOICE_TYPE, id));
-  const d = data?.data ?? {};
+  const d = unwrapObject<Record<string, any>>(data) ?? {};
   const payments = Array.isArray(d.payments) ? d.payments : [];
 
   return {

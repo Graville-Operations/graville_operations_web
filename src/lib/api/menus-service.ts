@@ -1,20 +1,13 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
+import { unwrapArray } from '@/lib/api-response';
 import { Menu, MenuPayload } from '@/types/menu';
 
-/**
- * All network calls for the Menus feature live here.
- * UI components should never import `api` or `API` directly —
- * they call through `menusService` instead.
- */
 export const menusService = {
   async list(): Promise<Menu[]> {
     const { data } = await api.get(API.menus.list);
-    const payload = data?.data ?? data;
-    return Array.isArray(payload) ? payload : [];
+    return unwrapArray<Menu>(data);
   },
-
-  //Menu
   async createMenu(body: MenuPayload) {
     return api.post(API.menus.create, body);
   },
@@ -25,7 +18,6 @@ export const menusService = {
     return api.delete(API.menus.delete(id));
   },
 
-  //Submenu
   async createSubmenu(menuId: number, body: MenuPayload) {
     return api.post(API.menus.submenus, { ...body, menu_id: menuId });
   },
@@ -36,7 +28,6 @@ export const menusService = {
     return api.delete(API.menus.deleteSubmenu(id));
   },
 
-  //Sub-submenu
   async createSubsubmenu(submenuId: number, body: MenuPayload) {
     return api.post(API.menus.subsubmenus, { ...body, submenu_id: submenuId });
   },

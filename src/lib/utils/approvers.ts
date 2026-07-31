@@ -1,4 +1,4 @@
-import { ApiUser } from "@/types";
+import { ApiUser } from "@/types/users";
 
 export interface SelectedApprover {
   userId: number;

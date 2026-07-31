@@ -1,4 +1,3 @@
-
 export interface ApiEnvelope<T = unknown> {
   code: number;
   data: T | null;
@@ -11,4 +10,38 @@ export function unwrapApiResponse<T>(res: { data: ApiEnvelope<T> }): T {
     throw new Error(body?.message || 'Something went wrong. Please try again.');
   }
   return body.data;
+}
+
+/**
+ * Unwraps a response body into an array, handling the various shapes
+ * the backend returns: raw arrays, { data: [] }, { data: { items: [] } },
+ * { data: { results: [] } }, or { items: [] }.
+ */
+export function unwrapArray<T>(response: unknown): T[] {
+  if (Array.isArray(response)) return response as T[];
+  if (response && typeof response === 'object') {
+    const obj = response as Record<string, unknown>;
+    if (obj.data && typeof obj.data === 'object') {
+      const inner = obj.data as Record<string, unknown>;
+      if (Array.isArray(inner.items)) return inner.items as T[];
+      if (Array.isArray(inner.results)) return inner.results as T[];
+    }
+    if (Array.isArray(obj.data)) return obj.data as T[];
+    if (Array.isArray(obj.items)) return obj.items as T[];
+  }
+  return [];
+}
+
+/**
+ * Unwraps a response body into a single object, handling both the
+ * raw object and the { data: {...} } envelope.
+ */
+export function unwrapObject<T>(response: unknown): T {
+  if (response && typeof response === 'object') {
+    const obj = response as Record<string, unknown>;
+    if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
+      return obj.data as T;
+    }
+  }
+  return response as T;
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ClientInvoiceItemDraft, NewClientInvoiceForm } from '@/types/client-invoice';
 import { createClientInvoice } from '@/lib/api/client-invoices';
 import { useSiteStore } from '@/store/site-store';
-import { todayISO } from '@/lib/utils/date';
+import { todayISO } from '@/lib/utils/date';[]
 import { ROUTES } from '@/lib/routes';
 
 const emptyItem = (): ClientInvoiceItemDraft => ({

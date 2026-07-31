@@ -1,5 +1,5 @@
 import { Search, Check, Users } from 'lucide-react';
-import { ApiUser } from '@/types';
+import { ApiUser } from '@/types/users';
 
 interface UserSelectListProps {
   users: ApiUser[];

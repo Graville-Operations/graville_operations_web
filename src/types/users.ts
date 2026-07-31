@@ -1,4 +1,31 @@
-import { ApiUser } from '@/types';
+export interface User {
+  id?: number;
+  ref_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  account_type: string;
+  phone_no?: string;
+  national_id?: string;
+  staff_id?: string;
+  enabled?: boolean;
+  expires_at?: string;
+  is_active?: boolean;
+}
+
+export interface ApiUser {
+  id: number;
+  ref_id: string;
+  email: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  phone?: string;
+  nationalId?: string;
+  accountStatus?: string;
+  role?: string;
+  is_active?: boolean;
+}
 
 export interface Department {
   id: number;

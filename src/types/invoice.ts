@@ -62,6 +62,7 @@ export interface Invoice {
   supplier_name: string;
   invoice_date: string;
   total_amount: number;
+  total_invoice_value?: number;
   amount_paid: number;
   status: InvoicePaymentStatus;
   total_paid: number | null;

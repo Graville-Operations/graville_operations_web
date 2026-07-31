@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { useMenuStore } from '@/store/menu-store';
 import { ROUTES } from '@/lib/routes';
-import { MenuItem } from '@/types';
+import { MenuItem } from '@/types/menu';
 import { fetchSidebarMenus } from '@/lib/api/menu';
 
 export function useSidebarMenus() {
