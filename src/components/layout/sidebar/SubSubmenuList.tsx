@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { SubSubMenu } from '@/types';
+import { SubSubMenu } from '@/types/menu';
 
 interface SubSubmenuListProps {
   items: SubSubMenu[];

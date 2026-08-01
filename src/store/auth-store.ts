@@ -1,13 +1,13 @@
-
 import { create } from 'zustand';
-import { User } from '@/types';
+import { User } from '@/types/users';
 import {
   saveToken, saveRole, saveUser, saveExpiresAt,
-  clearSession, getUser, getToken, getRole,
+  getUser, getToken, getRole,
 } from '@/lib/auth';
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { useSiteStore } from '@/store/site-store';
+import { clearData } from '@/lib/clear-data';
 
 interface AuthState {
   user: User | null;
@@ -31,7 +31,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const role = getRole();
     if (token && user) {
       set({ user, token, role });
-      useSiteStore.getState().fetchSites(); 
+      useSiteStore.getState().fetchSites();
     }
   },
 
@@ -82,7 +82,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         user,
         isLoading: false,
       });
-    
+
       useSiteStore.getState().fetchSites();
     } catch (error) {
       set({ isLoading: false });
@@ -91,8 +91,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    clearSession();
-    useSiteStore.getState().clear();
+    clearData();
     set({ user: null, token: null, role: null });
   },
 }));

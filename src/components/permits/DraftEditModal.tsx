@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Pencil, Send, Check } from "lucide-react";
 import { PermitCategory, PermitDetail } from "@/types/permits";
-import { ApiUser } from "@/types";
+import { ApiUser } from "@/types/users";
 import { submitPermit, resolveErrorMessage } from "@/lib/api/permits";
 import { SelectedApprover, toggleApproverIn } from "@/lib/utils/approvers";
 import { autoResize } from "@/lib/utils/textarea";

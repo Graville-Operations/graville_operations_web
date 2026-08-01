@@ -1,6 +1,6 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
-import { ApiUser } from '@/types';
+import { ApiUser } from '@/types/users';
 import { Department, Role, NewUserFormState } from '@/types/users';
 import { RoleFormState } from '@/types/users';
 import { clearCachedLookup } from '@/hooks/useCachedLookup';

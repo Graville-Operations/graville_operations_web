@@ -3,7 +3,6 @@ export interface Site {
   name: string;
 }
 
-// id -> Site, O(1) lookup
 const _siteMap: Record<number, Site> = {};
 let _loaded = false;
 
@@ -22,4 +21,9 @@ export function getAllSites(): Site[] {
 
 export function sitesLoaded(): boolean {
   return _loaded;
+}
+
+export function clearSiteCache(): void {
+  Object.keys(_siteMap).forEach((key) => { delete _siteMap[Number(key)]; });
+  _loaded = false;
 }

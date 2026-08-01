@@ -33,3 +33,10 @@ export interface SubTask {
   task_id: number;
   assigned_workers?: Worker[];
 }
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  skip: number;
+  limit: number;
+}

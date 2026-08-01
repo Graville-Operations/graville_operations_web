@@ -6,6 +6,7 @@ import { useInvoiceStore } from '@/store/invoice-store';
 import api from '@/lib/api';
 import { fetchOverviewKPIs } from '@/lib/api/sites';
 import { fetchInvoiceSummary } from '@/lib/api/invoices';
+import { unwrapArray } from '@/lib/api-response';
 import { OverviewKPIs } from '@/types/site';
 import { InvoiceSummaryItem } from '@/types/invoice-summary';
 import { API } from '@/lib/endpoints';
@@ -34,10 +35,7 @@ export function useHomeDashboard() {
 
   useEffect(() => {
     fetchOverviewKPIs()
-      .then((res) => {
-        const kpiData = (res as unknown as { data?: OverviewKPIs }).data ?? res;
-        setKpis(kpiData as OverviewKPIs);
-      })
+      .then(setKpis)
       .catch(() => setKpis(null))
       .finally(() => setKpisLoading(false));
 
@@ -49,9 +47,7 @@ export function useHomeDashboard() {
     if (!usersLoaded) {
       api.get(API.users.list)
         .then(({ data }) => {
-          const payload = data?.data ?? data;
-          const list = Array.isArray(payload) ? payload : payload?.items ?? [];
-          setUsers(list);
+          setUsers(unwrapArray(data));
         })
         .catch(console.error)
         .finally(() => setUsersLoading(false));

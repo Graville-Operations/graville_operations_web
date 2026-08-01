@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Check } from "lucide-react";
-import { ApiUser } from "@/types";
+import { ApiUser } from "@/types/users";
 import { SelectedApprover } from "@/lib/utils/approvers";
 
 interface ApproverSelectProps {

@@ -2,11 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, getExpiresAt, clearSession } from '@/lib/auth';
+import { getToken, getExpiresAt } from '@/lib/auth';
 import { useAuthStore } from '@/store/auth-store';
-import { useMenuStore } from '@/store/menu-store';
-import { useUserStore } from '@/store/user-store';
-import { useInvoiceStore } from '@/store/invoice-store';
 
 const CHECK_INTERVAL_MS = 60 * 1000;
 
@@ -29,11 +26,7 @@ export default function SessionWatcher() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleExpiry = () => {
-    clearSession();
     logout();
-    useMenuStore.getState().clearMenus();
-    useUserStore.getState().clearUsers();
-    useInvoiceStore.getState().clearInvoices();
     router.replace('/signin');
   };
 
@@ -61,7 +54,7 @@ export default function SessionWatcher() {
       if (intervalRef.current) clearInterval(intervalRef.current);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   return null;

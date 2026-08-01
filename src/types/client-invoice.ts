@@ -7,6 +7,7 @@ export interface ClientInvoiceListItem {
   invoiceDate: string;
   total: number;
   createdAt: string;
+  site_id?: number;
   paymentStatus?: InvoicePaymentStatus;
 }
 
@@ -46,6 +47,29 @@ export interface ClientInvoiceDetail {
   paymentStatus: InvoicePaymentStatus;
   totalPaid?: number | null;
   remainingBalance?: number | null;
+}
+
+export interface ClientInvoiceItem {
+  id: number;
+  item_index: number;
+  particulars: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
+export interface ClientInvoice {
+  id: number;
+  invoiceNo: string;
+  invoiceDate: string;
+  clientName: string;
+  total: number;
+  notes?: string;
+  site_id?: number;
+  created_by?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  items: ClientInvoiceItem[];
 }
 
 export interface InvoicePreview {

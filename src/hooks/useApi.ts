@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/lib/api';
+import { unwrapObject } from '@/lib/api-response';
 
 interface UseApiOptions {
   enabled?: boolean;
@@ -51,8 +52,7 @@ export function useApi<T>(
       })
       .then((res) => {
         if (controller.signal.aborted) return;
-        const raw = (res.data as { data?: T }).data ?? (res.data as T);
-        setData(raw);
+        setData(unwrapObject<T>(res.data));
       })
       .catch((err) => {
         if (controller.signal.aborted) return;

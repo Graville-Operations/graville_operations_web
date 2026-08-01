@@ -1,6 +1,7 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { withRetry } from '@/lib/retry';
+import { unwrapArray, unwrapObject } from '@/lib/api-response';
 import type { Site } from '@/lib/sites-cache';
 import type { Task, SubTask, Worker } from '@/lib/types';
 
@@ -18,20 +19,13 @@ export interface SiteDetail {
   inquiringEntity?: string | null;
 }
 
-function parseList<T>(data: unknown): T[] {
-  if (!data) return [];
-  const d = data as Record<string, unknown>;
-  const arr = d?.items ?? d?.data ?? d?.sites ?? d?.tasks ?? d?.subtasks ?? d?.workers ?? data;
-  return Array.isArray(arr) ? arr : [];
-}
-
 export async function fetchQualitySites(
   onRetry?: (attempt: number, max: number) => void
 ): Promise<Site[]> {
   return withRetry(
     async () => {
       const res = await api.get(API.sites.list);
-      return parseList<Site>(res.data?.data ?? res.data);
+      return unwrapArray<Site>(res.data);
     },
     { retries: 3, delayMs: 5000, onRetry }
   );
@@ -39,7 +33,7 @@ export async function fetchQualitySites(
 
 export async function fetchSiteDetail(siteId: number): Promise<SiteDetail> {
   const res = await api.get(API.sites.detail(siteId));
-  return (res.data?.data ?? res.data) as SiteDetail;
+  return unwrapObject<SiteDetail>(res.data);
 }
 
 export async function updateSiteEstimatedValue(
@@ -49,7 +43,7 @@ export async function updateSiteEstimatedValue(
   const res = await api.patch(API.sites.updateEstimatedValue(siteId), {
     estimated_value: estimatedValue,
   });
-  return (res.data?.data ?? res.data) as SiteDetail;
+  return unwrapObject<SiteDetail>(res.data);
 }
 
 export async function fetchSiteTasks(
@@ -59,7 +53,7 @@ export async function fetchSiteTasks(
   return withRetry(
     async () => {
       const res = await api.get(API.tasks.listBySite(siteId));
-      return parseList<Task>(res.data?.data ?? res.data);
+      return unwrapArray<Task>(res.data);
     },
     { retries: 3, delayMs: 5000, onRetry }
   );
@@ -84,7 +78,7 @@ export async function fetchSubtasks(
   return withRetry(
     async () => {
       const res = await api.get(API.tasks.listSubtasksByTask(taskId));
-      return parseList<SubTask>(res.data?.data ?? res.data);
+      return unwrapArray<SubTask>(res.data);
     },
     { retries: 3, delayMs: 5000, onRetry }
   );
@@ -103,5 +97,5 @@ export async function createSubtask(payload: CreateSubtaskPayload): Promise<void
 
 export async function fetchWorkersForSite(siteId: number): Promise<Worker[]> {
   const res = await api.get(API.workers.listBySite(siteId));
-  return parseList<Worker>(res.data?.data ?? res.data);
+  return unwrapArray<Worker>(res.data);
 }

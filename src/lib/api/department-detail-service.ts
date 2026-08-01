@@ -25,12 +25,6 @@ export const departmentDetailService = {
     return parseMenus(data);
   },
 
-  /** Full user catalog, used by the "Assign User" picker. */
-  async listAllUsers(): Promise<User[]> {
-    const { data } = await api.get(API.users.list);
-    return parseUsers(data, '/users/list');
-  },
-
   async assignMenus(deptId: number, menuIds: number[]) {
     return api.post(API.departments.menus(deptId), { menu_ids: menuIds });
   },

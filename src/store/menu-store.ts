@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { MenuItem } from '@/types';
+import { MenuItem } from '@/types/menu';
 
 interface MenuStore {
   menus: MenuItem[];

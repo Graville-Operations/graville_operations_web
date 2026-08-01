@@ -1,5 +1,5 @@
 import { Search, Shield } from 'lucide-react';
-import { ApiUser } from '@/types';
+import { ApiUser } from '@/types/users';
 import { RoleBadge } from './RoleBadge';
 
 interface UsersTableProps {

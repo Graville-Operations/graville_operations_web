@@ -20,10 +20,7 @@ export function useConstructionSites() {
   const loadKpis = useCallback(() => {
     setLoadingKpis(true);
     fetchOverviewKPIs()
-      .then((res) => {
-        const d = (res as { data?: OverviewKPIs }).data ?? (res as OverviewKPIs);
-        setKpis(d);
-      })
+      .then(setKpis)
       .catch(() => {})
       .finally(() => setLoadingKpis(false));
   }, []);

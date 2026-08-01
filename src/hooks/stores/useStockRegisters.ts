@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useApi } from '@/hooks/useApi';
 import { useCachedLookup } from '@/hooks/useCachedLookup';
 import { API } from '@/lib/endpoints';
-import { unwrapList } from '@/lib/api/store';
+import { unwrapArray } from '@/lib/api-response';
 import type { Site, StoreMaterial, StoreTool, StockTab, StoreSummary } from '@/types/store';
 
 export function useStockRegisters() {
@@ -12,7 +12,7 @@ export function useStockRegisters() {
   const [search, setSearch] = useState('');
 
   const { data: sitesRaw, loading: isSitesLoading } = useCachedLookup<unknown>(API.sites.list);
-  const sites = useMemo(() => unwrapList<Site>(sitesRaw), [sitesRaw]);
+  const sites = useMemo(() => unwrapArray<Site>(sitesRaw), [sitesRaw]);
   const resolvedSiteId = selectedSiteId ?? sites[0]?.id ?? null;
   const siteEnabled = resolvedSiteId !== null;
 
@@ -29,8 +29,8 @@ export function useStockRegisters() {
     data: toolsRaw, loading: isToolsLoading, error: toolsError, refetch: refetchTools,
   } = useApi<unknown>(API.stores.tools(resolvedSiteId ?? 0), { enabled: siteEnabled });
 
-  const materials = useMemo(() => unwrapList<StoreMaterial>(matsRaw), [matsRaw]);
-  const tools     = useMemo(() => unwrapList<StoreTool>(toolsRaw), [toolsRaw]);
+  const materials = useMemo(() => unwrapArray<StoreMaterial>(matsRaw), [matsRaw]);
+  const tools     = useMemo(() => unwrapArray<StoreTool>(toolsRaw), [toolsRaw]);
 
   const q = search.toLowerCase();
   const filteredMaterials = useMemo(
@@ -72,17 +72,11 @@ export function useStockRegisters() {
   const handleSiteChange = useCallback((id: number) => { setSelectedSiteId(id); setSearch(''); }, []);
 
   return {
-    
     sites, isSitesLoading, resolvedSiteId, handleSiteChange,
-   
     tab, handleTabChange, search, setSearch,
-    
     summary, showCardSkeletons,
-
     materials, tools, filteredMaterials, filteredTools,
-    
     lowCount, outCount, availTool, overdueTool, damagedTools,
-   
     isCurrentLoading, isCurrentError,
     refetchMats, refetchTools,
   };

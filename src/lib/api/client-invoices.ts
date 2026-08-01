@@ -1,5 +1,6 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
+import { unwrapArray, unwrapObject } from '@/lib/api-response';
 import {
   ClientInvoiceListItem,
   ClientInvoiceDetail,
@@ -8,16 +9,6 @@ import {
   InvoicePaymentStatus,
   PaymentHistory,
 } from '@/types/client-invoice';
-
-function unwrap<T>(data: unknown): T {
-  return ((data as { data?: unknown })?.data ?? data) as T;
-}
-
-function unwrapList<T>(data: unknown): T[] {
-  const payload = unwrap<T[] | { items?: T[] }>(data);
-  if (Array.isArray(payload)) return payload;
-  return (payload as { items?: T[] })?.items ?? [];
-}
 
 export async function fetchClientInvoices(
   siteId?: number,
@@ -28,15 +19,15 @@ export async function fetchClientInvoices(
   if (siteId) params.site_id = siteId;
   if (status) params.payment_status = status;
   const { data } = await api.get(API.clientInvoices.all, { params });
-  const payload = unwrap<{ items?: ClientInvoiceListItem[]; total?: number } | ClientInvoiceListItem[]>(data);
-  const items = Array.isArray(payload) ? payload : payload?.items ?? [];
-  const total = Array.isArray(payload) ? items.length : payload?.total ?? items.length;
+  const items = unwrapArray<ClientInvoiceListItem>(data);
+  const inner = unwrapObject<{ total?: number }>(data);
+  const total = inner?.total ?? items.length;
   return { items, total };
 }
 
 export async function fetchClientInvoiceDetail(id: string | number): Promise<ClientInvoiceDetail> {
   const { data } = await api.get(API.clientInvoices.detail(id));
-  return (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) ? data.data : data;
+  return unwrapObject<ClientInvoiceDetail>(data);
 }
 
 export async function createClientInvoice(
@@ -68,7 +59,7 @@ export async function updateClientInvoiceStatus(
   status: InvoicePaymentStatus
 ): Promise<UpdateInvoiceStatusResponse> {
   const { data } = await api.patch(API.invoiceActions.updateStatus('client', id), { status });
-  return (data?.data ?? data) as UpdateInvoiceStatusResponse;
+  return unwrapObject<UpdateInvoiceStatusResponse>(data);
 }
 
 export interface RecordPaymentPayload {
@@ -90,12 +81,12 @@ export async function recordClientInvoicePayment(
   payload: RecordPaymentPayload
 ): Promise<RecordPaymentResponse> {
   const { data } = await api.post(API.invoiceActions.recordPayment('client', id), payload);
-  return (data?.data ?? data) as RecordPaymentResponse;
+  return unwrapObject<RecordPaymentResponse>(data);
 }
 
 export async function fetchClientInvoicePaymentHistory(
   id: number | string
 ): Promise<PaymentHistory> {
   const { data } = await api.get(API.invoiceActions.paymentHistory('client', id));
-  return (data?.data ?? data) as PaymentHistory;
+  return unwrapObject<PaymentHistory>(data);
 }

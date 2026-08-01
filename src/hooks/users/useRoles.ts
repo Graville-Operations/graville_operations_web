@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Role, RoleFormState } from '@/types/users';
 import { API } from '@/lib/endpoints';
-import { unwrapList } from '@/lib/api/users';
+import { unwrapArray } from '@/lib/api-response';
 import { createRole, updateRole, deleteRole } from '@/lib/api/users';
 import { useCachedLookup } from '@/hooks/useCachedLookup';
 
@@ -11,7 +11,7 @@ const emptyForm: RoleFormState = { name: '', description: '' };
 
 export function useRoles() {
   const { data, loading: isLoading, refetch } = useCachedLookup<unknown>(API.roles.list);
-  const roles = useMemo(() => (data ? unwrapList<Role>(data) : []), [data]);
+  const roles = useMemo(() => (data ? unwrapArray<Role>(data) : []), [data]);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);

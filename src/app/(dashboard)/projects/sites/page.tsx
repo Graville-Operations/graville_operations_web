@@ -47,9 +47,11 @@ export default function ConstructionSitesPage() {
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {([
             { label: 'All',       value: 'ALL'         },
+            { label: 'Planning',  value: 'PLANNING'    },
             { label: 'On-going',  value: 'IN_PROGRESS' },
             { label: 'Completed', value: 'COMPLETED'   },
             { label: 'Paused',    value: 'ON_HOLD'     },
+            { label: 'Cancelled', value: 'CANCELLED'   },
           ] as const).map((f) => {
             const active = projectFilter === f.value;
             return (

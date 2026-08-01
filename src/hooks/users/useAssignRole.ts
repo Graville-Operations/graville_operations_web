@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ApiUser } from '@/types';
+import { ApiUser } from '@/types/users';
 import { Role } from '@/types/users';
 import { fetchRoles, fetchUsers, assignRoleToUser } from '@/lib/api/users';
 

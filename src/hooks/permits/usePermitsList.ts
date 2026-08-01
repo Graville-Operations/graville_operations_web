@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getRole } from "@/lib/auth";
-import { ApiUser } from "@/types";
+import { ApiUser } from "@/types/users";
 import { fetchUsers } from "@/lib/api/users";
 import {
   fetchMyPermits,

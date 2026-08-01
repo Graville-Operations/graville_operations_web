@@ -3,6 +3,7 @@ export interface SubSubMenu {
   name: string;
   title: string;
   link?: string | null;
+  icon?: string;
   order: number;
 }
 
@@ -11,6 +12,7 @@ export interface SubMenu {
   name: string;
   title: string;
   link?: string | null;
+  icon?: string;
   order: number;
   subsubmenus?: SubSubMenu[];
 }
@@ -20,8 +22,19 @@ export interface Menu {
   name: string;
   title: string;
   link?: string | null;
+  icon?: string;
   order: number;
   submenus?: SubMenu[];
+}
+
+export interface MenuItem {
+  id: number;
+  name: string;
+  title: string;
+  link?: string | null;
+  icon?: string;
+  order: number;
+  submenus: SubMenu[];
 }
 
 export type ModalType =

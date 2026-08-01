@@ -1,37 +1,28 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { departmentDetailService } from '@/lib/api/department-detail-service';
 import { getApiErrorMessage } from '@/lib/api/api-error';
+import { useCachedLookup } from '@/hooks/useCachedLookup';
+import { API } from '@/lib/endpoints';
+import { parseUsers } from '@/lib/utils/parse-entities';
 import { AssignResult, User } from '@/types/department-detail';
 
 export function useAssignUsers(deptId: number, currentUserEmails: Set<string>) {
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errMsg, setErrMsg] = useState<string | null>(null);
+  const { data, loading, error, refetch } = useCachedLookup<unknown>(API.users.list);
+
+  const allUsers = useMemo<User[]>(
+    () => (data ? parseUsers(data, '/users/list') : []),
+    [data],
+  );
+
+  const errMsg = error
+    ? 'Failed to load users'
+    : (!loading && allUsers.length === 0 ? 'Users API returned 0 items.' : null);
+
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    departmentDetailService.listAllUsers()
-      .then((parsed) => {
-        if (cancelled) return;
-        if (parsed.length === 0) setErrMsg('Users API returned 0 items.');
-        setAllUsers(parsed);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error('[useAssignUsers] listAllUsers failed:', err);
-        setErrMsg(getApiErrorMessage(err, 'Failed to load users'));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
 
   const available = useMemo(
     () => allUsers
@@ -78,5 +69,6 @@ export function useAssignUsers(deptId: number, currentUserEmails: Set<string>) {
     search, setSearch,
     selected, toggle, selectAll, deselectAll,
     saving, assign,
+    refetch,
   };
 }
