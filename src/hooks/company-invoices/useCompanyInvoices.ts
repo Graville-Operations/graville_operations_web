@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { CompanyInvoice, InvoicePaymentStatus, normaliseCompanyInvoice } from '@/types/company_invoices';
 import { fetchCompanyInvoices } from '@/lib/api/company-invoices';
+import { ROUTES } from '@/lib/routes';
 
 export function useCompanyInvoices() {
   const router = useRouter();
@@ -111,7 +112,7 @@ export function useCompanyInvoices() {
           payment_status: inv.payment_status,
         })
       );
-      router.push(`/finance/invoice/company/${inv.id}`);
+      router.push(ROUTES.finance.invoice.company.detail(String(inv.id)));
     },
     [router]
   );

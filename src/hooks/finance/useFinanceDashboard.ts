@@ -7,7 +7,7 @@ function buildRows(stats: SiteInvoiceStats, siteId: number): InvoiceTypeStat[] {
   return [
     { key: 'client',        label: 'Client Invoice',         count: stats.client.count,        amount: stats.client.amount,        route: `${ROUTES.finance.invoice.client.list}?site_id=${siteId}` },
     { key: 'supplier',      label: 'Supplier Invoice',       count: stats.supplier.count,      amount: stats.supplier.amount,      route: `${ROUTES.finance.invoice.supplier.list}?site_id=${siteId}` },
-    { key: 'subcontractor', label: 'Sub-Contractor Invoice', count: stats.subcontractor.count, amount: stats.subcontractor.amount, route: `${ROUTES.finance.invoice.contractor}?site_id=${siteId}` },
+    { key: 'subcontractor', label: 'Sub-Contractor Invoice', count: stats.subcontractor.count, amount: stats.subcontractor.amount, route: `${ROUTES.finance.invoice.contractor.list}?site_id=${siteId}` },
   ];
 }
 

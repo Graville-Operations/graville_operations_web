@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken, getExpiresAt } from '@/lib/auth';
 import { useAuthStore } from '@/store/auth-store';
+import { ROUTES } from '@/lib/routes';
 
 const CHECK_INTERVAL_MS = 60 * 1000;
 
@@ -27,7 +28,7 @@ export default function SessionWatcher() {
 
   const handleExpiry = () => {
     logout();
-    router.replace('/signin');
+    router.replace(ROUTES.signin);
   };
 
   useEffect(() => {

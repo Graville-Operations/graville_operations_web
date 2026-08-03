@@ -11,6 +11,7 @@ import { DateFilterDropdown } from '@/components/finance/subcontractor-invoices/
 import { SubcontractorInvoicesTable } from '@/components/finance/subcontractor-invoices/SubcontractorInvoicesTable';
 import { NewInvoiceModal } from '@/components/finance/subcontractor-invoices/NewInvoiceModal';
 import type { SubcontractorInvoiceListItem } from '@/types/subcontractor-invoice';
+import { ROUTES } from '@/lib/routes';
 
 export default function SubcontractorInvoicesPage() {
   const router = useRouter();
@@ -106,7 +107,7 @@ export default function SubcontractorInvoicesPage() {
             invoices={filtered}
             isLoading={isLoading}
             onSelect={(inv: SubcontractorInvoiceListItem) =>
-              router.push(`/finance/invoice/contractor/${inv.id}`)
+              router.push(ROUTES.finance.invoice.contractor.detail(inv.id))
             }
           />
         </div>

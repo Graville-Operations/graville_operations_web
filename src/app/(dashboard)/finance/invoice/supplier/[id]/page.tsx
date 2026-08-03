@@ -13,6 +13,7 @@ import SupplierInvoiceNotes from '@/components/finance/suppliers/SupplierInvoice
 import RejectInvoiceModal from '@/components/finance/suppliers/RejectInvoiceModal';
 import RecordPaymentModal from '@/components/finance/suppliers/RecordPaymentModal';
 import { InvoicePaymentStatus } from '@/types/invoice';
+import { ROUTES } from '@/lib/routes';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -58,7 +59,7 @@ export default function InvoiceDetailPage() {
         downloading={downloading}
         onBack={() => router.back()}
         onDownload={handleDownload}
-        onViewPaymentHistory={() => router.push(`/finance/invoice/supplier/${invoice.id}/payments`)}
+        onViewPaymentHistory={() => router.push(ROUTES.finance.invoice.supplier.payments(String(invoice.id)))}
       />
 
       <SupplierInvoiceMetaCard invoice={invoice} isEnriching={isEnriching} />

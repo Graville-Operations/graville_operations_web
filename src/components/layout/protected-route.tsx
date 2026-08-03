@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { getToken, clearSession, getUser } from '@/lib/auth';
+import { ROUTES } from '@/lib/routes';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, loadFromStorage } = useAuthStore();
@@ -14,7 +15,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
     const cookieToken = getToken();
     if (!cookieToken) {
-      router.replace('/signin');
+      router.replace(ROUTES.signin);
       setTimeout(() => setChecked(true), 0);
       return;
     }
@@ -24,7 +25,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
       const expiry = new Date(storedUser.expires_at);
       if (!isNaN(expiry.getTime()) && new Date() > expiry) {
         clearSession();
-        router.replace('/signin');
+        router.replace(ROUTES.signin);
         setTimeout(() => setChecked(true), 0);
         return;
       }
@@ -37,7 +38,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     if (checked && !token) {
       const cookieToken = getToken();
       if (!cookieToken) {
-        router.replace('/signin');
+        router.replace(ROUTES.signin);
       }
     }
   }, [token, checked, router]);

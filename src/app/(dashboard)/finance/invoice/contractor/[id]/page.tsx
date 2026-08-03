@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { InvoiceDetailView } from '@/components/finance/subcontractor-invoices/InvoiceDetailView';
+import { ROUTES } from '@/lib/routes';
 
 export default function ContractorInvoiceDetailPage() {
   const params = useParams<{ id: string }>();
@@ -11,7 +12,7 @@ export default function ContractorInvoiceDetailPage() {
   return (
     <InvoiceDetailView
       invoiceId={invoiceId}
-      onBack={() => router.push('/finance/invoice/contractor')}
+      onBack={() => router.push(ROUTES.finance.invoice.contractor.list)}
     />
   );
 }

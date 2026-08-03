@@ -14,6 +14,7 @@ import CompanyInvoiceNotes from '@/components/finance/company/CompanyInvoiceNote
 import RejectInvoiceModal from '@/components/finance/company/RejectInvoiceModal';
 import RecordPaymentModal from '@/components/finance/company/RecordPaymentModal';
 import { InvoicePaymentStatus } from '@/types/company_invoices';
+import { ROUTES } from '@/lib/routes';
 
 export default function CompanyInvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,7 +62,7 @@ export default function CompanyInvoiceDetailPage() {
         downloading={downloading}
         onBack={() => router.back()}
         onDownload={handleDownload}
-        onViewPaymentHistory={() => router.push(`/finance/invoice/company/${invoice.id}/payments`)}
+        onViewPaymentHistory={() => router.push(ROUTES.finance.invoice.company.payments(String(invoice.id)))}
       />
 
       <CompanyInvoiceMetaCard
