@@ -37,13 +37,14 @@ export const departmentDetailService = {
     return api.post(API.departments.assignUsers(deptId), { user_ids: userIds });
   },
 
-  // NOTE: left as raw literals — actual "remove member" endpoint not yet
-  // confirmed with backend team (none of these three match current swagger).
+  // NOTE: actual "remove member" endpoint not yet confirmed with backend
+  // team (none of these three match current swagger) — see API.departments.removeUserAttempts.
   async removeUser(deptId: number, userId: number) {
+    const [membersPath, usersPath, removePath] = API.departments.removeUserAttempts(deptId, userId);
     const attempts: Array<() => Promise<unknown>> = [
-      () => api.delete(`/departments/${deptId}/members`, { data: { user_ids: [userId] } }),
-      () => api.delete(`/departments/${deptId}/users`, { data: { user_ids: [userId] } }),
-      () => api.post(`/departments/${deptId}/members/remove`, { user_ids: [userId] }),
+      () => api.delete(membersPath, { data: { user_ids: [userId] } }),
+      () => api.delete(usersPath, { data: { user_ids: [userId] } }),
+      () => api.post(removePath, { user_ids: [userId] }),
     ];
 
     let lastErr: unknown = null;

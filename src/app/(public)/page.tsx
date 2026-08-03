@@ -2,6 +2,7 @@ import {
   Users, Package, Receipt, MapPin, Currency, ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { ROUTES } from '@/lib/routes';
 
 const features = [
   {
@@ -58,21 +59,21 @@ const footerLinks = [
   {
     heading: "Platform",
     items: [
-      { label: "Workforce Tracking",   href: "/services#workforce"  },
-      { label: "Inventory Management", href: "/services#inventory"  },
-      { label: "Finance & Invoices",   href: "/services#finance"    },
-      { label: "Site Tracking",        href: "/services#sites"      },
-      { label: "Payroll",              href: "/services#payroll"    },
-      { label: "Audit Trails",         href: "/services#compliance" },
+      { label: "Workforce Tracking",   href: `${ROUTES.public.services}#workforce`  },
+      { label: "Inventory Management", href: `${ROUTES.public.services}#inventory`  },
+      { label: "Finance & Invoices",   href: `${ROUTES.public.services}#finance`    },
+      { label: "Site Tracking",        href: `${ROUTES.public.services}#sites`      },
+      { label: "Payroll",              href: `${ROUTES.public.services}#payroll`    },
+      { label: "Audit Trails",         href: `${ROUTES.public.services}#compliance` },
     ],
   },
   {
     heading: "Company",
     items: [
-      { label: "About Us",   href: "/about"    },
-      { label: "Services",   href: "/services" },
-      { label: "Demo",       href: "/demo"     },
-      { label: "Contact Us", href: "/contact"  },
+      { label: "About Us",   href: ROUTES.public.about    },
+      { label: "Services",   href: ROUTES.public.services },
+      { label: "Demo",       href: ROUTES.public.demo     },
+      { label: "Contact Us", href: ROUTES.public.contact  },
     ],
   },
 ];
@@ -100,8 +101,8 @@ export default function HomePage() {
           </p>
         </div>
         <div className="flex gap-4 flex-wrap justify-center">
-          <Link href="/demo" className="gv-btn-brand">See How It Works</Link>
-          <Link href="/contact" className="gv-btn-outline">Talk to Us</Link>
+          <Link href={ROUTES.public.demo} className="gv-btn-brand">See How It Works</Link>
+          <Link href={ROUTES.public.contact} className="gv-btn-outline">Talk to Us</Link>
         </div>
       </section>
 
@@ -167,8 +168,8 @@ export default function HomePage() {
           Get full visibility over your operations starting today.
         </h2>
         <div className="flex gap-4 justify-center flex-wrap mt-8">
-          <Link href="/demo" className="gv-btn-brand">Request a Demo</Link>
-          <Link href="/contact" className="gv-btn-outline">Contact Us</Link>
+          <Link href={ROUTES.public.demo} className="gv-btn-brand">Request a Demo</Link>
+          <Link href={ROUTES.public.contact} className="gv-btn-outline">Contact Us</Link>
         </div>
       </section>
 

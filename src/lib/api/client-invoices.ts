@@ -14,7 +14,6 @@ export async function fetchClientInvoices(
   siteId?: number,
   status?: InvoicePaymentStatus
 ): Promise<{ items: ClientInvoiceListItem[]; total: number }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: Record<string, any> = { limit: 100 };
   if (siteId) params.site_id = siteId;
   if (status) params.payment_status = status;

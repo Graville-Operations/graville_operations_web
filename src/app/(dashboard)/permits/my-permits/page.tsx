@@ -12,6 +12,7 @@ import { PermitDetailModal } from "@/components/permits/PermitDetailModal";
 import { usePermitsList, STATUS_TABS } from "@/hooks/permits/usePermitsList";
 import { formatPermitDate } from "@/lib/utils/permit-date";
 import { STATUS_STYLES } from "@/types/permits";
+import { ROUTES } from "@/lib/routes";
 
 const STAT_DEFS = [
   { label: "Total" },
@@ -52,7 +53,7 @@ export default function PermitsDashboard() {
           </p>
         </div>
         {activeTab === "permits" && isFieldOp && (
-          <button onClick={() => router.push("/permits/create")} className="gv-btn-brand flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm">
+          <button onClick={() => router.push(ROUTES.permits.create)} className="gv-btn-brand flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm">
             <Plus size={16} /> New Permit
           </button>
         )}
@@ -167,7 +168,7 @@ export default function PermitsDashboard() {
                 fullScreen={false}
                 action={
                   activeStatus === "All" && !search && isFieldOp
-                    ? { label: "Create your first permit", onClick: () => router.push("/permits/create") }
+                    ? { label: "Create your first permit", onClick: () => router.push(ROUTES.permits.create) }
                     : undefined
                 }
               />
@@ -232,14 +233,12 @@ export default function PermitsDashboard() {
                 fullScreen={false}
                 action={
                   activeStatus === "All" && isFieldOp
-                    ? { label: "Create Permit", onClick: () => router.push("/permits/create") }
+                    ? { label: "Create Permit", onClick: () => router.push(ROUTES.permits.create) }
                     : undefined
                 }
               />
             ) : filtered.map((permit) => {
-              // NOTE: matches the original mobile-card badge padding (py-0.5),
-              // which differs slightly from the shared StatusBadge (py-1) —
-              // preserved as-is rather than silently changed.
+              
               const st = STATUS_STYLES[permit.status] ?? { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" };
               return (
                 <div key={permit.id} onClick={() => openPermit(permit)} className="gv-card cursor-pointer active:scale-[0.99] transition-transform" style={{ padding: "14px 16px" }}>

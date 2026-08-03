@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { ROUTES } from '@/lib/routes';
 import {
   CheckCircle2, Building2, Users,
   Receipt, MapPin, ClipboardCheck, Package,
@@ -136,10 +137,10 @@ export default function DemoPage() {
                   </p>
                 </div>
                 <div className="flex gap-3 flex-wrap justify-center">
-                  <Link href="/" className="gv-btn-outline text-sm px-5 py-2.5">
+                  <Link href={ROUTES.public.landing} className="gv-btn-outline text-sm px-5 py-2.5">
                     Back to Home
                   </Link>
-                  <Link href="/signin" className="gv-btn-brand text-sm px-5 py-2.5">
+                  <Link href={ROUTES.signin} className="gv-btn-brand text-sm px-5 py-2.5">
                     Sign In
                   </Link>
                 </div>

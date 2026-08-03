@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { LogOut, User, Bell } from 'lucide-react';
 import { formatRole } from '@/lib/utils/format-role';
 import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/lib/routes';
 import {
   Dialog,
   DialogContent,
@@ -39,7 +40,7 @@ export function SidebarFooter({ user, role, onLogout }: SidebarFooterProps) {
       </button>
 
       <Link
-        href="/account"
+        href={ROUTES.account}
         className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors duration-150"
       >
         <div className="w-7 h-7 bg-[#33907C] rounded-full flex items-center justify-center shrink-0">
