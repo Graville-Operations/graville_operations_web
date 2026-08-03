@@ -1,9 +1,9 @@
 import { ClipboardList, ShoppingCart } from 'lucide-react';
-import type { ActivityTab } from '@/types/store';
+import { ActivityTab } from '@/types/enums/activity-tab';
 
 const TABS: { key: ActivityTab; label: string; icon: React.ReactNode }[] = [
-  { key: 'usage',  label: 'Daily Usage', icon: <ClipboardList size={14} /> },
-  { key: 'orders', label: 'Orders',      icon: <ShoppingCart size={14} /> },
+  { key: ActivityTab.USAGE,  label: 'Daily Usage', icon: <ClipboardList size={14} /> },
+  { key: ActivityTab.ORDERS, label: 'Orders',      icon: <ShoppingCart size={14} /> },
 ];
 
 interface ActivityTabBarProps {

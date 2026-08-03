@@ -12,11 +12,6 @@ export function unwrapApiResponse<T>(res: { data: ApiEnvelope<T> }): T {
   return body.data;
 }
 
-/**
- * Unwraps a response body into an array, handling the various shapes
- * the backend returns: raw arrays, { data: [] }, { data: { items: [] } },
- * { data: { results: [] } }, or { items: [] }.
- */
 export function unwrapArray<T>(response: unknown): T[] {
   if (Array.isArray(response)) return response as T[];
   if (response && typeof response === 'object') {
@@ -32,10 +27,6 @@ export function unwrapArray<T>(response: unknown): T[] {
   return [];
 }
 
-/**
- * Unwraps a response body into a single object, handling both the
- * raw object and the { data: {...} } envelope.
- */
 export function unwrapObject<T>(response: unknown): T {
   if (response && typeof response === 'object') {
     const obj = response as Record<string, unknown>;

@@ -3,10 +3,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useApi } from '@/hooks/useApi';
 import { API } from '@/lib/endpoints';
 import { unwrapObject } from '@/lib/api-response';
-import type { ActivityTab } from '@/types/store';
+import { ActivityTab } from '@/types/enums/activity-tab';
 
 export function useUsageDetail(usageId: number) {
-  const [tab, setTab] = useState<ActivityTab>('usage');
+ 
+const [tab, setTab] = useState<ActivityTab>(ActivityTab.USAGE);
   const [tabReady, setTabReady] = useState(true);
 
   const { data: raw, loading, error, refetch } = useApi<unknown>(API.stores.dailyUsage(usageId));

@@ -15,9 +15,6 @@ export function useCompanyInvoices() {
   const [dateRange, setDateRange]       = useState<{ start?: string; end?: string }>({});
   const [statusFilter, setStatusFilterState] = useState<InvoicePaymentStatus | null>(null);
 
-  // Keep the latest filter state in a ref so the visibility listener
-  // (registered once) always refetches with the current filters, not
-  // whatever they were when the listener was first attached.
   const filtersRef = useRef({ dateRange, statusFilter });
   useEffect(() => {
     filtersRef.current = { dateRange, statusFilter };

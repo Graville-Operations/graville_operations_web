@@ -2,8 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Search, AlertCircle, Building2 } from 'lucide-react';
-import { ProjectStatus } from '@/types/site';
-import { RawSite } from '@/types/site-detail';
+import { ProjectStatus, RawSite } from '@/types/site';
 import { useConstructionSites } from '@/hooks/sites/useConstructionSites';
 import { QuickStatPill } from '@/components/sites/QuickStatPill';
 import { SiteCard } from '@/components/sites/SiteCard';
