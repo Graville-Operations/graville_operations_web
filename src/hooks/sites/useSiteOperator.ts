@@ -7,7 +7,7 @@ import {
   replaceFieldOperator,
   unassignFieldOperator,
 } from '@/lib/api/sites';
-import { FieldOperator } from '@/types/site-detail';
+import { FieldOperator } from '@/types/site';
 
 // `operator` is now sourced from GET /sites/{id} (fetched once by useSiteDetail)
 // rather than a dedicated GET /sites/{id}/operator call. This hook only owns

@@ -11,6 +11,7 @@ import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge';
 import { InvoicePaymentStatus } from '@/types/client-invoice';
 import RejectInvoiceModal from '@/components/finance/client-invoices/RejectInvoiceModal';
 import RecordPaymentModal from '@/components/finance/client-invoices/RecordPaymentModal';
+import { ROUTES } from '@/lib/routes';
 
 export default function ClientInvoiceDetailPage() {
   const router = useRouter();
@@ -99,7 +100,7 @@ export default function ClientInvoiceDetailPage() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push(`/finance/invoice/client/${invoice.id}/payments`)}
+            onClick={() => router.push(ROUTES.finance.invoice.client.payments(String(invoice.id)))}
             className="gv-btn-pill gap-2 text-sm"
           >
             <History size={15} />

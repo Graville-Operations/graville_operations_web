@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '@/lib/api';
+import { API } from '@/lib/endpoints';
 
 export interface InvoiceItem {
   id: number;
@@ -21,7 +22,7 @@ interface InvoiceStore {
   startPolling: () => () => void;
 }
 
-const POLL_INTERVAL_MS = 30_000; // poll every 30 seconds
+const POLL_INTERVAL_MS = 30_000; 
 
 export const useInvoiceStore = create<InvoiceStore>()(
   persist(
@@ -36,7 +37,7 @@ export const useInvoiceStore = create<InvoiceStore>()(
 
       refresh: async () => {
         try {
-          const { data } = await api.get('/client-invoices/all?limit=5');
+          const { data } = await api.get(API.clientInvoices.all, { params: { limit: 5 } });
           const payload = data?.data ?? data;
           const list: InvoiceItem[] = Array.isArray(payload)
             ? payload
@@ -48,14 +49,12 @@ export const useInvoiceStore = create<InvoiceStore>()(
       },
 
       startPolling: () => {
-        // Fetch immediately on start
         get().refresh();
 
         const interval = setInterval(() => {
           get().refresh();
         }, POLL_INTERVAL_MS);
 
-        // Return cleanup function to stop polling
         return () => clearInterval(interval);
       },
     }),

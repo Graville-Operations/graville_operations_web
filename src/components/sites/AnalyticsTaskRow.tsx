@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
-import { TaskBreakdownItem } from '@/types/site-detail';
+import { TaskBreakdownItem } from '@/types/site';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 export function AnalyticsTaskRow({ task }: { task: TaskBreakdownItem }) {
   const [open, setOpen] = useState(false);

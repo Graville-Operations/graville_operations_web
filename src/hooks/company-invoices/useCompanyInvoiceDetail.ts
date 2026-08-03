@@ -8,7 +8,7 @@ import {
   recordCompanyInvoicePayment,
   RecordPaymentPayload,
 } from '@/lib/api/company-invoices';
-import { generateInvoicePDF } from '@/lib/utils/generate-invoice-pdf';
+import { useInvoicePdfDownload, mapCompanyInvoiceToPdfData } from '@/lib/utils/invoice-pdf-download';
 
 const previewKey = (id: string) => `cinv_${id}`;
 
@@ -16,9 +16,13 @@ export function useCompanyInvoiceDetail(id: string | undefined) {
   const [invoice, setInvoice]             = useState<CompanyInvoice | null>(null);
   const [loading, setLoading]             = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [downloading, setDownloading]     = useState(false);
   const [rejecting, setRejecting]                 = useState(false);
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+
+  const { downloading, handleDownload } = useInvoicePdfDownload(
+    invoice,
+    mapCompanyInvoiceToPdfData,
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -65,32 +69,6 @@ export function useCompanyInvoiceDetail(id: string | undefined) {
     };
     load();
   }, [id]);
-
-  const handleDownload = useCallback(async () => {
-    if (!invoice) return;
-    setDownloading(true);
-    try {
-      await generateInvoicePDF({
-        invoiceNo:   invoice.invoice_number,
-        invoiceType: 'Company',
-        clientName:  invoice.invoiced_by ?? '—',
-        invoiceDate: invoice.invoice_date ?? '—',
-        createdBy:   invoice.invoiced_by  ?? '—',
-        createdAt:   invoice.created_at   ?? '—',
-        total:       invoice.total,
-        notes:       invoice.notes ?? undefined,
-        items: (invoice.items ?? []).map((item) => ({
-          index:       item.index,
-          particulars: item.particulars,
-          quantity:    item.quantity,
-          unitPrice:   item.unit_price,
-          totalAmount: item.total_amount,
-        })),
-      });
-    } finally {
-      setDownloading(false);
-    }
-  }, [invoice]);
 
   const handleReject = useCallback(async () => {
     if (!invoice) return;

@@ -1,11 +1,7 @@
-export type ProjectStatus =
-  | 'PLANNING'
-  | 'IN_PROGRESS'
-  | 'ON_HOLD'
-  | 'COMPLETED'
-  | 'CANCELLED';
+import { ProjectStatus } from '@/types/enums/project-status';
+import { SiteStatus } from '@/types/enums/site-status';
 
-export type SiteStatus = 'ACTIVE' | 'INACTIVE' | 'CLOSED';
+export { ProjectStatus, SiteStatus };
 
 export interface Site {
   id: number;
@@ -75,6 +71,7 @@ export interface AttendanceRecord {
   phone: string | null;
   nationalId: string | null;
 }
+
 export interface SubTask {
   id: number;
   name: string;
@@ -132,4 +129,57 @@ export interface OverviewKPIs {
   pendingTransactionsransfers: number;
   attendanceEateToday: number;
   presentToday: number;
+}
+
+// --- merged from site-detail.ts ---
+
+export interface RawSite {
+  id: number;
+  name: string;
+  location?: string;
+  projectStatus?: string;
+  siteStatus?: string;
+  deadlineDate?: string;
+  completion_date?: string;
+  [key: string]: unknown;
+}
+
+export interface AttendanceSummary {
+  site_id: number;
+  start_date: string;
+  end_date: string;
+  total: number;
+  payouts: number;
+  records: AttendanceRecord[];
+}
+
+export interface SubtaskBreakdown {
+  subtaskName: string;
+  completionPercentage: number;
+}
+
+export interface TaskBreakdownItem {
+  taskName: string;
+  subtaskBreakdown: SubtaskBreakdown[];
+}
+
+export interface AttendanceBreakdownItem {
+  day: string;
+  date: string;
+  attendanceCount: number;
+}
+
+export interface SiteAnalytics {
+  siteName: string;
+  totalWorkers: number;
+  projectCompletionPercentage: number;
+  timeCompletionPercentage: number;
+  completedTasks: number;
+  estimatedProjectValue: number;
+  totalExpenditure: number;
+  expenditureRemaining: number;
+  todayAttendance: number;
+  previousAttendance: number;
+  taskBreakdown: TaskBreakdownItem[];
+  attendanceBreakdown: AttendanceBreakdownItem[];
 }

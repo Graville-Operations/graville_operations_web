@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, StickyNote, Download, Loader2, History, DollarSign, XCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useSubcontractorInvoiceDetail } from '@/hooks/subcontractor-invoices/useSubcontractorInvoiceDetail';
 import { formatKes } from '@/lib/utils/currency';
-import { generateInvoicePDF } from '@/lib/utils/generate-invoice-pdf';
+import { useInvoicePdfDownload, mapContractorInvoiceToPdfData } from '@/lib/utils/invoice-pdf-download';
 import {
   updateSubcontractorInvoiceStatus,
   recordSubcontractorInvoicePayment,
@@ -54,7 +54,11 @@ function ModalShell({
 export function InvoiceDetailView({ invoiceId, initialData, onBack }: InvoiceDetailViewProps) {
   const { invoice, detailLoading, hasFullDetail, error, retry } =
     useSubcontractorInvoiceDetail(invoiceId, initialData);
-  const [downloading, setDownloading] = useState(false);
+
+  const { downloading, handleDownload } = useInvoicePdfDownload(
+    invoice,
+    mapContractorInvoiceToPdfData,
+  );
 
   // Status / payment action state
   const [rejecting, setRejecting] = useState(false);
@@ -110,26 +114,6 @@ export function InvoiceDetailView({ invoiceId, initialData, onBack }: InvoiceDet
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onBack, showRejectModal, showPaymentModal, showHistoryPage]);
-
-  const handleDownload = async () => {
-    if (!invoice) return;
-    setDownloading(true);
-    try {
-      await generateInvoicePDF({
-        invoiceNo:   invoice.invoiceNo,
-        invoiceType: 'Contractor',
-        clientName:  invoice.contractorName,
-        invoiceDate: invoice.invoiceDate,
-        notes:       invoice.notes ?? undefined,
-        createdBy:   invoice.createdBy?.name ?? '—',
-        createdAt:   invoice.created_at,
-        total:       invoice.total,
-        items:       invoice.items,
-      });
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   const handleConfirmReject = async () => {
     if (!invoice) return;

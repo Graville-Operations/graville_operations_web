@@ -4,12 +4,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { ROUTES } from '@/lib/routes';
 
 const links = [
-  { href: "/",         label: "Home"     },
-  { href: "/about",    label: "About"    },
-  { href: "/services", label: "Services" },
-  { href: "/contact",  label: "Contact"  },
+  { href: ROUTES.public.landing,  label: "Home"     },
+  { href: ROUTES.public.about,    label: "About"    },
+  { href: ROUTES.public.services, label: "Services" },
+  { href: ROUTES.public.contact,  label: "Contact"  },
 ];
 
 export function Navbar() {
@@ -25,7 +26,7 @@ export function Navbar() {
       <div className="w-full px-8 h-full flex items-center justify-between">
 
         {/* FAR LEFT: logo + company name */}
-        <Link href="/" className="flex items-center gap-3 shrink-0">
+        <Link href={ROUTES.public.landing} className="flex items-center gap-3 shrink-0">
           <Image
             src="/logo.png"
             alt="Graville Enterprises Limited"
@@ -63,7 +64,7 @@ export function Navbar() {
         {/* FAR RIGHT: Sign In | Request a demo */}
         <div className="flex items-center gap-3 shrink-0">
           <Link
-            href="/signin"
+            href={ROUTES.signin}
             className="text-sm transition-colors duration-200"
             style={{ color: "var(--gv-text-muted)" }}
             onMouseEnter={e => (e.currentTarget.style.color = "var(--gv-text-primary)")}
@@ -74,7 +75,7 @@ export function Navbar() {
 
           <span className="w-px h-4" style={{ background: "var(--gv-glass-border)" }} />
 
-          <Link href="/demo" className="gv-btn-pill">
+          <Link href={ROUTES.public.demo} className="gv-btn-pill">
             Request a demo
           </Link>
         </div>

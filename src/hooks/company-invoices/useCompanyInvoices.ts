@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { CompanyInvoice, InvoicePaymentStatus, normaliseCompanyInvoice } from '@/types/company_invoices';
 import { fetchCompanyInvoices } from '@/lib/api/company-invoices';
+import { ROUTES } from '@/lib/routes';
 
 export function useCompanyInvoices() {
   const router = useRouter();
@@ -15,9 +16,6 @@ export function useCompanyInvoices() {
   const [dateRange, setDateRange]       = useState<{ start?: string; end?: string }>({});
   const [statusFilter, setStatusFilterState] = useState<InvoicePaymentStatus | null>(null);
 
-  // Keep the latest filter state in a ref so the visibility listener
-  // (registered once) always refetches with the current filters, not
-  // whatever they were when the listener was first attached.
   const filtersRef = useRef({ dateRange, statusFilter });
   useEffect(() => {
     filtersRef.current = { dateRange, statusFilter };
@@ -114,7 +112,7 @@ export function useCompanyInvoices() {
           payment_status: inv.payment_status,
         })
       );
-      router.push(`/finance/invoice/company/${inv.id}`);
+      router.push(ROUTES.finance.invoice.company.detail(String(inv.id)));
     },
     [router]
   );

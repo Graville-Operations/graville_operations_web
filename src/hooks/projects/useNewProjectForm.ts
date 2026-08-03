@@ -10,7 +10,6 @@ export interface NewProjectFormState {
   name: string;
   location: string;
   project_status: ProjectStatus | '';
-  site_status: SiteStatus;
   description: string;
   tender_name: string;
   inquiring_entity: string;
@@ -21,10 +20,12 @@ export interface NewProjectFormState {
 }
 
 const EMPTY: NewProjectFormState = {
-  name: '', location: '', project_status: '', site_status: 'ACTIVE',
+  name: '', location: '', project_status: '',
   description: '', tender_name: '', inquiring_entity: '',
   completion_date: '', latitude: '', tagInput: '', tags: [],
 };
+
+const DEFAULT_SITE_STATUS = SiteStatus.ACTIVE;
 
 export function useNewProjectForm() {
   const router = useRouter();
@@ -47,22 +48,42 @@ export function useNewProjectForm() {
   const removeTag = (tag: string) =>
     setForm((p) => ({ ...p, tags: p.tags.filter((t) => t !== tag) }));
 
+  const getMissingFields = (): string[] => {
+    const missing: string[] = [];
+    if (!form.name.trim())             missing.push('Site name');
+    if (!form.project_status)          missing.push('Project status');
+    if (!form.location.trim())         missing.push('Location');
+    if (!form.inquiring_entity.trim()) missing.push('Tenderer');
+    if (!form.tender_name.trim())      missing.push('Tender Name');
+    return missing;
+  };
+
+  const formatMissingFieldsMessage = (missing: string[]): string => {
+    if (missing.length === 1) return `${missing[0]} is required.`;
+    if (missing.length === 2) return `${missing[0]} and ${missing[1]} are required.`;
+    return `${missing.slice(0, -1).join(', ')}, and ${missing[missing.length - 1]} are required.`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim())    { setError('Site name is required.');      return; }
-    if (!form.project_status) { setError('Project status is required.'); return; }
+
+    const missing = getMissingFields();
+    if (missing.length > 0) {
+      setError(formatMissingFieldsMessage(missing));
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
 
     const payload: CreateSitePayload = {
-      name:           form.name.trim(),
-      project_status: form.project_status as ProjectStatus,
-      site_status:    form.site_status,
-      ...(form.location         && { location:         form.location }),
+      name:             form.name.trim(),
+      project_status:   form.project_status as ProjectStatus,
+      site_status:      DEFAULT_SITE_STATUS,
+      location:         form.location.trim(),
+      inquiring_entity: form.inquiring_entity.trim(),
+      tender_name:      form.tender_name.trim(),
       ...(form.description      && { description:      form.description }),
-      ...(form.tender_name      && { tender_name:      form.tender_name }),
-      ...(form.inquiring_entity && { inquiring_entity: form.inquiring_entity }),
       ...(form.completion_date  && { completion_date:  form.completion_date }),
       ...(form.latitude         && { latitude:         parseFloat(form.latitude) }),
       ...(form.tags.length > 0  && { tags:             form.tags }),

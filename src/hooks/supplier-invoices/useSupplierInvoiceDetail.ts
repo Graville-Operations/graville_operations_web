@@ -8,7 +8,7 @@ import {
   recordSupplierInvoicePayment,
   RecordPaymentPayload,
 } from '@/lib/api/supplier-invoices';
-import { generateInvoicePDF } from '@/lib/utils/generate-invoice-pdf';
+import { useInvoicePdfDownload, mapSupplierInvoiceToPdfData } from '@/lib/utils/invoice-pdf-download';
 
 const previewKey = (id: string) => `invoice_${id}_preview`;
 
@@ -16,9 +16,13 @@ export function useSupplierInvoiceDetail(id: string | undefined) {
   const [invoice, setInvoice]         = useState<Invoice | null>(null);
   const [isLoading, setIsLoading]     = useState(true);
   const [isEnriching, setIsEnriching] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   const [rejecting, setRejecting]                 = useState(false);
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+
+  const { downloading, handleDownload } = useInvoicePdfDownload(
+    invoice,
+    mapSupplierInvoiceToPdfData,
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -52,38 +56,6 @@ export function useSupplierInvoiceDetail(id: string | undefined) {
         setIsEnriching(false);
       });
   }, [id]);
-
-  const handleDownload = useCallback(async () => {
-    if (!invoice) return;
-    setDownloading(true);
-    try {
-      await generateInvoicePDF({
-        invoiceNo:      invoice.invoice_number,
-        invoiceType:    'Supplier',
-        clientName:     invoice.supplier_name ?? '—',
-        invoiceDate:    invoice.invoice_date  ?? '—',
-        createdBy:      invoice.submitted_by  ?? '—',
-        createdAt:      invoice.created_at    ?? '—',
-        total:          invoice.total_amount,
-        notes:          invoice.notes ?? undefined,
-        lpoNumber:      invoice.lpo_number      ?? undefined,
-        deliveryNumber: invoice.delivery_number ?? undefined,
-        site:           invoice.site            ?? undefined,
-        status:         invoice.status          ?? undefined,
-        amountPaid:     invoice.amount_paid,
-        balanceDue:     invoice.total_amount - invoice.amount_paid,
-        items: (invoice.items ?? []).map((item, i) => ({
-          index:       i + 1,
-          particulars: item.particular,
-          quantity:    item.quantity,
-          unitPrice:   item.unit_price,
-          totalAmount: item.total_price,
-        })),
-      });
-    } finally {
-      setDownloading(false);
-    }
-  }, [invoice]);
 
   const handleReject = useCallback(async () => {
     if (!invoice) return;

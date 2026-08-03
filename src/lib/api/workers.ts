@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { API } from '@/lib/endpoints';
 import type { WorkerType, WorkerBrief, SkillType } from '@/types/worker-dashboard';
 
 function extractList(raw: unknown): unknown[] {
@@ -24,7 +25,7 @@ export async function fetchWorkerTypes(
   skip = 0,
   limit = 20
 ): Promise<{ items: WorkerType[]; total: number }> {
-  const res = await api.get('/workers/skills', { params: { skip, limit } });
+  const res = await api.get(API.workers.skills, { params: { skip, limit } });
   return {
     items: extractList(res.data) as WorkerType[],
     total: extractTotal(res.data),
@@ -36,7 +37,7 @@ export async function createWorkerType(payload: {
   amount: number;
   skill: SkillType;
 }): Promise<WorkerType> {
-  const res = await api.post('/workers/skills/create', payload);
+  const res = await api.post(API.workers.createSkill, payload);
   return res.data?.data ?? res.data;
 }
 
@@ -45,7 +46,7 @@ export async function fetchWorkersBySite(
   skip = 0,
   limit = 50
 ): Promise<{ items: WorkerBrief[]; total: number }> {
-  const res = await api.get(`/workers/list-by-id/${siteId}`, { params: { skip, limit } });
+  const res = await api.get(API.workers.listBySite(siteId), { params: { skip, limit } });
   return {
     items: extractList(res.data) as WorkerBrief[],
     total: extractTotal(res.data),

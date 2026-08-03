@@ -1,7 +1,6 @@
-export enum SkillType {
-  SKILLED = 'SKILLED',
-  UNSKILLED = 'UNSKILLED',
-}
+import { SkillType } from '@/types/enums/skill-type';
+
+export { SkillType };
 
 export interface WorkerType {
   id: number;

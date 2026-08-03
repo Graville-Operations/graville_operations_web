@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
+import { API } from '@/lib/endpoints';
 
 const DUMMY = {
   total_orders:    47,
@@ -207,7 +208,7 @@ function AddUnitOverlay({ open, onClose, onSuccess, elevated = false }: AddUnitO
     if (!form.name.trim()) return setError('Unit name is required.');
     setLoading(true); setError(null);
     try {
-      const res = await api.post('/materials/unit/create', {
+      const res = await api.post(API.materials.unitCreate, {
         name: form.name.trim(),
         symbol: form.symbol.trim() || undefined,
         description: form.description.trim() || undefined,
@@ -248,7 +249,7 @@ function AddMaterialOverlay({ open, onClose, onSuccess }: AddMaterialOverlayProp
   const [error, setError] = useState<string | null>(null);
   const [addUnitOpen, setAddUnitOpen] = useState(false);
 
-  const unitsApi = useApi('/materials/unit/all', { params: { limit: 100, skip: 0 }, enabled: open });
+  const unitsApi = useApi(API.materials.unitAll, { params: { limit: 100, skip: 0 }, enabled: open });
   const units = extractList(unitsApi.data) as Unit[];
   const unitsLoading = unitsApi.loading;
 
@@ -266,7 +267,7 @@ function AddMaterialOverlay({ open, onClose, onSuccess }: AddMaterialOverlayProp
     if (!form.unit_id) return setError('Please select a unit.');
     setLoading(true); setError(null);
     try {
-      const res = await api.post('/materials/material/add', {
+      const res = await api.post(API.materials.materialAdd, {
         name: form.name.trim(),
         description: form.description.trim() || undefined,
         unit_id: Number(form.unit_id),
@@ -331,7 +332,7 @@ function AddToolOverlay({ open, onClose, onSuccess }: AddToolOverlayProps) {
     if (!form.name.trim()) return setError('Tool name is required.');
     setLoading(true); setError(null);
     try {
-      const res = await api.post('/materials/tool/add', {
+      const res = await api.post(API.materials.toolAdd, {
         name: form.name.trim(),
         description: form.description.trim() || undefined,
       });

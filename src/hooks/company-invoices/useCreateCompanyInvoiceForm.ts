@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createCompanyInvoice } from '@/lib/api/company-invoices';
+import { ROUTES } from '@/lib/routes';
 
 export interface CompanyInvoiceItemForm {
   particulars: string;
@@ -84,7 +85,7 @@ export function useCreateCompanyInvoiceForm() {
     try {
       setSubmitting(true);
       await createCompanyInvoice(payload);
-      router.push('/finance/invoice/company');
+      router.push(ROUTES.finance.invoice.company.list);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const detail =

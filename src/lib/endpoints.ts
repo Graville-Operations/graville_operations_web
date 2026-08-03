@@ -80,6 +80,12 @@ export const API = {
     operator: (siteId: number | string) => `/sites/${siteId}/operator`,
     replaceOperator: (siteId: number | string) => `/sites/${siteId}/operator/replace`,
   },
+  materials: {
+    unitAll: "/materials/unit/all",
+    unitCreate: "/materials/unit/create",
+    materialAdd: "/materials/material/add",
+    toolAdd: "/materials/tool/add",
+  },
   attendance: {
     summary: "/attendance/summary",
     analytics: "/attendance/analytics",
@@ -103,6 +109,11 @@ export const API = {
     menus: (id: number) => `/departments/${id}/menus`,
     members: (id: number) => `/departments/${id}/members`,
     assignUsers: (id: number) => `/departments/${id}/assign-users`,
+    removeUserAttempts: (deptId: number, userId: number) => [
+      `/departments/${deptId}/members`,
+      `/departments/${deptId}/users`,
+      `/departments/${deptId}/members/remove`,
+    ] as const,
   },
   permits: {
     myPermits: "/permits/my-pemits", 

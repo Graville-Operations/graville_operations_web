@@ -1,4 +1,5 @@
-import { InvoicePaymentStatus, PaymentHistory } from '@/types/company_invoices';
+import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
+import { PaymentHistory } from '@/types/company_invoices';
 
 export interface RawInvoiceItem {
   id: number;

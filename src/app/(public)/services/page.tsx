@@ -2,6 +2,7 @@ import {
   Users, Package, Receipt, MapPin, Currency, ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { ROUTES } from '@/lib/routes';
 
 const services = [
   {
@@ -135,8 +136,8 @@ export default function ServicesPage() {
           Ready to bring every operation under one roof?
         </h2>
         <div className="flex gap-4 justify-center flex-wrap mt-8">
-          <Link href="/demo"    className="gv-btn-brand">Request a Demo</Link>
-          <Link href="/contact" className="gv-btn-outline">Contact Us</Link>
+          <Link href={ROUTES.public.demo}    className="gv-btn-brand">Request a Demo</Link>
+          <Link href={ROUTES.public.contact} className="gv-btn-outline">Contact Us</Link>
         </div>
       </section>
 

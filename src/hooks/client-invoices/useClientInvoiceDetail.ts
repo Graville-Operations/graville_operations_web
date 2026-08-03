@@ -8,7 +8,7 @@ import {
   RecordPaymentPayload,
 } from '@/lib/api/client-invoices';
 import { ClientInvoiceDetail, InvoicePreview, InvoicePaymentStatus } from '@/types/client-invoice';
-import { generateInvoicePDF } from '@/lib/utils/generate-invoice-pdf';
+import { useInvoicePdfDownload, mapClientInvoiceToPdfData } from '@/lib/utils/invoice-pdf-download';
 
 const TIMEOUT_MS = 10_000;
 const RETRY_DELAY_S = 3;
@@ -17,12 +17,16 @@ export function useClientInvoiceDetail() {
   const [id, setId] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<ClientInvoiceDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryIn, setRetryIn] = useState<number | null>(null);
   const [preview, setPreview] = useState<InvoicePreview>({});
   const [rejecting, setRejecting] = useState(false);
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+
+  const { downloading: isExporting, handleDownload } = useInvoicePdfDownload(
+    invoice,
+    mapClientInvoiceToPdfData,
+  );
 
   const resolvedRef = useRef(false);
   const cancelledRef = useRef(false);
@@ -108,34 +112,6 @@ export function useClientInvoiceDetail() {
       clearTimers();
     };
   }, [id, load, clearTimers]);
-
-  const handleDownload = async () => {
-    if (!invoice) return;
-    setIsExporting(true);
-    try {
-      await generateInvoicePDF({
-        invoiceNo: invoice.invoiceNo,
-        invoiceType: 'Client',
-        clientName: invoice.clientName,
-        invoiceDate: invoice.invoiceDate,
-        notes: invoice.notes,
-        createdBy: invoice.createdBy?.name ?? '—',
-        createdAt: invoice.created_at,
-        total: invoice.total,
-        items: invoice.items.map((item) => ({
-          index: item.index,
-          particulars: item.particulars,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalAmount: item.totalAmount,
-        })),
-      });
-    } catch (err) {
-      console.error('[PDF export]', err);
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const handleReject = useCallback(async () => {
     if (!invoice) return;

@@ -1,11 +1,7 @@
-export type PermitStatus =
-  | "Draft"
-  | "Pending"
-  | "In Review"
-  | "Approved"
-  | "Rejected";
+import { PermitStatus } from '@/types/enums/permit-status';
+import { ApprovalStatus } from '@/types/enums/approval-status';
 
-export type ApprovalStatus = "Pending" | "Approved" | "Rejected";
+export { PermitStatus, ApprovalStatus };
 
 export interface PermitApproval {
   id:          number;
@@ -82,15 +78,15 @@ export interface CreatePermitPayload {
 }
 
 export const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  "Draft":     { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" },
-  "Pending":   { bg: "rgba(96,165,250,0.15)",  color: "#60a5fa" },
-  "In Review": { bg: "rgba(251,191,36,0.15)",  color: "#fbbf24" },
-  "Approved":  { bg: "rgba(51,144,124,0.15)",  color: "#33907c" },
-  "Rejected":  { bg: "rgba(248,113,113,0.15)", color: "#f87171" },
+  [PermitStatus.DRAFT]:     { bg: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" },
+  [PermitStatus.PENDING]:   { bg: "rgba(96,165,250,0.15)",  color: "#60a5fa" },
+  [PermitStatus.IN_REVIEW]: { bg: "rgba(251,191,36,0.15)",  color: "#fbbf24" },
+  [PermitStatus.APPROVED]:  { bg: "rgba(51,144,124,0.15)",  color: "#33907c" },
+  [PermitStatus.REJECTED]:  { bg: "rgba(248,113,113,0.15)", color: "#f87171" },
 };
 
 export const APPROVAL_STYLES: Record<string, { bg: string; color: string }> = {
-  "Pending":  { bg: "rgba(251,191,36,0.15)",  color: "#fbbf24" },
-  "Approved": { bg: "rgba(51,144,124,0.15)",  color: "#33907c" },
-  "Rejected": { bg: "rgba(248,113,113,0.15)", color: "#f87171" },
+  [ApprovalStatus.PENDING]:  { bg: "rgba(251,191,36,0.15)",  color: "#fbbf24" },
+  [ApprovalStatus.APPROVED]: { bg: "rgba(51,144,124,0.15)",  color: "#33907c" },
+  [ApprovalStatus.REJECTED]: { bg: "rgba(248,113,113,0.15)", color: "#f87171" },
 };

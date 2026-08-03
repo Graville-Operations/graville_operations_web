@@ -2,7 +2,7 @@ import { CheckCircle2, Clock, FileEdit } from 'lucide-react';
 import type { UsageLogStatus } from '@/types/store';
 
 export function statusOrder(
-  status: UsageLogStatus | undefined,
+  status: UsageLogStatus | string | undefined,
   iconSize = 10,
 ): { label: string; color: string; icon: React.ReactNode } {
   switch (status?.toLowerCase()) {

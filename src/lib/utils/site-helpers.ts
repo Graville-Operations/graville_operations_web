@@ -1,7 +1,7 @@
-
 import { format } from 'date-fns';
-import { SiteStatus, ProjectStatus, AttendanceRecord } from '@/types/site';
-import { SiteAnalytics, AttendanceSummary } from '@/types/site-detail';
+import { AttendanceRecord, SiteAnalytics, AttendanceSummary } from '@/types/site';
+import { SiteStatus } from '@/types/enums/site-status';
+import { ProjectStatus } from '@/types/enums/project-status';
 
 export const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string; bg: string }> = {
   ACTIVE:   { label: 'Active',   color: 'text-green-300', bg: 'bg-green-500/20 border border-green-500/40' },
@@ -11,21 +11,20 @@ export const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string
 
 export function normSiteStatus(s: unknown): SiteStatus {
   switch (String(s ?? '').toLowerCase()) {
-    case 'active':   return 'ACTIVE';
-    case 'inactive': return 'INACTIVE';
-    case 'closed':   return 'CLOSED';
-    default:         return 'INACTIVE';
-  }
+    case 'active':   return SiteStatus.ACTIVE;
+    case 'inactive': return SiteStatus.INACTIVE;
+    case 'closed':   return SiteStatus.CLOSED;
+    default:         return SiteStatus.INACTIVE;  }
 }
 
 export function normProjectStatus(s: string): ProjectStatus {
   switch ((s ?? '').toLowerCase().replace(/[\s-]+/g, '_')) {
-    case 'planning':    return 'PLANNING';
-    case 'in_progress': return 'IN_PROGRESS';
-    case 'on_hold':     return 'ON_HOLD';
-    case 'completed':   return 'COMPLETED';
-    case 'cancelled':   return 'CANCELLED';
-    default:            return 'PLANNING';
+    case 'planning':    return ProjectStatus.PLANNING;
+    case 'in_progress': return ProjectStatus.IN_PROGRESS;
+    case 'on_hold':     return ProjectStatus.ON_HOLD;
+    case 'completed':   return ProjectStatus.COMPLETED;
+    case 'cancelled':   return ProjectStatus.CANCELLED;
+    default:            return ProjectStatus.PLANNING;
   }
 }
 

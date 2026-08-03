@@ -1,11 +1,7 @@
 import { RawCreatedBy } from '@/types/invoice';
+import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
 
-export enum InvoicePaymentStatus {
-  PENDING = 'PENDING',
-  PARTIALLY_PAID = 'PARTIALLY_PAID',
-  PAID = 'PAID',
-  REJECTED = 'REJECTED',
-}
+export { InvoicePaymentStatus };
 
 export interface RawCompanyInvoiceItem {
   id: number;

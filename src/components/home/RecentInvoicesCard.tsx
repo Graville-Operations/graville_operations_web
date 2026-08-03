@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Receipt, ArrowRight, Loader2 } from 'lucide-react';
 import { InvoiceItem } from '@/store/invoice-store';
+import { ROUTES } from '@/lib/routes';
 
 interface RecentInvoicesCardProps {
   invoices: InvoiceItem[];
@@ -23,7 +24,7 @@ export function RecentInvoicesCard({ invoices, loading }: RecentInvoicesCardProp
           </h3>
         </div>
         <Link
-          href="/finance/invoice/client"
+          href={ROUTES.finance.invoice.client.list}
           className="flex items-center gap-1 text-xs font-medium"
           style={{ color: '#33907c' }}
         >
@@ -45,7 +46,7 @@ export function RecentInvoicesCard({ invoices, loading }: RecentInvoicesCardProp
           invoices.map((inv, idx) => (
             <Link
               key={inv.id}
-              href={`/finance/invoice/client/${inv.id}`}
+              href={ROUTES.finance.invoice.client.detail(String(inv.id))}
               className="flex items-center justify-between py-2.5 rounded-lg px-2 hover:bg-white/5 transition-colors"
               style={{ borderBottom: idx < invoices.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}
             >
@@ -81,7 +82,7 @@ export function RecentInvoicesCard({ invoices, loading }: RecentInvoicesCardProp
       {!loading && (
         <div className="px-5 py-3" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
           <Link
-            href="/finance/invoice/client/new"
+            href={ROUTES.finance.invoice.client.new}
             className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm font-medium"
             style={{ background: 'rgba(51,144,124,0.10)', color: '#33907c', border: '1px solid rgba(51,144,124,0.20)' }}
           >

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { OperatorPicker } from './OperatorPicker';
-import { FieldOperator } from '@/types/site-detail';
+import { FieldOperator } from '@/types/site';
 
 interface OperatorDetailOverlayProps {
   open: boolean;

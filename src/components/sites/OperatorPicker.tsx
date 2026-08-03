@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { FieldOperator } from '@/types/site-detail';
+import { FieldOperator } from '@/types/site';
 
 interface OperatorPickerProps {
   operators: FieldOperator[];

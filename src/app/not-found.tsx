@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ROUTES } from '@/lib/routes';
 
 export default function NotFound() {
   return (
@@ -53,7 +54,7 @@ export default function NotFound() {
           It may have been moved, renamed, or never existed.
         </p>
         <Link
-          href="/"
+          href={ROUTES.public.landing}
           style={{
             display: "inline-block",
             padding: "0.75rem 2rem",

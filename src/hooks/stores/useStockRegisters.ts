@@ -4,10 +4,11 @@ import { useApi } from '@/hooks/useApi';
 import { useCachedLookup } from '@/hooks/useCachedLookup';
 import { API } from '@/lib/endpoints';
 import { unwrapArray } from '@/lib/api-response';
-import type { Site, StoreMaterial, StoreTool, StockTab, StoreSummary } from '@/types/store';
+import type { Site, StoreMaterial, StoreTool, StoreSummary } from '@/types/store';
+import { StockTab } from '@/types/enums/stock-tab';
 
 export function useStockRegisters() {
-  const [tab, setTab] = useState<StockTab>('materials');
+ const [tab, setTab] = useState<StockTab>(StockTab.MATERIALS);
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
 

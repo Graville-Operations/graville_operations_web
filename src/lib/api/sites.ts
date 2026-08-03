@@ -4,8 +4,8 @@ import { unwrapArray, unwrapObject } from '@/lib/api-response';
 import {
   Site, SiteDetail, SiteWorker, AttendanceRecord,
   SiteTask, CreateSitePayload, OverviewKPIs,
+  SiteAnalytics, FieldOperator,
 } from '@/types/site';
-import { SiteAnalytics, FieldOperator } from '@/types/site-detail';
 import { DashboardMetrics } from '@/types/dashboard';
 
 function normalizeOperator(raw: unknown): FieldOperator | null {

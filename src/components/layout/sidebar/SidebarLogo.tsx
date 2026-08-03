@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import { ROUTES } from '@/lib/routes';
 
 export function SidebarLogo() {
   return (
     <div className="p-5 border-b border-white/10">
-      <Link href="/home" className="flex items-center gap-3">
+      <Link href={ROUTES.home} className="flex items-center gap-3">
         <div className="w-9 h-9 bg-[#33907C] rounded-xl flex items-center justify-center shrink-0">
           <span className="text-white font-bold text-base">G</span>
         </div>

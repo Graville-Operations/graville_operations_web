@@ -5,7 +5,7 @@ import { UserCog, Mail, Phone, Repeat, UserMinus, Loader2 } from 'lucide-react';
 import { useSiteOperator } from '@/hooks/sites/useSiteOperator';
 import { OperatorPicker } from './OperatorPicker';
 import { Button } from '@/components/ui/button';
-import { FieldOperator } from '@/types/site-detail';
+import { FieldOperator } from '@/types/site';
 
 interface FieldOperatorCardProps {
   siteId: number;

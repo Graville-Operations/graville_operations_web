@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSiteStore } from '@/store/site-store';
+import { ROUTES } from '@/lib/routes';
 import type { Site } from '@/types/site';
 
 export function useQualitySites() {
@@ -26,7 +27,7 @@ export function useQualitySites() {
   }, [fetchSitesAction]);
 
   const openSite = useCallback(
-    (site: Site) => router.push(`/quality/dashboard/${site.id}`),
+    (site: Site) => router.push(ROUTES.quality.siteDetail(site.id)),
     [router]
   );
 

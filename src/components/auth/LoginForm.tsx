@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
+import { ROUTES } from '@/lib/routes';
 
 interface LoginFormProps {
   email: string;
@@ -58,7 +59,7 @@ export function LoginForm({
         </div>
         <div className="text-right mt-1.5">
           <Link
-            href="/signin/forgot-password"
+            href={ROUTES.forgotPassword}
             className="text-xs text-blue-300/70 hover:text-blue-200 transition-colors"
           >
             Forgot password?
