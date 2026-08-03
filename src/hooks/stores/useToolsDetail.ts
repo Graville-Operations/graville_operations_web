@@ -5,14 +5,14 @@ import { useApi } from '@/hooks/useApi';
 import { useCachedLookup } from '@/hooks/useCachedLookup';
 import { API } from '@/lib/endpoints';
 import { fetchToolsPage } from '@/lib/api/store';
-import type { ToolItem, PagedResponse, Site, ToolTab } from '@/types/store';
-
+import type { ToolItem, PagedResponse, Site } from '@/types/store';
+import { ToolTab } from '@/types/enums/tool-tab';
 const LIMIT = 20;
 
 export const TOOL_TABS: { key: ToolTab; label: string }[] = [
-  { key: 'all',       label: 'All'       },
-  { key: 'available', label: 'Available' },
-  { key: 'damaged',   label: 'Damaged'   },
+  { key: ToolTab.ALL,       label: 'All'       },
+  { key: ToolTab.AVAILABLE, label: 'Available' },
+  { key: ToolTab.DAMAGED,   label: 'Damaged'   },
 ];
 
 const TAB_STATUS: Record<ToolTab, string | undefined> = {
@@ -36,9 +36,9 @@ function extractList<T>(data: T[] | PagedResponse<T> | null | undefined): T[] {
 
 export function useToolsDetail(siteId: number) {
   const searchParams = useSearchParams();
-  const initialTab = (searchParams.get('tab') as ToolTab | null) ?? 'all';
+  const initialTab = (searchParams.get('tab') as ToolTab | null) ?? ToolTab.ALL;
   const [activeTab, setActiveTab] = useState<ToolTab>(
-    TOOL_TABS.some((t) => t.key === initialTab) ? initialTab : 'all',
+    TOOL_TABS.some((t) => t.key === initialTab) ? initialTab : ToolTab.ALL,
   );
   const [extraItems, setExtraItems]   = useState<Partial<Record<ToolTab, ToolItem[]>>>({});
   const [loadingMore, setLoadingMore] = useState(false);

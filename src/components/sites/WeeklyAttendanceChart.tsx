@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { AttendanceBreakdownItem } from '@/types/site-detail';
+import { AttendanceBreakdownItem } from '@/types/site';
 
 export function WeeklyAttendanceChart({ breakdown, totalWorkers }: {
   breakdown: AttendanceBreakdownItem[]; totalWorkers: number;

@@ -1,3 +1,13 @@
+import { ToolStatus } from '@/types/enums/tool-status';
+import { UsageStatus } from '@/types/enums/usage-status';
+import { UsageLogStatus } from '@/types/enums/usage-log-status';
+import { ToolTab } from '@/types/enums/tool-tab';
+import { DetailType } from '@/types/enums/detail-type';
+import { StockTab } from '@/types/enums/stock-tab';
+import { ActivityTab } from '@/types/enums/activity-tab';
+
+export { ToolStatus, UsageStatus, UsageLogStatus, ToolTab, DetailType, StockTab, ActivityTab };
+
 export interface Site {
   id: number;
   name: string;
@@ -44,9 +54,6 @@ export interface StoreMaterial {
   unit: UnitBrief;
 }
 
-
-export type ToolStatus = 'AVAILABLE' | 'IN_USE' | 'UNDER_MAINTENANCE' | 'DAMAGED' | 'RETIRED';
-
 export interface ToolItem {
   id: number;
   name: string;
@@ -67,9 +74,6 @@ export interface StoreTool {
   hire_end_date?: string;
   is_overdue?: boolean;
 }
-
-
-export type UsageStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
 
 export interface DailyUsageItem {
   material: { name: string; unit: { symbol: string } };
@@ -104,14 +108,6 @@ export interface StoreActivityResponse {
   material_receipts?: ReceiptRecord[];
 }
 
-export type ToolTab = 'all' | 'available' | 'in_use' | 'damaged';
-export type DetailType = 'materials' | 'tools' | null;
-export type StockTab = 'materials' | 'tools';
-export type ActivityTab = 'usage' | 'orders';
-
-
-export type UsageLogStatus = 'draft' | 'submitted' | 'approved' | 'pending_edit' | string;
-
 export interface UsageLog {
   id: number;
   site_name: string;
@@ -119,5 +115,5 @@ export interface UsageLog {
   notes: string;
   materials_count: number;
   orders_count: number;
-  status?: UsageLogStatus;
+  status?: UsageLogStatus | string;
 }

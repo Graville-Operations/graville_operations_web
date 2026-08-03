@@ -1,3 +1,7 @@
+import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
+
+export { InvoicePaymentStatus };
+
 export interface LineItem {
   id: number;
   index: number;
@@ -12,8 +16,6 @@ export interface BriefUserInfo {
   email: string;
   phone: string;
 }
-
-export type InvoicePaymentStatus = 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'REJECTED';
 
 export interface SubcontractorInvoiceListItem {
   id: number;

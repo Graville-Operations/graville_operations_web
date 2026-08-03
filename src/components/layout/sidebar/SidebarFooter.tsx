@@ -1,6 +1,18 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { LogOut, User, Bell } from 'lucide-react';
 import { formatRole } from '@/lib/utils/format-role';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface SidebarFooterProps {
   user: { first_name?: string; last_name?: string } | null;
@@ -9,6 +21,13 @@ interface SidebarFooterProps {
 }
 
 export function SidebarFooter({ user, role, onLogout }: SidebarFooterProps) {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false);
+    onLogout();
+  };
+
   return (
     <div className="p-3 border-t border-white/10 space-y-1">
       <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors duration-150">
@@ -38,12 +57,37 @@ export function SidebarFooter({ user, role, onLogout }: SidebarFooterProps) {
       </Link>
 
       <button
-        onClick={onLogout}
+        onClick={() => setShowLogoutConfirm(true)}
         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors duration-150"
       >
         <LogOut size={16} />
         Logout
       </button>
+
+      <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log out?</DialogTitle>
+            <DialogDescription>
+              You&apos;ll need to sign in again to access your account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowLogoutConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmLogout}
+            >
+              Logout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

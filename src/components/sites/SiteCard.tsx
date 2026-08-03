@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import { Calendar } from 'lucide-react';
-import { RawSite } from '@/types/site-detail';
+import { RawSite } from '@/types/site';
 import { SITE_STATUS_META, normSiteStatus } from '@/lib/utils/site-helpers';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 

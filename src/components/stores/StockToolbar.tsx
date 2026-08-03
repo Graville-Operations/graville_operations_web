@@ -1,5 +1,5 @@
 import { Search, Package, Wrench } from 'lucide-react';
-import type { StockTab } from '@/types/store';
+import { StockTab } from '@/types/enums/stock-tab';
 
 interface StockToolbarProps {
   tab: StockTab;
@@ -8,7 +8,8 @@ interface StockToolbarProps {
   onSearchChange: (v: string) => void;
 }
 
-const TABS: StockTab[] = ['materials', 'tools'];
+
+const TABS: StockTab[] = [StockTab.MATERIALS, StockTab.TOOLS];
 
 export function StockToolbar({ tab, onTabChange, search, onSearchChange }: StockToolbarProps) {
   return (

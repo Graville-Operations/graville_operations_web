@@ -1,4 +1,3 @@
-// src/types/invoice-summary.ts
 export interface InvoiceSummaryItem {
   id: string;
   name: string;

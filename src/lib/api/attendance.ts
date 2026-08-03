@@ -1,6 +1,6 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
-import { AttendanceSummary } from '@/types/site-detail';
+import { AttendanceSummary } from '@/types/site';
 import { AttendanceDay } from '@/types/dashboard';
 import { unwrapAttendanceSummary } from '@/lib/utils/site-helpers';
 import { normaliseAnalyticsResponse } from '@/lib/utils/dashboard-helpers';

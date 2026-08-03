@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowLeft, Plus, X, Loader2, AlertCircle } from 'lucide-react';
-import { ProjectStatus, SiteStatus } from '@/types/site';
+import { ProjectStatus } from '@/types/enums/project-status';
 import { useNewProjectForm } from '@/hooks/projects/useNewProjectForm';
 import { Field } from '@/components/shared/Field';
 import { Section } from '@/components/shared/Section';
@@ -10,17 +10,9 @@ import { DatePicker } from '@/components/projects/DatePicker';
 import { ROUTES } from '@/lib/routes';
 
 const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
-  { value: 'PLANNING',    label: 'Planning' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'ON_HOLD',     label: 'On Hold' },
-  { value: 'COMPLETED',   label: 'Completed' },
-  { value: 'CANCELLED',   label: 'Cancelled' },
-];
-
-const SITE_STATUS_OPTIONS: { value: SiteStatus; label: string }[] = [
-  { value: 'ACTIVE',   label: 'Active' },
-  { value: 'INACTIVE', label: 'Inactive' },
-  { value: 'CLOSED',   label: 'Closed' },
+  { value: ProjectStatus.PLANNING,    label: 'Planning' },
+  { value: ProjectStatus.IN_PROGRESS, label: 'In Progress' },
+  { value: ProjectStatus.ON_HOLD,     label: 'On Hold' },
 ];
 
 export default function NewProjectPage() {
@@ -56,25 +48,16 @@ export default function NewProjectPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
 
         <Section title="Basic Information">
-          <Field label="Site name" required>
-            <input className="gv-input" placeholder="e.g. Nairobi Central Site"
-              value={form.name} onChange={set('name')} disabled={submitting} />
-          </Field>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Site name" required>
+              <input className="gv-input" placeholder="e.g. Nairobi Central Site"
+                value={form.name} onChange={set('name')} disabled={submitting} required />
+            </Field>
             <Field label="Project status" required>
               <select className="gv-input" value={form.project_status}
-                onChange={set('project_status')} disabled={submitting}>
+                onChange={set('project_status')} disabled={submitting} required>
                 <option value="" disabled style={{ background: '#0d1528' }}>Select status</option>
                 {PROJECT_STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value} style={{ background: '#0d1528' }}>{o.label}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Site status">
-              <select className="gv-input" value={form.site_status}
-                onChange={set('site_status')} disabled={submitting}>
-                {SITE_STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value} style={{ background: '#0d1528' }}>{o.label}</option>
                 ))}
               </select>
@@ -82,9 +65,9 @@ export default function NewProjectPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Location">
+            <Field label="Location" required>
               <input className="gv-input" placeholder="e.g. Westlands, Nairobi"
-                value={form.location} onChange={set('location')} disabled={submitting} />
+                value={form.location} onChange={set('location')} disabled={submitting} required />
             </Field>
 
             <Field label="Completion date">
@@ -96,23 +79,24 @@ export default function NewProjectPage() {
             </Field>
           </div>
 
-          <Field label="Tender Name">
+          <Field label="Tender Name" required>
             <textarea
               className="gv-input resize-none w-full"
               rows={4}
-              placeholder="Brief description of the site or project..."
-              value={form.description} onChange={set('description')} disabled={submitting} />
+              placeholder="e.g. Tender #2024-001"
+              value={form.tender_name} onChange={set('tender_name')} disabled={submitting} required />
           </Field>
         </Section>
 
         <Section title="Entity Details">
-          <Field label="Tenderer">
+          <Field label="Tenderer" required>
             <input
               className="gv-input w-full"
-              placeholder="e.g. Tender #2024-001"
-              value={form.tender_name}
-              onChange={set('tender_name')}
+              placeholder="e.g. Ministry of Works"
+              value={form.inquiring_entity}
+              onChange={set('inquiring_entity')}
               disabled={submitting}
+              required
             />
           </Field>
         </Section>
