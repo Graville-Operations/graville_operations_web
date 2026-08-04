@@ -108,12 +108,8 @@ export const API = {
     detail: (id: number) => `/departments/${id}`,
     menus: (id: number) => `/departments/${id}/menus`,
     members: (id: number) => `/departments/${id}/members`,
+    users: (id: number) => `/departments/${id}/users`,
     assignUsers: (id: number) => `/departments/${id}/assign-users`,
-    removeUserAttempts: (deptId: number, userId: number) => [
-      `/departments/${deptId}/members`,
-      `/departments/${deptId}/users`,
-      `/departments/${deptId}/members/remove`,
-    ] as const,
   },
   permits: {
     myPermits: "/permits/my-pemits", 
