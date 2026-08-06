@@ -80,7 +80,8 @@ export interface SubTask {
   start_date: string | null;
   end_date: string | null;
   task_id: number;
-  [key: string]: unknown;
+  completion_percentage: number;
+  assigned_workers: { id: number; first_name: string; last_name: string }[];
 }
 
 export interface SiteTask {
@@ -130,8 +131,6 @@ export interface OverviewKPIs {
   attendanceEateToday: number;
   presentToday: number;
 }
-
-// --- merged from site-detail.ts ---
 
 export interface RawSite {
   id: number;

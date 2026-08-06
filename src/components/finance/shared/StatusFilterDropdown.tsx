@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Filter, ChevronDown, Check } from 'lucide-react';
-import { InvoicePaymentStatus } from '@/types/company_invoices';
+import { Filter, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
 
 const STATUS_OPTIONS: { value: InvoicePaymentStatus; label: string }[] = [
   { value: InvoicePaymentStatus.PENDING, label: 'Pending' },
@@ -33,7 +33,7 @@ export default function StatusFilterDropdown({ value, onChange }: StatusFilterDr
   return (
     <div className="relative shrink-0" ref={ref}>
       <button
-        onClick={() => setOpen((p) => !p)}
+        onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm"
         style={{
           background: value ? 'rgba(51,144,124,0.15)' : 'var(--gv-glass-bg)',
@@ -42,14 +42,18 @@ export default function StatusFilterDropdown({ value, onChange }: StatusFilterDr
         }}
       >
         <Filter size={13} />
-        <span>{selectedLabel || 'Filter by Status'}</span>
-        <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="text-xs font-medium">{selectedLabel || 'Filter by Status'}</span>
+        {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
       </button>
 
       {open && (
         <div
-          className="absolute right-0 top-full mt-2 w-48 rounded-2xl overflow-hidden z-30 p-1"
-          style={{ background: '#0d1528', border: '1px solid var(--gv-glass-border)', boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}
+          className="absolute right-0 mt-2 w-48 rounded-2xl z-30 overflow-hidden p-1"
+          style={{
+            background: '#0d1528',
+            border: '1px solid var(--gv-glass-border)',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+          }}
         >
           <button
             onClick={() => {

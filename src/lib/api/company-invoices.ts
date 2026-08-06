@@ -1,10 +1,10 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { unwrapArray, unwrapObject } from '@/lib/api-response';
+import { normaliseCompanyInvoice, normalisePaymentHistory, type RawPaymentHistory } from '@/lib/mappers/invoice-mappers';
 import {
   CompanyInvoice,
   RawCompanyInvoice,
-  normaliseCompanyInvoice,
   InvoicePaymentStatus,
   PaymentHistory,
 } from '@/types/company_invoices';
@@ -89,5 +89,5 @@ export async function fetchCompanyInvoicePaymentHistory(
   id: number | string
 ): Promise<PaymentHistory> {
   const { data } = await api.get(API.invoiceActions.paymentHistory('company', id));
-  return unwrapObject<PaymentHistory>(data);
+  return normalisePaymentHistory(unwrapObject<RawPaymentHistory>(data));
 }

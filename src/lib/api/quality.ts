@@ -3,7 +3,19 @@ import { API } from '@/lib/endpoints';
 import { withRetry } from '@/lib/retry';
 import { unwrapArray, unwrapObject } from '@/lib/api-response';
 import type { Site } from '@/lib/sites-cache';
-import type { Task, SubTask, Worker } from '@/lib/types';
+import type { Task, SubTask } from '@/lib/types';
+import { fetchWorkersBySite } from '@/lib/api/sites';
+import type { SiteWorker } from '@/types/site';
+import {
+  normaliseQualitySites,
+  normaliseQualitySiteDetail,
+  normaliseTasks,
+  normaliseSubTasks,
+  type RawQualitySite,
+  type RawQualitySiteDetail,
+  type RawTask,
+  type RawSubTask,
+} from '@/lib/mappers/quality-mappers';
 
 export interface SiteDetail {
   id: number;
@@ -25,7 +37,7 @@ export async function fetchQualitySites(
   return withRetry(
     async () => {
       const res = await api.get(API.sites.list);
-      return unwrapArray<Site>(res.data);
+      return normaliseQualitySites(unwrapArray<RawQualitySite>(res.data));
     },
     { retries: 3, delayMs: 5000, onRetry }
   );
@@ -33,7 +45,7 @@ export async function fetchQualitySites(
 
 export async function fetchSiteDetail(siteId: number): Promise<SiteDetail> {
   const res = await api.get(API.sites.detail(siteId));
-  return unwrapObject<SiteDetail>(res.data);
+  return normaliseQualitySiteDetail(unwrapObject<RawQualitySiteDetail>(res.data));
 }
 
 export async function updateSiteEstimatedValue(
@@ -43,7 +55,7 @@ export async function updateSiteEstimatedValue(
   const res = await api.patch(API.sites.updateEstimatedValue(siteId), {
     estimated_value: estimatedValue,
   });
-  return unwrapObject<SiteDetail>(res.data);
+  return normaliseQualitySiteDetail(unwrapObject<RawQualitySiteDetail>(res.data));
 }
 
 export async function fetchSiteTasks(
@@ -53,7 +65,7 @@ export async function fetchSiteTasks(
   return withRetry(
     async () => {
       const res = await api.get(API.tasks.listBySite(siteId));
-      return unwrapArray<Task>(res.data);
+      return normaliseTasks(unwrapArray<RawTask>(res.data));
     },
     { retries: 3, delayMs: 5000, onRetry }
   );
@@ -78,7 +90,7 @@ export async function fetchSubtasks(
   return withRetry(
     async () => {
       const res = await api.get(API.tasks.listSubtasksByTask(taskId));
-      return unwrapArray<SubTask>(res.data);
+      return normaliseSubTasks(unwrapArray<RawSubTask>(res.data));
     },
     { retries: 3, delayMs: 5000, onRetry }
   );
@@ -94,8 +106,6 @@ export interface CreateSubtaskPayload {
 export async function createSubtask(payload: CreateSubtaskPayload): Promise<void> {
   await api.post(API.tasks.createSubtask, payload);
 }
-
-export async function fetchWorkersForSite(siteId: number): Promise<Worker[]> {
-  const res = await api.get(API.workers.listBySite(siteId));
-  return unwrapArray<Worker>(res.data);
+export async function fetchWorkersForSite(siteId: number): Promise<SiteWorker[]> {
+  return fetchWorkersBySite(siteId);
 }

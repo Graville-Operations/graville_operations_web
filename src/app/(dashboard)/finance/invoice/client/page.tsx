@@ -4,22 +4,19 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { useClientInvoices } from '@/hooks/client-invoices/useClientInvoices';
-import { SearchInput } from '@/components/finance/client-invoices/SearchInput';
-import { SiteFilterDropdown } from '@/components/finance/client-invoices/SiteFilterDropdown';
-import { DateFilterDropdown } from '@/components/finance/client-invoices/DateFilterDropdown';
-import { StatusFilterDropdown } from '@/components/finance/client-invoices/StatusFilterDropdown';
+import SearchInput from '@/components/finance/shared/SearchInput';
+import SiteFilterDropdown from '@/components/finance/shared/SiteFilterDropdown';
+import DateFilterDropdown from '@/components/finance/shared/DateFilterDropdown';
+import StatusFilterDropdown from '@/components/finance/shared/StatusFilterDropdown';
 import { ClientInvoicesTable } from '@/components/finance/client-invoices/ClientInvoicesTable';
 import { ROUTES } from '@/lib/routes';
 
 export default function ClientInvoicesPage() {
   const router = useRouter();
   const {
-    calendarRef, siteRef, today,
     filtered, search, setSearch, isLoading, total, sites,
-    selectedSite, selectSite, siteOpen, toggleSiteDropdown,
-    calendarOpen, toggleCalendarDropdown, dateMode, setDateMode,
-    singleDate, setSingleDate, dateFrom, setDateFrom, dateTo, setDateTo,
-    activeDateLabel, applyDateFilter, clearDateFilter, clearAllFilters,
+    siteId, setSiteId,
+    dateFrom, dateTo, activeDateLabel, applyDateFilter, clearDateFilter, clearAllFilters,
     statusFilter, setStatusFilter,
     hasActiveFilters,
   } = useClientInvoices();
@@ -43,31 +40,18 @@ export default function ClientInvoicesPage() {
 
       <div className="gv-card" style={{ overflow: 'visible' }}>
         <div className="flex items-center gap-3">
-          <SearchInput value={search} onChange={setSearch} />
-
-          <SiteFilterDropdown
-            siteRef={siteRef}
-            sites={sites}
-            selectedSite={selectedSite}
-            siteOpen={siteOpen}
-            onToggle={toggleSiteDropdown}
-            onSelect={selectSite}
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by invoice number or client name..."
           />
 
+          <SiteFilterDropdown sites={sites} value={siteId} onChange={setSiteId} />
+
           <DateFilterDropdown
-            calendarRef={calendarRef}
-            calendarOpen={calendarOpen}
-            onToggle={toggleCalendarDropdown}
-            activeDateLabel={activeDateLabel}
-            dateMode={dateMode}
-            setDateMode={setDateMode}
-            singleDate={singleDate}
-            setSingleDate={setSingleDate}
-            dateFrom={dateFrom}
-            setDateFrom={setDateFrom}
-            dateTo={dateTo}
-            setDateTo={setDateTo}
-            today={today}
+            from={dateFrom}
+            to={dateTo}
+            appliedLabel={activeDateLabel}
             onApply={applyDateFilter}
             onClear={clearDateFilter}
           />

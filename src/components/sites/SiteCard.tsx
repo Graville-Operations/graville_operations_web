@@ -2,12 +2,12 @@
 
 import { format } from 'date-fns';
 import { Calendar } from 'lucide-react';
-import { RawSite } from '@/types/site';
+import { Site } from '@/types/site';
 import { SITE_STATUS_META, normSiteStatus } from '@/lib/utils/site-helpers';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 
-export function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
-  const ss       = normSiteStatus(site.siteStatus);
+export function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
+  const ss       = normSiteStatus(site.site_status);
   const siteMeta = SITE_STATUS_META[ss];
 
   const pct = 0;
@@ -21,13 +21,7 @@ export function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void
           {siteMeta.label}
         </span>
       </div>
-      {site.deadlineDate && (
-        <div className="flex items-center gap-2 text-lg" style={{ color: 'var(--gv-text-muted)' }}>
-          <Calendar className="w-4 h-4 flex-shrink-0" />
-          <span>Deadline: {site.deadlineDate}</span>
-        </div>
-      )}
-      {!site.deadlineDate && site.completion_date && (
+      {site.completion_date && (
         <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
           <Calendar className="w-4 h-4 flex-shrink-0" />
           <span>Deadline: {format(new Date(site.completion_date), 'dd MMM yyyy')}</span>

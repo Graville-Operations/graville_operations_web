@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import type { Worker } from '@/lib/types';
+import type { SiteWorker } from '@/types/site';
 import { fetchWorkersForSite, createSubtask } from '@/lib/api/quality';
 import { getWorkerName } from '@/lib/utils/worker-helpers';
 import { extractErrorMessage } from '@/lib/utils/extract-error-message';
@@ -20,7 +20,7 @@ export function useCreateSubtaskForm() {
   const siteId = Number(params?.siteId);
 
   const [form, setForm]                       = useState<SubtaskFormState>({ name: '', description: '' });
-  const [workers, setWorkers]                 = useState<Worker[]>([]);
+  const [workers, setWorkers]                 = useState<SiteWorker[]>([]);
   const [loadingWorkers, setLoadingWorkers]   = useState(true);
   const [workersError, setWorkersError]       = useState<string | null>(null);
   const [selectedWorkers, setSelectedWorkers] = useState<number[]>([]);

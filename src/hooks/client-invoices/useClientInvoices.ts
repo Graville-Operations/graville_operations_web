@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Site } from '@/lib/types';
-import { ClientInvoiceListItem, DateFilterMode, InvoicePaymentStatus } from '@/types/client-invoice';
+import { ClientInvoiceListItem, InvoicePaymentStatus } from '@/types/client-invoice';
 import { fetchClientInvoices } from '@/lib/api/client-invoices';
 import { parseBackendDate, todayISO } from '@/lib/utils/date';
 import { useSiteStore } from '@/store/site-store';
 
 export function useClientInvoices() {
-  const calendarRef = useRef<HTMLDivElement>(null);
-  const siteRef = useRef<HTMLDivElement>(null);
   const today = todayISO();
 
   const [invoices, setInvoices] = useState<ClientInvoiceListItem[]>([]);
@@ -21,42 +18,30 @@ export function useClientInvoices() {
   const sites = useSiteStore((s) => s.sites);
   const fetchSitesAction = useSiteStore((s) => s.fetchSites);
 
-  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  const [siteOpen, setSiteOpen] = useState(false);
+  const [siteId, setSiteId] = useState('');
 
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [dateMode, setDateMode] = useState<DateFilterMode>('single');
-  const [singleDate, setSingleDate] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [activeDateLabel, setActiveDateLabel] = useState('');
 
   const [statusFilter, setStatusFilter] = useState<InvoicePaymentStatus | null>(null);
 
-  const filtersRef = useRef({ selectedSite, statusFilter });
+  const filtersRef = useRef({ siteId, statusFilter });
   useEffect(() => {
-    filtersRef.current = { selectedSite, statusFilter };
-  }, [selectedSite, statusFilter]);
+    filtersRef.current = { siteId, statusFilter };
+  }, [siteId, statusFilter]);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (calendarRef.current && !calendarRef.current.contains(e.target as Node))
-        setCalendarOpen(false);
-      if (siteRef.current && !siteRef.current.contains(e.target as Node))
-        setSiteOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  useEffect(() => {
-    fetchSitesAction(); // idempotent — no-op if already cached from login
+    fetchSitesAction(); 
   }, [fetchSitesAction]);
 
-  const loadInvoices = async (siteId?: number, status?: InvoicePaymentStatus | null) => {
+  const loadInvoices = async (sid?: string, status?: InvoicePaymentStatus | null) => {
     try {
       setIsLoading(true);
-      const { items, total: t } = await fetchClientInvoices(siteId, status ?? undefined);
+      const { items, total: t } = await fetchClientInvoices(
+        sid ? Number(sid) : undefined,
+        status ?? undefined,
+      );
       setInvoices(items);
       setFiltered(items);
       setTotal(t);
@@ -68,13 +53,13 @@ export function useClientInvoices() {
   };
 
   useEffect(() => {
-    loadInvoices(selectedSite?.id, statusFilter);
-  }, [selectedSite, statusFilter]);
+    loadInvoices(siteId, statusFilter);
+  }, [siteId, statusFilter]);
 
   useEffect(() => {
     const refetch = () => {
-      const { selectedSite: site, statusFilter: status } = filtersRef.current;
-      loadInvoices(site?.id, status);
+      const { siteId: sid, statusFilter: status } = filtersRef.current;
+      loadInvoices(sid, status);
     };
 
     const handleVisibility = () => {
@@ -98,67 +83,42 @@ export function useClientInvoices() {
           inv.invoiceNo?.toLowerCase().includes(q) ||
           inv.clientName?.toLowerCase().includes(q),
       );
-      if (activeDateLabel) {
-        if (dateMode === 'single' && singleDate) {
-          result = result.filter((inv) => parseBackendDate(inv.invoiceDate) === singleDate);
-        } else if (dateMode === 'range' && dateFrom && dateTo) {
-          result = result.filter((inv) => {
-            const d = parseBackendDate(inv.invoiceDate);
-            return d !== '' && d >= dateFrom && d <= dateTo;
-          });
-        }
+      if (dateFrom && dateTo) {
+        result = result.filter((inv) => {
+          const d = parseBackendDate(inv.invoiceDate);
+          return d !== '' && d >= dateFrom && d <= dateTo;
+        });
       }
       setFiltered(result);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, invoices, activeDateLabel, dateMode, singleDate, dateFrom, dateTo]);
+  }, [search, invoices, dateFrom, dateTo]);
 
-  const toggleSiteDropdown = () => {
-    setSiteOpen((p) => !p);
-    setCalendarOpen(false);
-  };
-
-  const toggleCalendarDropdown = () => {
-    setCalendarOpen((p) => !p);
-    setSiteOpen(false);
-  };
-
-  const selectSite = (site: Site | null) => {
-    setSelectedSite(site);
-    setSiteOpen(false);
-  };
-
-  const applyDateFilter = () => {
-    if (dateMode === 'single' && singleDate)
-      setActiveDateLabel(`On ${singleDate}`);
-    else if (dateMode === 'range' && dateFrom && dateTo)
-      setActiveDateLabel(`${dateFrom} → ${dateTo}`);
-    setCalendarOpen(false);
+  const applyDateFilter = (from: string, to: string) => {
+    setDateFrom(from);
+    setDateTo(to);
+    setActiveDateLabel(from === to ? `On ${from}` : `${from} → ${to}`);
   };
 
   const clearDateFilter = () => {
-    setSingleDate('');
     setDateFrom('');
     setDateTo('');
     setActiveDateLabel('');
-    setCalendarOpen(false);
   };
 
   const clearAllFilters = () => {
-    setSelectedSite(null);
+    setSiteId('');
     setStatusFilter(null);
     clearDateFilter();
   };
 
-  const hasActiveFilters = !!(selectedSite || activeDateLabel || statusFilter);
+  const hasActiveFilters = !!(siteId || activeDateLabel || statusFilter);
 
   return {
-    calendarRef, siteRef, today,
+    today,
     filtered, search, setSearch, isLoading, total, sites,
-    selectedSite, selectSite, siteOpen, toggleSiteDropdown,
-    calendarOpen, toggleCalendarDropdown, dateMode, setDateMode,
-    singleDate, setSingleDate, dateFrom, setDateFrom, dateTo, setDateTo,
-    activeDateLabel, applyDateFilter, clearDateFilter, clearAllFilters,
+    siteId, setSiteId,
+    dateFrom, dateTo, activeDateLabel, applyDateFilter, clearDateFilter, clearAllFilters,
     statusFilter, setStatusFilter,
     hasActiveFilters,
   };

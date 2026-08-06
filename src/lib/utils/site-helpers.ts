@@ -38,16 +38,6 @@ export function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null 
   return null;
 }
 
-export function unwrapObject<T>(raw: unknown): T {
-  if (raw && typeof raw === 'object') {
-    const obj = raw as Record<string, unknown>;
-    if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
-      return obj.data as T;
-    }
-  }
-  return raw as T;
-}
-
 export function unwrapAnalytics(raw: unknown): SiteAnalytics | null {
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;

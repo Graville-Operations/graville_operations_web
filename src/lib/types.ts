@@ -1,5 +1,5 @@
-export type TaskStatus = "pending" | "in_progress" | "completed";
-export type SubTaskStatus = "pending" | "in_progress" | "completed";
+export type TaskStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ON_HOLD";
+export type SubTaskStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
 export interface Site {
   id: number;
@@ -8,9 +8,9 @@ export interface Site {
 
 export interface Worker {
   id: number;
-  name: string;
-  role?: string;
-  department?: string;
+  first_name: string;
+  last_name: string;
+  skill: { id: number; name: string; amount: number } | null;
 }
 
 export interface Task {

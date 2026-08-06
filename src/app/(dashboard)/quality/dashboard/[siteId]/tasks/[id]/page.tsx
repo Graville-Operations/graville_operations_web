@@ -1,10 +1,11 @@
 'use client';
 
-import { ArrowLeft, Plus, WifiOff } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import EmptyState from '@/components/ui/emptystate';
 import { useTaskDetail } from '@/hooks/quality/useTaskDetail';
 import TaskInfoCard from '@/components/quality/TaskInfoCard';
 import SubtasksSection from '@/components/quality/SubtasksSection';
+import OfflineBanner from '@/components/quality/OfflineBanner';
 
 export default function TaskDetailPage() {
   const {
@@ -52,12 +53,7 @@ export default function TaskDetailPage() {
 
       <div className="mx-auto max-w-4xl px-4 sm:px-6 py-6 space-y-6">
 
-        {offline && (
-          <div className="gv-card flex items-center gap-3 text-sm text-amber-400 border-amber-500/20 bg-amber-500/10 p-3">
-            <WifiOff size={15} className="shrink-0" />
-            You&apos;re offline — showing cached subtasks.
-          </div>
-        )}
+        {offline && <OfflineBanner message="You're offline — showing cached subtasks." />}
 
         {taskMissing && (
           <EmptyState

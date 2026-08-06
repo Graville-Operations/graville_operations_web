@@ -2,6 +2,7 @@ import { PermitStatus } from '@/types/enums/permit-status';
 import { ApprovalStatus } from '@/types/enums/approval-status';
 
 export { PermitStatus, ApprovalStatus };
+export const STATUS_TABS = ["All", "Draft", "Pending", "In Review", "Approved", "Rejected"] as const;
 
 export interface PermitApproval {
   id:          number;
@@ -16,16 +17,14 @@ export interface PermitApproval {
 }
 
 export interface PermitListItem {
-  [x: string]: string | number | null | undefined;
   id:           number;
   title:        string;
   status:       PermitStatus;
   current_step: number;
-  site_id:      number;
+  site:         string;
   category_id:  number;
   categoryName: string;
-  created_at:   string;
-  updated_at:   string | null; 
+  updated_at:   string | null;
 }
 
 export interface PermitDetail {
@@ -51,19 +50,7 @@ export interface PermitCategory {
   description: string | null;
   is_active:   boolean;
 }
-
-export interface PendingApprovalItem {
-  id:          number;
-  permit_id:   number;
-  approver_id: number;
-  approver:    string; 
-  step_order:  number;
-  status:      ApprovalStatus;
-  comment:     string | null;
-  actioned_at: string | null;
-  created_at:  string;
-  updated_at:  string;
-}
+export type PendingApprovalItem = PermitApproval;
 
 export interface ApproverStep {
   approver_id: number;
