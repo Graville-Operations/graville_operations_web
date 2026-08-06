@@ -4,7 +4,7 @@ import { unwrapArray, unwrapObject } from '@/lib/api-response';
 import {
   Site, SiteDetail, SiteWorker, AttendanceRecord,
   SiteTask, CreateSitePayload, OverviewKPIs,
-  SiteAnalytics, FieldOperator,
+  SiteAnalytics, FieldOperator, UpdateSitePayload,
 } from '@/types/site';
 import { DashboardMetrics } from '@/types/dashboard';
 
@@ -42,6 +42,13 @@ export async function fetchSites(): Promise<Site[]> {
 
 export async function fetchSiteById(siteId: number): Promise<SiteDetail> {
   const { data } = await api.get(API.sites.detail(siteId));
+  const raw = unwrapObject<Record<string, unknown>>(data);
+  const operator = normalizeOperator(raw.operator);
+  return { ...(raw as unknown as SiteDetail), operator };
+}
+
+export async function updateSite(siteId: number, payload: UpdateSitePayload): Promise<SiteDetail> {
+  const { data } = await api.patch(API.sites.update(siteId), payload);
   const raw = unwrapObject<Record<string, unknown>>(data);
   const operator = normalizeOperator(raw.operator);
   return { ...(raw as unknown as SiteDetail), operator };

@@ -59,7 +59,14 @@ export function OperatorDetailOverlay({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent
+        style={{
+          top: '50%',
+          left: '2rem',
+          right: 'auto',
+          transform: 'translateY(-50%)',
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Field Operator</DialogTitle>
           <DialogDescription>

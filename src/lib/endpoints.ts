@@ -90,6 +90,7 @@ export const API = {
     summary: "/attendance/summary",
     analytics: "/attendance/analytics",
     checkIn: "/attendance/check-in",
+    payrollSummary: "/attendance/payroll-summary",
   },
   tasks: {
     listBySite: (siteId: number) => `/tasks/list/${siteId}`,

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
-import { fetchSiteById, fetchSiteAnalytics } from '@/lib/api/sites';
+import { fetchSiteById, fetchSiteAnalytics, updateSite } from '@/lib/api/sites';
 import { fetchAttendanceSummary } from '@/lib/api/attendance';
-import { SiteAnalytics, AttendanceRecord, SiteDetail } from '@/types/site';
+import { SiteAnalytics, AttendanceRecord, SiteDetail, UpdateSitePayload } from '@/types/site';
 import { normalizeTaskBreakdown } from '@/lib/utils/site-helpers';
+import { useSiteStore } from '@/store/site-store';
 
 export function useSiteDetail(siteId: number) {
   const [analytics, setAnalytics]         = useState<SiteAnalytics | null>(null);
@@ -14,6 +15,9 @@ export function useSiteDetail(siteId: number) {
   const [detail, setDetail]               = useState<SiteDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(true);
 
+  const [updatingSite, setUpdatingSite]   = useState(false);
+  const [updateSiteError, setUpdateSiteError] = useState<string | null>(null);
+
   const [rangeRecords, setRangeRecords] = useState<AttendanceRecord[]>([]);
   const [rangePayouts, setRangePayouts] = useState<number>(0);
   const [loadingRange, setLoadingRange] = useState(true);
@@ -21,6 +25,8 @@ export function useSiteDetail(siteId: number) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const [rangeFrom, setRangeFrom] = useState(todayStr);
   const [rangeTo, setRangeTo]     = useState(todayStr);
+
+  const fetchSitesAction = useSiteStore((s) => s.fetchSites);
 
   const loadAnalytics = useCallback(() => {
     setLoadingAnalytics(true);
@@ -40,7 +46,7 @@ export function useSiteDetail(siteId: number) {
 
   const loadDetail = useCallback(() => {
     setLoadingDetail(true);
-    fetchSiteById(siteId)
+    return fetchSiteById(siteId)
       .then(setDetail)
       .catch(() => {})
       .finally(() => setLoadingDetail(false));
@@ -57,6 +63,21 @@ export function useSiteDetail(siteId: number) {
       .catch(() => { setRangeRecords([]); setRangePayouts(0); })
       .finally(() => setLoadingRange(false));
   }, [siteId]);
+
+  const updateSiteDetail = useCallback(async (payload: UpdateSitePayload) => {
+    setUpdatingSite(true);
+    setUpdateSiteError(null);
+    try {
+      await updateSite(siteId, payload);
+      await loadDetail();
+      await fetchSitesAction(true);
+    } catch (err) {
+      setUpdateSiteError(err instanceof Error ? err.message : 'Failed to update site');
+      throw err;
+    } finally {
+      setUpdatingSite(false);
+    }
+  }, [siteId, loadDetail, fetchSitesAction]);
 
   useEffect(() => { loadDetail(); loadAnalytics(); }, [loadDetail, loadAnalytics]);
   useEffect(() => { loadRange(rangeFrom, rangeTo); }, [rangeFrom, rangeTo, loadRange]);
@@ -80,6 +101,7 @@ export function useSiteDetail(siteId: number) {
 
   return {
     detail, loadingDetail, refreshDetail: loadDetail,
+    updatingSite, updateSiteError, updateSiteDetail,
     analytics, loadingAnalytics,
     rangeRecords, rangePayouts, loadingRange,
     rangeFrom, rangeTo, setRangeFrom, setRangeTo, todayStr, rangeLabel,
