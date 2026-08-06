@@ -9,6 +9,14 @@ export const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string
   CLOSED:   { label: 'Closed',   color: 'text-red-300',   bg: 'bg-red-500/20 border border-red-500/40'    },
 };
 
+export const PROJECT_STATUS_META: Record<ProjectStatus, { label: string; color: string; bg: string }> = {
+  [ProjectStatus.PLANNING]:    { label: 'Planning',    color: 'text-blue-300',   bg: 'bg-blue-500/20 border border-blue-500/40' },
+  [ProjectStatus.IN_PROGRESS]: { label: 'In Progress', color: 'text-green-300',  bg: 'bg-green-500/20 border border-green-500/40' },
+  [ProjectStatus.ON_HOLD]:     { label: 'On Hold',     color: 'text-yellow-300', bg: 'bg-yellow-500/20 border border-yellow-500/40' },
+  [ProjectStatus.COMPLETED]:   { label: 'Completed',   color: 'text-indigo-300', bg: 'bg-indigo-500/20 border border-indigo-500/40' },
+  [ProjectStatus.CANCELLED]:   { label: 'Cancelled',   color: 'text-red-300',    bg: 'bg-red-500/20 border border-red-500/40' },
+};
+
 export function normSiteStatus(s: unknown): SiteStatus {
   switch (String(s ?? '').toLowerCase()) {
     case 'active':   return SiteStatus.ACTIVE;
@@ -26,6 +34,25 @@ export function normProjectStatus(s: string): ProjectStatus {
     case 'cancelled':   return ProjectStatus.CANCELLED;
     default:            return ProjectStatus.PLANNING;
   }
+}
+
+export function getAllowedNextProjectStatuses(current: ProjectStatus): ProjectStatus[] {
+  switch (current) {
+    case ProjectStatus.PLANNING:
+      return [ProjectStatus.IN_PROGRESS, ProjectStatus.ON_HOLD, ProjectStatus.CANCELLED];
+    case ProjectStatus.IN_PROGRESS:
+      return [ProjectStatus.ON_HOLD, ProjectStatus.COMPLETED, ProjectStatus.CANCELLED];
+    case ProjectStatus.ON_HOLD:
+      return [ProjectStatus.IN_PROGRESS, ProjectStatus.CANCELLED];
+    case ProjectStatus.COMPLETED:
+    case ProjectStatus.CANCELLED:
+    default:
+      return [];
+  }
+}
+
+export function isProjectStatusLocked(status: ProjectStatus): boolean {
+  return status === ProjectStatus.COMPLETED || status === ProjectStatus.CANCELLED;
 }
 
 export function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null {

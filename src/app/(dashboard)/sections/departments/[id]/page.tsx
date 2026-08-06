@@ -172,6 +172,56 @@ function SelectRow({ isSelected, onClick, children }: {
   );
 }
 
+type RemoveTarget =
+  | { type: 'menu'; menu: Menu }
+  | { type: 'user'; user: User };
+
+function ConfirmRemoveModal({ target, busy, onCancel, onConfirm }: {
+  target: RemoveTarget;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const label = target.type === 'menu'
+    ? (target.menu.title || target.menu.name)
+    : target.user.name;
+  const nounSingular = target.type === 'menu' ? 'menu' : 'user';
+
+  return (
+    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4"
+      onClick={e => { if (e.target === e.currentTarget && !busy) onCancel(); }}>
+      <div className="w-full max-w-md bg-[#0d1528] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+        style={{ animation: 'fadeUp 0.2s ease' }}>
+        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
+          <Title size="sm" as="h2">Remove {nounSingular}?</Title>
+          <button type="button" onClick={onCancel} disabled={busy}
+            className="text-white/30 hover:text-white transition-colors p-1 -mt-1 -mr-1 disabled:opacity-40">
+            <CloseIcon />
+          </button>
+        </div>
+        <div className="px-6 pb-5">
+          <Body size="sm" muted>
+            You&apos;ll need to assign <span className="font-semibold text-white/80">{label}</span> again to restore access.
+          </Body>
+        </div>
+        <div className="px-6 py-4 border-t border-white/10 flex items-center justify-end gap-2">
+          <button type="button" onClick={onCancel} disabled={busy}
+            className="gv-btn-outline px-4 py-1.5 text-sm disabled:opacity-50">
+            Cancel
+          </button>
+          <button type="button" onClick={onConfirm} disabled={busy}
+            className="flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+            style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#f87171' }}>
+            {busy && <SpinnerIcon size={12} />}
+            {busy ? 'Removing…' : 'Remove'}
+          </button>
+        </div>
+      </div>
+      <style>{`@keyframes fadeUp{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}`}</style>
+    </div>
+  );
+}
+
 function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToast }: {
   deptId: number; currentMenuIds: Set<number>;
   onClose: () => void; onAssigned: () => void;
@@ -350,6 +400,25 @@ export default function DepartmentDetailPage() {
 
   const [showAssignMenu, setShowAssignMenu] = useState(false);
   const [showAssignUser, setShowAssignUser] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null);
+
+  const removeBusy = removeTarget
+    ? (removeTarget.type === 'menu'
+        ? removingMenuId === removeTarget.menu.id
+        : removingUserEmail === removeTarget.user.email)
+    : false;
+
+  const handleConfirmRemove = async () => {
+    if (!removeTarget) return;
+    if (removeTarget.type === 'menu') {
+      await removeMenu(removeTarget.menu);
+      showToast(`${removeTarget.menu.title || removeTarget.menu.name} removed`, 'success');
+    } else {
+      await removeUser(removeTarget.user);
+      showToast(`${removeTarget.user.name} removed`, 'success');
+    }
+    setRemoveTarget(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -441,7 +510,7 @@ export default function DepartmentDetailPage() {
                     </Body>
                   )}
                 </div>
-                <button type="button" onClick={() => removeMenu(menu)}
+                <button type="button" onClick={() => setRemoveTarget({ type: 'menu', menu })}
                   disabled={removingMenuId === menu.id}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 shrink-0"
                   style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' }}>
@@ -495,7 +564,7 @@ export default function DepartmentDetailPage() {
                     <Body size="sm" as="p" className="font-semibold truncate">{user.name}</Body>
                     <Body size="xs" subtle as="p" className="truncate">{user.role || user.email}</Body>
                   </div>
-                  <button type="button" onClick={() => removeUser(user)}
+                  <button type="button" onClick={() => setRemoveTarget({ type: 'user', user })}
                     disabled={removingUserEmail === user.email}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 shrink-0"
                     style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' }}>
@@ -527,6 +596,15 @@ export default function DepartmentDetailPage() {
           onClose={() => setShowAssignUser(false)}
           onAssigned={loadUsers}
           showToast={showToast}
+        />
+      )}
+
+      {removeTarget && (
+        <ConfirmRemoveModal
+          target={removeTarget}
+          busy={removeBusy}
+          onCancel={() => setRemoveTarget(null)}
+          onConfirm={handleConfirmRemove}
         />
       )}
     </div>

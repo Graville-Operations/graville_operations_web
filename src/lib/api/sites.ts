@@ -11,6 +11,7 @@ import {
   normaliseSiteAnalytics,
   normaliseDashboardMetrics,
   normaliseFieldOperatorList,
+  normaliseFieldOperator,
   type RawSiteListItem,
   type RawSiteDetail,
   type RawSiteWorker,
@@ -20,7 +21,7 @@ import {
 import {
   Site, SiteDetail, SiteWorker, AttendanceRecord,
   SiteTask, CreateSitePayload, OverviewKPIs,
-  SiteAnalytics, FieldOperator,
+  SiteAnalytics, FieldOperator, UpdateSitePayload,
 } from '@/types/site';
 import { DashboardMetrics } from '@/types/dashboard';
 
@@ -32,6 +33,13 @@ export async function fetchSites(): Promise<Site[]> {
 export async function fetchSiteById(siteId: number): Promise<SiteDetail> {
   const { data } = await api.get(API.sites.detail(siteId));
   return normaliseSiteDetail(unwrapObject<RawSiteDetail>(data));
+}
+
+export async function updateSite(siteId: number, payload: UpdateSitePayload): Promise<SiteDetail> {
+  const { data } = await api.patch(API.sites.update(siteId), payload);
+  const raw = unwrapObject<Record<string, unknown>>(data);
+  const operator = normaliseFieldOperator(raw.operator);
+  return { ...(raw as unknown as SiteDetail), operator };
 }
 
 export async function createSite(payload: CreateSitePayload): Promise<Site> {

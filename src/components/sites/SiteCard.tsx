@@ -3,12 +3,14 @@
 import { format } from 'date-fns';
 import { Calendar } from 'lucide-react';
 import { Site } from '@/types/site';
-import { SITE_STATUS_META, normSiteStatus } from '@/lib/utils/site-helpers';
+
+
+import { PROJECT_STATUS_META, normProjectStatus } from '@/lib/utils/site-helpers';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 
 export function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
-  const ss       = normSiteStatus(site.site_status);
-  const siteMeta = SITE_STATUS_META[ss];
+   const ps         = normProjectStatus(site.projectStatus ?? '');
+  const statusMeta = PROJECT_STATUS_META[ps];
 
   const pct = 0;
 
@@ -17,8 +19,8 @@ export function SiteCard({ site, onClick }: { site: Site; onClick: () => void })
       className="gv-card gv-card-hover flex flex-col gap-3 cursor-pointer group active:scale-[0.98] transition-transform">
       <div className="flex items-start justify-between gap-2">
         <p className="font-bold text-xl text-white leading-tight">{site.name}</p>
-        <span className={`text-base font-semibold px-3 py-1 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
-          {siteMeta.label}
+        <span className={`text-base font-semibold px-3 py-1 rounded-full flex-shrink-0 ${statusMeta.bg} ${statusMeta.color}`}>
+          {statusMeta.label}
         </span>
       </div>
       {site.completion_date && (

@@ -111,6 +111,17 @@ export interface CreateSitePayload {
   field_operator_id?: number;
 }
 
+export interface UpdateSitePayload {
+  name?: string;
+  location?: string;
+  projectStatus?: string;
+  completionDate?: string | null;
+  tags?: string[];
+  description?: string;
+  tenderName?: string;
+  inquiringEntity?: string;
+}
+
 export interface OverviewKPIs {
   totalSites: number;
   activeSites: number;
