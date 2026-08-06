@@ -114,10 +114,10 @@ export interface CreateSitePayload {
 export interface UpdateSitePayload {
   name?: string;
   location?: string;
-  projectStatus?: string;
-  completionDate?: string | null;
-  tags?: string[];
   description?: string;
+  projectStatus?: string;
+  completionDate?: string;
+  tags?: string[];
   tenderName?: string;
   inquiringEntity?: string;
 }
