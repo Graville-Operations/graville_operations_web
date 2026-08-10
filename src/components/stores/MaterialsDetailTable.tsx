@@ -23,7 +23,7 @@ export function MaterialsDetailTable({ items }: { items: MaterialItem[] }) {
         </thead>
         <tbody>
           {items.map((m) => {
-            const isLow = m.quantity <= m.minimum_stock;
+            const isLow = m.is_low_stock;
             const unitSymbol = m.unit?.symbol ?? m.unit?.name ?? '';
             return (
               <tr
@@ -35,7 +35,7 @@ export function MaterialsDetailTable({ items }: { items: MaterialItem[] }) {
                   <p className="font-medium truncate">{m.name}</p>
                   {isLow && (
                     <p className="text-[11px] text-(--gv-text-warn) mt-0.5 leading-none">
-                      Low · min {m.minimum_stock.toLocaleString()}
+                      Low stock
                     </p>
                   )}
                 </td>

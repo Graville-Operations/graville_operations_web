@@ -4,14 +4,14 @@ import { useApi } from '@/hooks/useApi';
 import { useCachedLookup } from '@/hooks/useCachedLookup';
 import { API } from '@/lib/endpoints';
 import { fetchMaterialsPage } from '@/lib/api/store';
+import { extractPagedList } from '@/lib/api-response';
 import type { MaterialItem, PagedResponse, Site } from '@/types/store';
 
 const LIMIT = 20;
 const FIRST_PAGE_OPTIONS = { params: { skip: 0, limit: LIMIT } };
 
 function extractList<T>(data: T[] | PagedResponse<T> | null | undefined): T[] {
-  if (!data) return [];
-  return Array.isArray(data) ? data : (data.items ?? []);
+  return extractPagedList(data);
 }
 
 export function splitIntoThreeColumns<T>(items: T[]): [T[], T[], T[]] {

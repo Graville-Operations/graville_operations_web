@@ -6,14 +6,11 @@ import { fetchSubcontractorInvoicePaymentHistory } from '@/lib/api/subcontractor
 import { formatKes } from '@/lib/utils/currency';
 import type { PaymentHistorySummary } from '@/types/subcontractor-invoice';
 import EmptyState from '@/components/ui/emptystate';
+import { PulseLine } from '@/components/shared/Shimmer';
 
 interface PaymentHistoryViewProps {
   invoiceId: number;
   onBack: () => void;
-}
-
-function ShimmerLine({ w, h }: { w: string; h: string }) {
-  return <div className="rounded animate-pulse bg-white/10" style={{ width: w, height: h }} />;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -105,7 +102,7 @@ export function PaymentHistoryView({ invoiceId, onBack }: PaymentHistoryViewProp
             Total Invoice Value
           </p>
           {loading ? (
-            <ShimmerLine w="100px" h="20px" />
+            <PulseLine w="100px" h="20px" />
           ) : (
             <p className="text-lg font-bold text-white">{formatKes(history?.totalInvoiceValue ?? 0)}</p>
           )}
@@ -115,7 +112,7 @@ export function PaymentHistoryView({ invoiceId, onBack }: PaymentHistoryViewProp
             Total Paid
           </p>
           {loading ? (
-            <ShimmerLine w="100px" h="20px" />
+            <PulseLine w="100px" h="20px" />
           ) : (
             <p className="text-lg font-bold text-white">{formatKes(history?.totalPaid ?? 0)}</p>
           )}
@@ -125,7 +122,7 @@ export function PaymentHistoryView({ invoiceId, onBack }: PaymentHistoryViewProp
             Remaining Balance
           </p>
           {loading ? (
-            <ShimmerLine w="100px" h="20px" />
+            <PulseLine w="100px" h="20px" />
           ) : (
             <p className="text-lg font-bold text-white">{formatKes(history?.remainingBalance ?? 0)}</p>
           )}
@@ -142,12 +139,12 @@ export function PaymentHistoryView({ invoiceId, onBack }: PaymentHistoryViewProp
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex justify-between items-start px-6 py-4">
                 <div className="space-y-2">
-                  <ShimmerLine w="100px" h="14px" />
-                  <ShimmerLine w="160px" h="11px" />
+                  <PulseLine w="100px" h="14px" />
+                  <PulseLine w="160px" h="11px" />
                 </div>
                 <div className="space-y-2 flex flex-col items-end">
-                  <ShimmerLine w="80px" h="11px" />
-                  <ShimmerLine w="110px" h="11px" />
+                  <PulseLine w="80px" h="11px" />
+                  <PulseLine w="110px" h="11px" />
                 </div>
               </div>
             ))}
@@ -168,9 +165,9 @@ export function PaymentHistoryView({ invoiceId, onBack }: PaymentHistoryViewProp
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-white/50">{p.paymentDate}</p>
-                  {p.recordedBy != null && (
+                {p.recordedBy != null && (
                     <p className="text-xs text-white/30 mt-0.5">
-                      Recorded by user #{p.recordedBy}
+                      Recorded by {p.recordedBy}
                     </p>
                   )}
                 </div>

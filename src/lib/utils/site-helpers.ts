@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { AttendanceRecord, SiteAnalytics, AttendanceSummary } from '@/types/site';
+import { AttendanceRecord } from '@/types/site';
 import { SiteStatus } from '@/types/enums/site-status';
 import { ProjectStatus } from '@/types/enums/project-status';
 
@@ -7,6 +7,14 @@ export const SITE_STATUS_META: Record<SiteStatus, { label: string; color: string
   ACTIVE:   { label: 'Active',   color: 'text-green-300', bg: 'bg-green-500/20 border border-green-500/40' },
   INACTIVE: { label: 'Inactive', color: 'text-gray-300',  bg: 'bg-gray-500/20 border border-gray-500/40'  },
   CLOSED:   { label: 'Closed',   color: 'text-red-300',   bg: 'bg-red-500/20 border border-red-500/40'    },
+};
+
+export const PROJECT_STATUS_META: Record<ProjectStatus, { label: string; color: string; bg: string }> = {
+  [ProjectStatus.PLANNING]:    { label: 'Planning',    color: 'text-blue-300',   bg: 'bg-blue-500/20 border border-blue-500/40' },
+  [ProjectStatus.IN_PROGRESS]: { label: 'In Progress', color: 'text-green-300',  bg: 'bg-green-500/20 border border-green-500/40' },
+  [ProjectStatus.ON_HOLD]:     { label: 'On Hold',     color: 'text-yellow-300', bg: 'bg-yellow-500/20 border border-yellow-500/40' },
+  [ProjectStatus.COMPLETED]:   { label: 'Completed',   color: 'text-indigo-300', bg: 'bg-indigo-500/20 border border-indigo-500/40' },
+  [ProjectStatus.CANCELLED]:   { label: 'Cancelled',   color: 'text-red-300',    bg: 'bg-red-500/20 border border-red-500/40' },
 };
 
 export function normSiteStatus(s: unknown): SiteStatus {
@@ -28,62 +36,23 @@ export function normProjectStatus(s: string): ProjectStatus {
   }
 }
 
-export function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const obj = raw as Record<string, unknown>;
-  if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
-    const d = obj.data as Record<string, unknown>;
-    if (Array.isArray(d.records)) return d as unknown as AttendanceSummary;
+export function getAllowedNextProjectStatuses(current: ProjectStatus): ProjectStatus[] {
+  switch (current) {
+    case ProjectStatus.PLANNING:
+      return [ProjectStatus.IN_PROGRESS, ProjectStatus.ON_HOLD, ProjectStatus.CANCELLED];
+    case ProjectStatus.IN_PROGRESS:
+      return [ProjectStatus.ON_HOLD, ProjectStatus.COMPLETED, ProjectStatus.CANCELLED];
+    case ProjectStatus.ON_HOLD:
+      return [ProjectStatus.IN_PROGRESS, ProjectStatus.CANCELLED];
+    case ProjectStatus.COMPLETED:
+    case ProjectStatus.CANCELLED:
+    default:
+      return [];
   }
-  return null;
 }
 
-export function unwrapObject<T>(raw: unknown): T {
-  if (raw && typeof raw === 'object') {
-    const obj = raw as Record<string, unknown>;
-    if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
-      return obj.data as T;
-    }
-  }
-  return raw as T;
-}
-
-export function unwrapAnalytics(raw: unknown): SiteAnalytics | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const obj = raw as Record<string, unknown>;
-  if (obj.data && typeof obj.data === 'object') return obj.data as SiteAnalytics;
-  return raw as SiteAnalytics;
-}
-
-export function normalizeSubtaskBreakdown(raw: unknown) {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((s) => {
-    const obj = (s ?? {}) as Record<string, unknown>;
-    const pctRaw =
-      obj.completionPercentage ?? obj.completion_percentage ??
-      obj.percentage ?? obj.percent ?? obj.progress ?? 0;
-    const pct = typeof pctRaw === 'number' ? pctRaw : Number(pctRaw) || 0;
-    const nameRaw = obj.subtaskName ?? obj.subtask_name ?? obj.name ?? obj.title ?? '';
-    return {
-      subtaskName: String(nameRaw),
-      completionPercentage: pct,
-    };
-  });
-}
-
-export function normalizeTaskBreakdown(raw: unknown) {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((t) => {
-    const obj = (t ?? {}) as Record<string, unknown>;
-    const nameRaw = obj.taskName ?? obj.task_name ?? obj.name ?? obj.title ?? '';
-    const subtasksRaw =
-      obj.subtaskBreakdown ?? obj.subtask_breakdown ??
-      obj.subtasks ?? obj.sub_tasks ?? obj.items ?? [];
-    return {
-      taskName: String(nameRaw),
-      subtaskBreakdown: normalizeSubtaskBreakdown(subtasksRaw),
-    };
-  });
+export function isProjectStatusLocked(status: ProjectStatus): boolean {
+  return status === ProjectStatus.COMPLETED || status === ProjectStatus.CANCELLED;
 }
 
 export function safeFormat(value: unknown, fmt: string): string | null {

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Invoice, InvoicePaymentStatus, normaliseInvoice } from '@/types/invoice';
+import { Invoice, InvoicePaymentStatus } from '@/types/invoice';
+import { normaliseSupplierInvoice } from '@/lib/mappers/invoice-mappers';
 import { fetchSupplierInvoices } from '@/lib/api/supplier-invoices';
 import { ROUTES } from '@/lib/routes';
 import { useSiteStore } from '@/store/site-store';
@@ -33,13 +34,13 @@ export function useSupplierInvoices() {
     async (sid: string, start: string, end: string, status: InvoicePaymentStatus | null) => {
       try {
         setIsLoading(true);
-        const raw = await fetchSupplierInvoices({
+        const dtos = await fetchSupplierInvoices({
           siteId: sid,
           startDate: start,
           endDate: end,
           status: status ?? undefined,
         });
-        setInvoices(raw.map(normaliseInvoice));
+        setInvoices(dtos.map(normaliseSupplierInvoice));
       } catch (err) {
         console.error('Failed to fetch invoices:', err);
       } finally {

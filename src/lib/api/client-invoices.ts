@@ -2,13 +2,21 @@ import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { unwrapArray, unwrapObject } from '@/lib/api-response';
 import {
+  normaliseClientInvoiceListItems,
+  normaliseClientInvoiceDetail,
+  normalisePaymentHistory,
+} from '@/lib/mappers/invoice-mappers';
+import {
   ClientInvoiceListItem,
+  ClientInvoiceListItemDTO,
   ClientInvoiceDetail,
+  ClientInvoiceDetailDTO,
   NewClientInvoiceForm,
   ClientInvoiceItemDraft,
   InvoicePaymentStatus,
   PaymentHistory,
 } from '@/types/client-invoice';
+import type { PaymentHistoryDTO } from '@/types/company_invoices';
 
 export async function fetchClientInvoices(
   siteId?: number,
@@ -18,7 +26,7 @@ export async function fetchClientInvoices(
   if (siteId) params.site_id = siteId;
   if (status) params.payment_status = status;
   const { data } = await api.get(API.clientInvoices.all, { params });
-  const items = unwrapArray<ClientInvoiceListItem>(data);
+  const items = normaliseClientInvoiceListItems(unwrapArray<ClientInvoiceListItemDTO>(data));
   const inner = unwrapObject<{ total?: number }>(data);
   const total = inner?.total ?? items.length;
   return { items, total };
@@ -26,7 +34,7 @@ export async function fetchClientInvoices(
 
 export async function fetchClientInvoiceDetail(id: string | number): Promise<ClientInvoiceDetail> {
   const { data } = await api.get(API.clientInvoices.detail(id));
-  return unwrapObject<ClientInvoiceDetail>(data);
+  return normaliseClientInvoiceDetail(unwrapObject<ClientInvoiceDetailDTO>(data));
 }
 
 export async function createClientInvoice(
@@ -87,5 +95,5 @@ export async function fetchClientInvoicePaymentHistory(
   id: number | string
 ): Promise<PaymentHistory> {
   const { data } = await api.get(API.invoiceActions.paymentHistory('client', id));
-  return unwrapObject<PaymentHistory>(data);
+  return normalisePaymentHistory(unwrapObject<PaymentHistoryDTO>(data));
 }

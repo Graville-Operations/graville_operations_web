@@ -1,8 +1,6 @@
 'use client';
 
-function Shimmer({ w, h }: { w: string; h: string }) {
-  return <div className="rounded animate-pulse" style={{ width: w, height: h, background: 'rgba(255,255,255,0.07)' }} />;
-}
+import { PulseBox } from '@/components/shared/Shimmer';
 
 interface CompanyInvoiceMetaCardProps {
   invoiceDate: string | null;
@@ -30,7 +28,7 @@ export default function CompanyInvoiceMetaCard({
           <div key={label}>
             <p className="gv-eyebrow mb-0.5 text-label-sm">{label}</p>
             {shimmer ? (
-              <Shimmer w="100px" h="14px" />
+              <PulseBox w="100px" h="14px" />
             ) : (
               <p className="text-sm font-medium" style={{ color: 'var(--gv-text-primary)' }}>{value ?? '—'}</p>
             )}

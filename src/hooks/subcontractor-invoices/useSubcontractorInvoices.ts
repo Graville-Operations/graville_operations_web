@@ -6,6 +6,7 @@ import {
   fetchSubcontractorInvoiceDetail,
 } from '@/lib/api/subcontractor-invoices';
 import type { SubcontractorInvoiceListItem, SiteOption } from '@/types/subcontractor-invoice';
+import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
 import { useSiteStore } from '@/store/site-store';
 
 export type DateMode = 'single' | 'range';
@@ -26,9 +27,8 @@ export function useSubcontractorInvoices() {
   );
   const [siteFilter, setSiteFilter] = useState('');
 
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<InvoicePaymentStatus | null>(null);
   const [search, setSearch] = useState('');
-
   const [dateMode, setDateMode] = useState<DateMode>('single');
   const [dateFilter, setDateFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -40,7 +40,7 @@ export function useSubcontractorInvoices() {
   }, [siteFilter, statusFilter]);
 
   useEffect(() => {
-    fetchSitesAction(); // idempotent — no-op if already cached from login
+    fetchSitesAction(); 
   }, [fetchSitesAction]);
 
   const loadInvoices = useCallback(async (silent = false) => {
@@ -49,7 +49,7 @@ export function useSubcontractorInvoices() {
       const { siteFilter: currentSite, statusFilter: currentStatus } = filtersRef.current;
       const { items: list, total: fetchedTotal } = await fetchSubcontractorInvoices({
         siteId: currentSite || undefined,
-        paymentStatus: currentStatus || undefined,
+        paymentStatus: currentStatus ?? undefined,
       });
       setTotal(fetchedTotal);
 
@@ -128,12 +128,28 @@ export function useSubcontractorInvoices() {
     setDateFrom('');
     setDateTo('');
   };
+const applyDateFilter = (from: string, to: string) => {
+    if (from === to) {
+      setDateMode('single');
+      setDateFilter(from);
+      setDateFrom('');
+      setDateTo('');
+    } else {
+      setDateMode('range');
+      setDateFrom(from);
+      setDateTo(to);
+      setDateFilter('');
+    }
+  };
+
+  const displayFrom = dateMode === 'single' ? dateFilter : dateFrom;
+  const displayTo = dateMode === 'single' ? dateFilter : dateTo;
 
   const clearAllFilters = () => {
     setSearch('');
     clearDateFilter();
     setSiteFilter('');
-    setStatusFilter('');
+    setStatusFilter(null);
   };
 
   const hasDateFilter = dateMode === 'single' ? !!dateFilter : !!(dateFrom || dateTo);
@@ -154,14 +170,9 @@ export function useSubcontractorInvoices() {
     setSiteFilter,
     statusFilter,
     setStatusFilter,
-    dateMode,
-    setDateMode,
-    dateFilter,
-    setDateFilter,
-    dateFrom,
-    setDateFrom,
-    dateTo,
-    setDateTo,
+    dateFrom: displayFrom,
+    dateTo: displayTo,
+    applyDateFilter,
     hasDateFilter,
     hasFilters,
     clearDateFilter,

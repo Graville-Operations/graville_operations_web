@@ -1,7 +1,6 @@
-export interface Site {
-  id: number;
-  name: string;
-}
+import type { SiteBrief } from '@/types/site';
+
+export type Site = SiteBrief;
 
 const _siteMap: Record<number, Site> = {};
 let _loaded = false;

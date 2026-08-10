@@ -1,8 +1,6 @@
 'use client';
 
-function Shimmer({ w, h }: { w: string; h: string }) {
-  return <div className="rounded animate-pulse" style={{ width: w, height: h, background: 'rgba(255,255,255,0.07)' }} />;
-}
+import { PulseBox } from '@/components/shared/Shimmer';
 
 interface CompanyInvoiceNotesProps {
   notes: string | null;
@@ -14,7 +12,7 @@ export default function CompanyInvoiceNotes({ notes, isDetailLoading }: CompanyI
     <div className="gv-card">
       <p className="gv-eyebrow text-label-sm mb-1">Notes</p>
       {isDetailLoading && !notes ? (
-        <Shimmer w="200px" h="13px" />
+        <PulseBox w="200px" h="13px" />
       ) : (
         <p className="text-sm leading-relaxed" style={{ color: notes ? 'var(--gv-text-muted)' : 'var(--gv-text-faint)' }}>
           {notes ?? 'No notes'}

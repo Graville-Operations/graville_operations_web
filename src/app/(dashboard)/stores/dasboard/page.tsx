@@ -8,8 +8,9 @@ import {
 import api from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import { API } from '@/lib/endpoints';
+import { extractNestedList as extractList } from '@/lib/api-response';
 
-const DUMMY = {
+const PLACEHOLDER_DASHBOARD_DATA = {
   total_orders:    47,
   sites_low_stock: [
     { id: 1, name: 'Mishi Mboko',    low_count: 4 },
@@ -25,17 +26,6 @@ const DUMMY = {
 
 function fmtKES(n: number) {
   return `KSH ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function extractList(raw: unknown): unknown[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  const obj = raw as Record<string, unknown>;
-  if (Array.isArray(obj.items)) return obj.items;
-  if (Array.isArray(obj.data)) return obj.data;
-  const nested = obj.data as Record<string, unknown> | undefined;
-  if (nested && Array.isArray(nested.items)) return nested.items;
-  return [];
 }
 
 type Variant = 'default' | 'warn' | 'danger' | 'success' | 'info';
@@ -75,7 +65,7 @@ function StatCard({ label, value, sub, icon, variant = 'default', badge }: StatC
   );
 }
 
-function LowStockCard({ sites }: { sites: typeof DUMMY.sites_low_stock }) {
+function LowStockCard({ sites }: { sites: typeof PLACEHOLDER_DASHBOARD_DATA.sites_low_stock }) {
   return (
     <div className={`gv-card flex flex-row gap-4 ${BORDER_CLS.default}`}>
       <div className="flex flex-col gap-4 shrink-0">
@@ -367,7 +357,7 @@ function AddToolOverlay({ open, onClose, onSuccess }: AddToolOverlayProps) {
 type OverlayKey = 'material' | 'tool' | 'unit' | null;
 
 export default function StoreDashboardPage() {
-  const d = DUMMY;
+  const d = PLACEHOLDER_DASHBOARD_DATA;
   const [activeOverlay, setActiveOverlay] = useState<OverlayKey>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastId = useRef(0);
@@ -401,6 +391,13 @@ export default function StoreDashboardPage() {
         </div>
 
         <p className="text-lg text-[color:var(--muted-foreground)]">Company's wide overview of all figures aggregate across every active site.</p>
+
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[color:var(--gv-border-warn)] bg-[color:var(--gv-border-warn)]/10">
+          <AlertTriangle size={16} className="text-[color:var(--gv-text-warn)] flex-shrink-0" />
+          <p className="text-sm text-[color:var(--gv-text-warn)]">
+            Placeholder data — this dashboard isn't wired up to live figures yet. A company-wide store summary endpoint doesn't exist on the backend yet.
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {cards.slice(0, 1).map(({ key, ...c }) => <StatCard key={key} {...c} />)}

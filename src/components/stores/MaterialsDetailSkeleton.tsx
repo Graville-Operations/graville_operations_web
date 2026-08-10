@@ -1,3 +1,5 @@
+import { ShimmerBar } from '@/components/shared/Shimmer';
+
 export function MaterialsDetailSkeleton() {
   return (
     <div className="grid grid-cols-3 gap-3">
@@ -22,21 +24,14 @@ export function MaterialsDetailSkeleton() {
               {Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i} className="border-b border-border last:border-0">
                   <td className="px-4 py-4">
-                    <div className="relative overflow-hidden h-4 bg-muted rounded w-[85%]">
-                      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
-                                      bg-linear-to-r from-transparent via-white/5 to-transparent" />
-                    </div>
-                    <div className="relative overflow-hidden h-3 bg-muted rounded w-24 mt-2">
-                      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
-                                      bg-linear-to-r from-transparent via-white/5 to-transparent"
-                           style={{ animationDelay: `${i * 60}ms` }} />
+                    <ShimmerBar w="w-[85%]" h="h-4" />
+                    <div className="mt-2">
+                      <ShimmerBar w="w-24" h="h-3" delayMs={i * 60} />
                     </div>
                   </td>
                   <td className="px-4 py-4 text-right">
-                    <div className="relative overflow-hidden h-4 bg-muted rounded w-14 ml-auto">
-                      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite]
-                                      bg-linear-to-r from-transparent via-white/5 to-transparent"
-                           style={{ animationDelay: `${i * 80}ms` }} />
+                    <div className="ml-auto">
+                      <ShimmerBar w="w-14" h="h-4" delayMs={i * 80} />
                     </div>
                   </td>
                 </tr>

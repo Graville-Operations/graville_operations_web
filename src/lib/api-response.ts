@@ -36,3 +36,17 @@ export function unwrapObject<T>(response: unknown): T {
   }
   return response as T;
 }
+export function extractPagedList<T>(data: T[] | { items?: T[] } | null | undefined): T[] {
+  if (!data) return [];
+  return Array.isArray(data) ? data : (data.items ?? []);
+}
+export function extractNestedList(raw: unknown): unknown[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  const obj = raw as Record<string, unknown>;
+  if (Array.isArray(obj.items)) return obj.items;
+  if (Array.isArray(obj.data)) return obj.data;
+  const nested = obj.data as Record<string, unknown> | undefined;
+  if (nested && Array.isArray(nested.items)) return nested.items;
+  return [];
+}

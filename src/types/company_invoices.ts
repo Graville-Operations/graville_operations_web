@@ -1,9 +1,9 @@
-import { RawCreatedBy } from '@/types/invoice';
+import type { CreatedByDTO } from '@/types/invoice';
 import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
 
 export { InvoicePaymentStatus };
 
-export interface RawCompanyInvoiceItem {
+export interface CompanyInvoiceItemDTO {
   id: number;
   index: number;
   particulars: string;
@@ -11,11 +11,10 @@ export interface RawCompanyInvoiceItem {
   unitPrice: number;
   totalAmount: number;
 }
-
-export interface RawCompanyInvoice {
+export interface CompanyInvoiceDTO {
   id: number;
   invoiceNo: string;
-  invoicedBy: RawCreatedBy | string | null;
+  invoicedBy: CreatedByDTO | string | null;
   source?: string;
   requester?: string;
   invoiceDate: string;
@@ -24,7 +23,7 @@ export interface RawCompanyInvoice {
   paymentStatus?: InvoicePaymentStatus;
   created_at?: string;
   updatedAt?: string;
-  items?: RawCompanyInvoiceItem[];
+  items?: CompanyInvoiceItemDTO[];
 }
 
 export interface CompanyInvoiceItem {
@@ -52,12 +51,13 @@ export interface CompanyInvoice {
   updated_at: string | null;
   items: CompanyInvoiceItem[];
 }
+
 export interface PaymentRecord {
   id: number;
   amount: number;
   payment_date: string;
   notes: string | null;
-  recorded_by: number;
+  recorded_by: string | null;
 }
 
 export interface PaymentHistory {
@@ -68,34 +68,18 @@ export interface PaymentHistory {
   payments: PaymentRecord[];
 }
 
+export interface PaymentRecordDTO {
+  id: number;
+  amount: number;
+  payment_date: string;
+  notes?: string | null;
+  recorded_by?: string | null;
+}
 
-export function normaliseCompanyInvoice(raw: RawCompanyInvoice): CompanyInvoice {
-  const invoicedBy =
-    typeof raw.invoicedBy === 'string'
-      ? raw.invoicedBy
-      : (raw.invoicedBy as RawCreatedBy)?.name ?? null;
-
-  return {
-    id:                raw.id,
-    invoice_number:    raw.invoiceNo,
-    invoiced_by:       invoicedBy,
-    source:            raw.source    ?? null,
-    requester:         raw.requester ?? null,
-    invoice_date:      raw.invoiceDate  ?? null,
-    notes:             raw.notes        ?? null,
-    total:             raw.total,
-    payment_status:    raw.paymentStatus ?? InvoicePaymentStatus.PENDING,
-    total_paid:        null,
-    remaining_balance: null,
-    created_at:        raw.created_at   ?? null,
-    updated_at:        raw.updatedAt    ?? null,
-    items: (raw.items ?? []).map((item) => ({
-      id:           item.id,
-      index:        item.index,
-      particulars:  item.particulars,
-      quantity:     item.quantity,
-      unit_price:   item.unitPrice,
-      total_amount: item.totalAmount,
-    })),
-  };
+export interface PaymentHistoryDTO {
+  invoice_id: number;
+  total_invoice_value: number;
+  total_paid: number;
+  remaining_balance: number;
+  payments?: PaymentRecordDTO[];
 }

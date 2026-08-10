@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { departmentDetailService } from '@/lib/api/department-detail-service';
-import { getApiErrorMessage } from '@/lib/api/api-error';
 import {
   getCachedDepartment, setCachedDepartment,
   getCachedMenus, setCachedMenus,
@@ -64,11 +63,10 @@ export function useDepartmentDetail(deptId: number) {
       setCachedMenus(deptId, fresh);
     } catch (err) {
       console.warn('[useDepartmentDetail] loadMenus failed:', err);
-      showToast('Failed to load menus', 'error');
     } finally {
       setMenusLoading(false);
     }
-  }, [deptId, showToast]);
+  }, [deptId]);
 
   const loadUsers = useCallback(async () => {
     if (!deptId) return;
@@ -80,11 +78,10 @@ export function useDepartmentDetail(deptId: number) {
       setCachedUsers(deptId, fresh);
     } catch (err) {
       console.warn('[useDepartmentDetail] loadUsers failed:', err);
-      showToast('Failed to load members', 'error');
     } finally {
       setUsersLoading(false);
     }
-  }, [deptId, showToast]);
+  }, [deptId]);
 
   const load = useCallback(() => {
     loadDept();
@@ -101,29 +98,39 @@ export function useDepartmentDetail(deptId: number) {
     setRemovingMenuId(menu.id);
     try {
       await departmentDetailService.removeMenu(deptId, menu.id);
-      showToast(`"${menu.title || menu.name}" removed`, 'success');
+      // Optimistic update — remove locally right away instead of waiting on a refetch
+      setMenus((prev) => {
+        const next = prev.filter((m) => m.id !== menu.id);
+        setCachedMenus(deptId, next);
+        return next;
+      });
     } catch (err) {
       console.error('[useDepartmentDetail] removeMenu failed:', err);
-      showToast(getApiErrorMessage(err, 'Failed to remove menu'), 'error');
     } finally {
-      await loadMenus();
       setRemovingMenuId(null);
     }
-  }, [deptId, loadMenus, showToast]);
+    // Sync with server in the background, without blocking the UI on it
+    loadMenus();
+  }, [deptId, loadMenus]);
 
   const removeUser = useCallback(async (user: User) => {
     setRemovingUserEmail(user.email);
     try {
       await departmentDetailService.removeUser(deptId, user.id);
-      showToast(`"${user.name}" removed`, 'success');
+      // Optimistic update — remove locally right away instead of waiting on a refetch
+      setUsers((prev) => {
+        const next = prev.filter((u) => u.email !== user.email);
+        setCachedUsers(deptId, next);
+        return next;
+      });
     } catch (err) {
       console.error('[useDepartmentDetail] removeUser failed:', err);
-      showToast(getApiErrorMessage(err, 'Failed to remove user — endpoint needs confirming'), 'error');
     } finally {
-      await loadUsers();
       setRemovingUserEmail(null);
     }
-  }, [deptId, loadUsers, showToast]);
+    // Sync with server in the background, without blocking the UI on it
+    loadUsers();
+  }, [deptId, loadUsers]);
 
   const assignedMenuIds = useMemo(() => new Set(menus.map((m) => m.id)), [menus]);
   const assignedUserEmails = useMemo(

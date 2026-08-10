@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import {
   MapPin, Calendar, Building2, Loader2, FileText, Briefcase,
   Users, ClipboardList, UserCheck, ChevronLeft, DollarSign,
-  TrendingUp, Download, PiggyBank, Receipt,
+  TrendingUp, Download, PiggyBank, Receipt, Pencil,
 } from 'lucide-react';
-import { SITE_STATUS_META, normSiteStatus, fmtKes, downloadAttendanceCSV } from '@/lib/utils/site-helpers';
+import { PROJECT_STATUS_META, normProjectStatus, isProjectStatusLocked, fmtKes, downloadAttendanceCSV } from '@/lib/utils/site-helpers';
 import { useSiteDetail } from '@/hooks/sites/useSiteDetail';
 import { ROUTES } from '@/lib/routes';
 import { ProjectCompletionGauge } from '@/components/sites/ProjectCompletionGauge';
@@ -18,6 +18,7 @@ import { AttendanceRow } from '@/components/sites/AttendanceRow';
 import { AllWorkersScreen } from '@/components/sites/AllWorkersScreen';
 import { DateRangePicker } from '@/components/sites/DateRangePicker';
 import { FieldOperatorCard } from '@/components/sites/FieldOperatorCard';
+import { UpdateSiteOverlay } from '@/components/sites/UpdateSiteOverlay';
 
 export function SiteDetailView({ siteId }: { siteId: number }) {
   const router = useRouter();
@@ -30,6 +31,7 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
 
   const {
     detail, loadingDetail, refreshDetail,
+    updatingSite, updateSiteDetail,
     analytics, loadingAnalytics,
     rangeRecords, rangePayouts, loadingRange,
     rangeFrom, rangeTo, setRangeFrom, setRangeTo, todayStr, rangeLabel,
@@ -37,6 +39,7 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
   } = useSiteDetail(siteId);
 
   const [showAllWorkers, setShowAllWorkers] = useState(false);
+  const [showUpdateSite, setShowUpdateSite] = useState(false);
 
   const {
     estimatedValue, totalExpenditure, availableBudget,
@@ -51,7 +54,14 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
   const handleBack = () => router.push(ROUTES.projects.sites);
 
   const siteName = detail?.name ?? '';
-  const siteMeta = detail ? SITE_STATUS_META[normSiteStatus(detail.siteStatus)] : null;
+  const projectStatus = detail ? normProjectStatus(detail.projectStatus) : null;
+  const statusMeta = projectStatus ? PROJECT_STATUS_META[projectStatus] : null;
+  const updateLocked = projectStatus ? isProjectStatusLocked(projectStatus) : false;
+
+  const handleUpdateSite = async (payload: Parameters<typeof updateSiteDetail>[0]) => {
+    await updateSiteDetail(payload);
+    setShowUpdateSite(false);
+  };
 
   return (
     <>
@@ -62,6 +72,14 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
           onClose={() => setShowAllWorkers(false)}
         />
       )}
+
+      <UpdateSiteOverlay
+        open={showUpdateSite}
+        onOpenChange={setShowUpdateSite}
+        site={detail}
+        submitting={updatingSite}
+        onSubmit={handleUpdateSite}
+      />
 
       <div className="w-full" style={{ background: 'var(--gv-bg-gradient)', minHeight: '100vh' }}>
 
@@ -90,11 +108,11 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
                 {loadingDetail
                   ? <div className="h-9 w-64 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
                   : <h1 className="text-4xl font-bold text-white leading-tight">{siteName}</h1>}
-                {loadingDetail || !siteMeta
+                {loadingDetail || !statusMeta
                   ? <div className="h-8 w-24 rounded-full animate-pulse flex-shrink-0" style={{ background: 'var(--gv-glass-bg-strong)' }} />
                   : (
-                    <span className={`text-base font-semibold px-4 py-1.5 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
-                      {siteMeta.label}
+                    <span className={`text-base font-semibold px-4 py-1.5 rounded-full flex-shrink-0 ${statusMeta.bg} ${statusMeta.color}`}>
+                      {statusMeta.label}
                     </span>
                   )}
               </div>
@@ -140,7 +158,26 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
               )}
 
               <div>
-                <p className="gv-label mb-2">Field Operator</p>
+                <div className="relative flex items-center mb-1" style={{ minHeight: '2.25rem' }}>
+                  <p className="gv-label">Field Operator</p>
+                  <button
+                    type="button"
+                    onClick={() => !updateLocked && setShowUpdateSite(true)}
+                    disabled={updateLocked}
+                    title={updateLocked ? "Site is completed or cancelled and can no longer be updated" : undefined}
+                    className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    style={{
+                      background: 'var(--gv-glass-bg)',
+                      border: '1px solid var(--gv-glass-border)',
+                      color: updateLocked ? 'var(--gv-text-faint)' : 'var(--gv-brand)',
+                      opacity: updateLocked ? 0.5 : 1,
+                      cursor: updateLocked ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Update Site
+                  </button>
+                </div>
                 <FieldOperatorCard
                   siteId={siteId}
                   operator={detail?.operator ?? null}

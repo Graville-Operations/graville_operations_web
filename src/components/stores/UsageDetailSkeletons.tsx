@@ -1,10 +1,4 @@
-function ShimmerBar({ w = 'w-[80%]', h = 'h-4' }: { w?: string; h?: string }) {
-  return (
-    <div className={`relative overflow-hidden ${h} bg-muted rounded ${w}`}>
-      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-linear-to-r from-transparent via-white/5 to-transparent" />
-    </div>
-  );
-}
+import { ShimmerBar } from '@/components/shared/Shimmer';
 
 export function UsageHeaderSkeleton() {
   return (
@@ -33,12 +27,7 @@ export function UsageTableSkeleton({ cols, rows = 5 }: { cols: number; rows?: nu
             <tr key={i} className="border-b border-border last:border-0">
               {Array.from({ length: cols }).map((_, j) => (
                 <td key={j} className="px-4 py-3">
-                  <div
-                    className="relative overflow-hidden h-4 bg-muted rounded w-[80%]"
-                    style={{ animationDelay: `${j * 60}ms` }}
-                  >
-                    <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-linear-to-r from-transparent via-white/5 to-transparent" />
-                  </div>
+                  <ShimmerBar w="w-[80%]" h="h-4" delayMs={j * 60} />
                 </td>
               ))}
             </tr>

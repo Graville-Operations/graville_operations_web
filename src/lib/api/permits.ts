@@ -1,12 +1,21 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 import api from "@/lib/api";
 import { API } from "@/lib/endpoints";
 import { unwrapArray, unwrapObject } from "@/lib/api-response";
 import {
+  normalisePermitListItems,
+  normalisePermitDetail,
+  normalisePendingApprovals,
+  normalisePermitCategories,
+} from "@/lib/mappers/permit-mappers";
+import {
   PermitListItem,
+  PermitListItemDTO,
   PermitDetail,
+  PermitDetailDTO,
   PermitCategory,
+  PermitCategoryDTO,
+  PermitApprovalDTO,
   PendingApprovalItem,
   CreatePermitPayload,
 } from "@/types/permits";
@@ -23,9 +32,8 @@ export function resolveErrorMessage(err: unknown, fallback: string): string {
 }
 
 export async function fetchMyPermits(): Promise<PermitListItem[]> {
-  // Endpoint path intentionally matches backend's "my-pemits" typo — see endpoints.ts.
   const { data } = await api.get(API.permits.myPermits);
-  return unwrapArray<PermitListItem>(data);
+  return normalisePermitListItems(unwrapArray<PermitListItemDTO>(data));
 }
 
 interface FetchAllPermitsParams {
@@ -45,7 +53,7 @@ export async function fetchAllPermits(params: FetchAllPermitsParams = {}): Promi
   const { data } = await api.get(API.permits.all, {
     params: { skip, limit, ...(status ? { status } : {}) },
   });
-  const items = unwrapArray<PermitListItem>(data);
+  const items = normalisePermitListItems(unwrapArray<PermitListItemDTO>(data));
   const inner = unwrapObject<{ total?: number }>(data);
   const total = inner?.total ?? items.length;
   return { items, total, skip };
@@ -53,7 +61,8 @@ export async function fetchAllPermits(params: FetchAllPermitsParams = {}): Promi
 
 export async function fetchPermitDetail(id: number): Promise<PermitDetail | null> {
   const { data } = await api.get(API.permits.get(id));
-  return (data?.data as PermitDetail) ?? null;
+  const dto = unwrapObject<PermitDetailDTO | null>(data);
+  return dto ? normalisePermitDetail(dto) : null;
 }
 
 export async function fetchPermitDetailsBatch(ids: number[]): Promise<Record<number, PermitDetail>> {
@@ -97,21 +106,12 @@ export async function takePermitAction(
 
 export async function fetchPendingApprovals(): Promise<PendingApprovalItem[]> {
   const { data } = await api.get(API.permits.pending);
-  return unwrapArray<PendingApprovalItem>(data);
-}
-
-export function normaliseCategory(r: any): PermitCategory {
-  return {
-    id: r.id,
-    name: r.name,
-    description: r.description ?? null,
-    is_active: r.is_active ?? r.isActive ?? true,
-  };
+  return normalisePendingApprovals(unwrapArray<PermitApprovalDTO>(data));
 }
 
 export async function fetchCategories(): Promise<PermitCategory[]> {
   const { data } = await api.get(API.permits.categories);
-  return unwrapArray<any>(data).map(normaliseCategory);
+  return normalisePermitCategories(unwrapArray<PermitCategoryDTO>(data));
 }
 
 export async function createCategory(input: { name: string; description: string | null }) {

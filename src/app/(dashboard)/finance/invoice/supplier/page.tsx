@@ -2,10 +2,10 @@
 
 import { X } from 'lucide-react';
 import { useSupplierInvoices } from '@/hooks/supplier-invoices/useSupplierInvoices';
-import SearchInput from '@/components/finance/suppliers/SearchInput';
-import SiteFilterDropdown from '@/components/finance/suppliers/SiteFilterDropdown';
-import DateFilterDropdown from '@/components/finance/suppliers/DateFilterDropdown';
-import StatusFilterDropdown from '@/components/finance/suppliers/StatusFilterDropdown';
+import SearchInput from '@/components/finance/shared/SearchInput';
+import SiteFilterDropdown from '@/components/finance/shared/SiteFilterDropdown';
+import DateFilterDropdown from '@/components/finance/shared/DateFilterDropdown';
+import StatusFilterDropdown from '@/components/finance/shared/StatusFilterDropdown';
 import SupplierInvoicesTable from '@/components/finance/suppliers/SupplierInvoicesTable';
 import SupplierInvoiceCards from '@/components/finance/suppliers/SupplierInvoiceCards';
 
@@ -48,8 +48,8 @@ export default function SupplierInvoicesPage() {
           <SiteFilterDropdown sites={sites} value={siteId} onChange={setSiteId} />
 
           <DateFilterDropdown
-            startDate={startDate}
-            endDate={endDate}
+            from={startDate}
+            to={endDate}
             onApply={applyDateFilter}
             onClear={clearDateFilter}
           />

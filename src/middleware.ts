@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AUTH_ROUTES, PUBLIC_ROUTES, PROTECTED_PREFIX } from './lib/routes';
+import { AUTH_ROUTES, PUBLIC_ROUTES, PROTECTED_PREFIX, ROUTES } from './lib/routes';
 
 function isTokenValid(token: string | undefined, expiresAt: string | undefined): boolean {
   if (!token) return false;
@@ -18,15 +18,15 @@ export function middleware(request: NextRequest) {
   const isValid   = isTokenValid(token, expiresAt);
 
   if (isValid && AUTH_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'))) {
-    return NextResponse.redirect(new URL('/home', request.url));
+    return NextResponse.redirect(new URL(ROUTES.home, request.url));
   }
 
   if (isValid && PUBLIC_ROUTES.some((r) => pathname === r)) {
-    return NextResponse.redirect(new URL('/home', request.url));
+    return NextResponse.redirect(new URL(ROUTES.home, request.url));
   }
 
   if (!isValid && PROTECTED_PREFIX.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
-    const response = NextResponse.redirect(new URL('/signin', request.url));
+    const response = NextResponse.redirect(new URL(ROUTES.signin, request.url));
     response.cookies.delete('graville_token');
     response.cookies.delete('graville_role');
     response.cookies.delete('graville_user');

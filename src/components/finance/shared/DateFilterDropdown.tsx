@@ -5,23 +5,30 @@ import { Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 
 const today = new Date().toISOString().slice(0, 10);
 
+function defaultLabel(from: string, to: string): string {
+  if (from && to) return from === to ? from : `${from} → ${to}`;
+  return from || to;
+}
+
 interface DateFilterDropdownProps {
-  startDate: string;
-  endDate: string;
-  onApply: (start: string, end: string) => void;
+  from: string;
+  to: string;
+  appliedLabel?: string;
+  onApply: (from: string, to: string) => void;
   onClear: () => void;
 }
 
 export default function DateFilterDropdown({
-  startDate,
-  endDate,
+  from,
+  to,
+  appliedLabel,
   onApply,
   onClear,
 }: DateFilterDropdownProps) {
   const [open, setOpen]             = useState(false);
   const [mode, setMode]             = useState<'single' | 'range'>('single');
-  const [localStart, setLocalStart] = useState(startDate);
-  const [localEnd, setLocalEnd]     = useState(endDate);
+  const [localFrom, setLocalFrom]   = useState(from);
+  const [localTo, setLocalTo]       = useState(to);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,26 +41,27 @@ export default function DateFilterDropdown({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalStart(startDate);
-    setLocalEnd(endDate);
-  }, [startDate, endDate]);
+    setLocalFrom(from);
+    setLocalTo(to);
+  }, [from, to]);
 
-  const hasActive = !!(startDate || endDate);
-  const label = hasActive
-    ? mode === 'single'
-      ? startDate
-      : `${startDate} → ${endDate || '…'}`
-    : 'Filter by Date';
+  const hasActive = !!(from || to);
+  const label = hasActive ? (appliedLabel ?? defaultLabel(from, to)) : 'Filter by Date';
 
   const handleApply = () => {
-    const end = mode === 'single' ? localStart : localEnd;
-    onApply(localStart, end);
+    if (mode === 'single') {
+      if (!localFrom) return;
+      onApply(localFrom, localFrom);
+    } else {
+      if (!localFrom && !localTo) return;
+      onApply(localFrom, localTo);
+    }
     setOpen(false);
   };
 
   const handleClear = () => {
-    setLocalStart('');
-    setLocalEnd('');
+    setLocalFrom('');
+    setLocalTo('');
     onClear();
     setOpen(false);
   };
@@ -89,7 +97,7 @@ export default function DateFilterDropdown({
                 key={m}
                 onClick={() => {
                   setMode(m);
-                  setLocalEnd('');
+                  setLocalTo('');
                 }}
                 className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors"
                 style={{
@@ -109,8 +117,8 @@ export default function DateFilterDropdown({
                 <input
                   type="date"
                   max={today}
-                  value={localStart}
-                  onChange={(e) => setLocalStart(e.target.value)}
+                  value={localFrom}
+                  onChange={(e) => setLocalFrom(e.target.value)}
                   className="gv-input w-full text-sm"
                   style={{ colorScheme: 'dark' }}
                 />
@@ -122,8 +130,8 @@ export default function DateFilterDropdown({
                   <input
                     type="date"
                     max={today}
-                    value={localStart}
-                    onChange={(e) => setLocalStart(e.target.value)}
+                    value={localFrom}
+                    onChange={(e) => setLocalFrom(e.target.value)}
                     className="gv-input w-full text-sm"
                     style={{ colorScheme: 'dark' }}
                   />
@@ -132,13 +140,37 @@ export default function DateFilterDropdown({
                   <p className="gv-eyebrow text-label-sm">To</p>
                   <input
                     type="date"
-                    min={localStart || undefined}
+                    min={localFrom || undefined}
                     max={today}
-                    value={localEnd}
-                    onChange={(e) => setLocalEnd(e.target.value)}
+                    value={localTo}
+                    onChange={(e) => setLocalTo(e.target.value)}
                     className="gv-input w-full text-sm"
                     style={{ colorScheme: 'dark' }}
                   />
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
+                  {[
+                    { label: 'Today', days: 0 },
+                    { label: 'Last 7 days', days: 7 },
+                    { label: 'Last 30 days', days: 30 },
+                    { label: 'Last 90 days', days: 90 },
+                  ].map(({ label: quickLabel, days }) => (
+                    <button
+                      key={quickLabel}
+                      onClick={() => {
+                        const t = new Date();
+                        const f = new Date();
+                        f.setDate(f.getDate() - days);
+                        setLocalTo(t.toISOString().slice(0, 10));
+                        setLocalFrom(days === 0 ? t.toISOString().slice(0, 10) : f.toISOString().slice(0, 10));
+                      }}
+                      className="text-xs px-2.5 py-1 rounded-lg transition-colors"
+                      style={{ background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}
+                    >
+                      {quickLabel}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

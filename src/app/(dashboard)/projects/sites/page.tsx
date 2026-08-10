@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Search, AlertCircle, Building2 } from 'lucide-react';
-import { ProjectStatus, RawSite } from '@/types/site';
+import { ProjectStatus } from '@/types/site';
 import { useConstructionSites } from '@/hooks/sites/useConstructionSites';
 import { QuickStatPill } from '@/components/sites/QuickStatPill';
 import { SiteCard } from '@/components/sites/SiteCard';
@@ -97,7 +97,7 @@ export default function ConstructionSitesPage() {
           {filtered.map((site) => (
             <SiteCard
               key={site.id}
-              site={site as unknown as RawSite}
+              site={site}
               onClick={() => router.push(ROUTES.projects.siteDetail(site.id))}
             />
           ))}

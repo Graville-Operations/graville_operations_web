@@ -9,8 +9,8 @@ import { InvoiceMetaCard } from '@/components/finance/client-invoices/InvoiceMet
 import { InvoiceLineItemsTable } from '@/components/finance/client-invoices/InvoiceLineItemsTable';
 import PaymentStatusBadge from '@/components/shared/PaymentStatusBadge';
 import { InvoicePaymentStatus } from '@/types/client-invoice';
-import RejectInvoiceModal from '@/components/finance/client-invoices/RejectInvoiceModal';
-import RecordPaymentModal from '@/components/finance/client-invoices/RecordPaymentModal';
+import RejectInvoiceModal from '@/components/finance/shared/RejectInvoiceModal';
+import RecordPaymentModal from '@/components/finance/shared/RecordPaymentModal';
 import { ROUTES } from '@/lib/routes';
 
 export default function ClientInvoiceDetailPage() {

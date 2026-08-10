@@ -1,12 +1,11 @@
 'use client';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, X } from 'lucide-react';
 import { useWorkersDashboard } from '@/hooks/workers/useWorkersDashboard';
 import { WorkerTypesList } from '@/components/workers/WorkerTypesList';
 import { AddWorkerTypeOverlay } from '@/components/workers/AddWorkerTypeOverlay';
-import { WorkersBySiteSection } from '@/components/workers/WorkersBySiteSection';
-import { useSiteStore } from '@/store/site-store';
+import { LabourSheetSection } from '@/components/workers/LabourSheetSection';
 import { ROUTES } from '@/lib/routes';
 
 type ToastType = 'success' | 'error';
@@ -24,13 +23,6 @@ function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void 
 export default function WorkersDashboardPage() {
   const router = useRouter();
   const { workerTypes, loading, addWorkerType } = useWorkersDashboard();
-  const sites = useSiteStore((s) => s.sites);
-  const loadingSites = useSiteStore((s) => s.isLoading);
-  const fetchSitesAction = useSiteStore((s) => s.fetchSites);
-
-  useEffect(() => {
-    fetchSitesAction(); 
-  }, [fetchSitesAction]);
 
   const [showAdd, setShowAdd] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -73,7 +65,7 @@ export default function WorkersDashboardPage() {
               />
             )}
           </div>
-          <WorkersBySiteSection sites={sites} sitesLoading={loadingSites} />
+          <LabourSheetSection />
         </div>
       </div>
 

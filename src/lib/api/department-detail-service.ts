@@ -16,11 +16,24 @@ export const departmentDetailService = {
   },
 
   async getMembers(id: number): Promise<User[]> {
-    const { data } = await api.get(API.departments.members(id));
-    return parseUsers(data, '/members');
+    const [{ data: membersData }, { data: usersData }] = await Promise.all([
+      api.get(API.departments.members(id)),
+      api.get(API.users.list),
+    ]);
+    const members = parseUsers(membersData, '/members');
+    const allUsers = parseUsers(usersData, '/users/list');
+
+    const idByEmail = new Map(
+      allUsers.filter((u) => u.email).map((u) => [u.email.toLowerCase(), u.id]),
+    );
+
+    return members.map((m) => ({
+      ...m,
+      id: idByEmail.get(m.email.toLowerCase()) ?? m.id,
+    }));
   },
 
-   async listAllMenus(): Promise<Menu[]> {
+  async listAllMenus(): Promise<Menu[]> {
     const { data } = await api.get(API.menus.list);
     return parseMenus(data);
   },
@@ -37,27 +50,7 @@ export const departmentDetailService = {
     return api.post(API.departments.assignUsers(deptId), { user_ids: userIds });
   },
 
-  // NOTE: actual "remove member" endpoint not yet confirmed with backend
-  // team (none of these three match current swagger) — see API.departments.removeUserAttempts.
   async removeUser(deptId: number, userId: number) {
-    const [membersPath, usersPath, removePath] = API.departments.removeUserAttempts(deptId, userId);
-    const attempts: Array<() => Promise<unknown>> = [
-      () => api.delete(membersPath, { data: { user_ids: [userId] } }),
-      () => api.delete(usersPath, { data: { user_ids: [userId] } }),
-      () => api.post(removePath, { user_ids: [userId] }),
-    ];
-
-    let lastErr: unknown = null;
-    for (const attempt of attempts) {
-      try {
-        await attempt();
-        return;
-      } catch (err) {
-        lastErr = err;
-        const status = (err as any)?.response?.status;
-        if (status !== 404 && status !== 405) throw err;
-      }
-    }
-    throw lastErr;
+    return api.delete(API.departments.users(deptId), { data: { user_ids: [userId] } });
   },
 };

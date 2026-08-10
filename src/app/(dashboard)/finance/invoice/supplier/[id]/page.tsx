@@ -10,8 +10,8 @@ import SupplierInvoiceMetaCard from '@/components/finance/suppliers/SupplierInvo
 import SupplierInvoiceLineItems from '@/components/finance/suppliers/SupplierInvoiceLineItems';
 import SupplierInvoiceSummary from '@/components/finance/suppliers/SupplierInvoiceSummary';
 import SupplierInvoiceNotes from '@/components/finance/suppliers/SupplierInvoiceNotes';
-import RejectInvoiceModal from '@/components/finance/suppliers/RejectInvoiceModal';
-import RecordPaymentModal from '@/components/finance/suppliers/RecordPaymentModal';
+import RejectInvoiceModal from '@/components/finance/shared/RejectInvoiceModal';
+import RecordPaymentModal from '@/components/finance/shared/RecordPaymentModal';
 import { InvoicePaymentStatus } from '@/types/invoice';
 import { ROUTES } from '@/lib/routes';
 

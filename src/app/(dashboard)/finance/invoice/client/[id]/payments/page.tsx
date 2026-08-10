@@ -106,9 +106,11 @@ export default function ClientInvoicePaymentHistoryPage() {
                     <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>
                       {payment.payment_date}
                     </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
-                      Recorded by user #{payment.recorded_by}
-                    </p>
+                    {payment.recorded_by && (
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+                        Recorded by {payment.recorded_by}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))

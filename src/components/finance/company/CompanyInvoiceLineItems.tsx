@@ -1,10 +1,7 @@
 'use client';
 
 import { CompanyInvoice } from '@/types/company_invoices';
-
-function Shimmer({ w, h }: { w: string; h: string }) {
-  return <div className="rounded animate-pulse" style={{ width: w, height: h, background: 'rgba(255,255,255,0.07)' }} />;
-}
+import { PulseBox } from '@/components/shared/Shimmer';
 
 interface CompanyInvoiceLineItemsProps {
   items: CompanyInvoice['items'];
@@ -26,8 +23,8 @@ export default function CompanyInvoiceLineItems({ items, isDetailLoading }: Comp
       {showShimmer ? (
         Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="flex gap-6 px-5 py-4" style={{ borderTop: '1px solid var(--gv-glass-border)' }}>
-            <Shimmer w="20px" h="13px" /><Shimmer w="200px" h="13px" />
-            <Shimmer w="40px" h="13px" /><Shimmer w="80px" h="13px" /><Shimmer w="80px" h="13px" />
+            <PulseBox w="20px" h="13px" /><PulseBox w="200px" h="13px" />
+            <PulseBox w="40px" h="13px" /><PulseBox w="80px" h="13px" /><PulseBox w="80px" h="13px" />
           </div>
         ))
       ) : (

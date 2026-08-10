@@ -1,10 +1,7 @@
 'use client';
 import { Wallet, ChevronRight } from 'lucide-react';
 import type { WorkerType } from '@/types/worker-dashboard';
-
-function fmtKES(n: number) {
-  return `KSH ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { fmtKES } from '@/lib/utils/currency';
 
 interface WorkerTypesListProps {
   workerTypes: WorkerType[];

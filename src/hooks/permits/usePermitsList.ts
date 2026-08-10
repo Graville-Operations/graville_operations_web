@@ -14,7 +14,7 @@ import { PermitListItem, PermitDetail, PermitCategory } from "@/types/permits";
 const MANAGER_ROLES = ["DIRECTOR", "DEPARTMENT_MANAGER"];
 const FIELD_OPERATOR = "FIELD_OPERATOR";
 
-export const STATUS_TABS = ["All", "Draft", "Pending", "In Review", "Approved", "Rejected"] as const;
+export { STATUS_TABS } from "@/types/permits";
 
 export function usePermitsList() {
   const role = getRole();
@@ -111,4 +111,4 @@ export function usePermitsList() {
     totalCount: permits.length,
     openPermit, refresh,
   };
-} 
+}

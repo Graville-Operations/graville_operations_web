@@ -39,11 +39,11 @@ export function useConstructionSites() {
   const totalSites    = kpis?.totalSites    ?? 0;
   const planningSites = kpis?.planningSites ?? 0;
   const activeSites   = kpis?.activeSites   ?? 0;
-  const pausedSites = sites.filter(
-    (s) => normProjectStatus((s as unknown as { projectStatus?: string }).projectStatus ?? '') === 'ON_HOLD',
+const pausedSites = sites.filter(
+    (s) => normProjectStatus(s.project_status ?? '') === 'ON_HOLD',
   ).length;
   const doneSites = sites.filter(
-    (s) => normProjectStatus((s as unknown as { projectStatus?: string }).projectStatus ?? '') === 'COMPLETED',
+    (s) => normProjectStatus(s.project_status ?? '') === 'COMPLETED',
   ).length;
 
   const filtered = sites.filter((s) => {
@@ -52,7 +52,7 @@ export function useConstructionSites() {
       !search || s.name.toLowerCase().includes(q) || (s.location ?? '').toLowerCase().includes(q);
     const matchProj =
       projectFilter === 'ALL' ||
-      normProjectStatus((s as unknown as { projectStatus?: string }).projectStatus ?? '') === projectFilter;
+      normProjectStatus(s.project_status ?? '') === projectFilter;
     return matchSearch && matchProj;
   });
 

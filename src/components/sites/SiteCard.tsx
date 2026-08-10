@@ -1,36 +1,39 @@
 'use client';
 
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { Calendar } from 'lucide-react';
-import { RawSite } from '@/types/site';
-import { SITE_STATUS_META, normSiteStatus } from '@/lib/utils/site-helpers';
+import { Site } from '@/types/site';
+
+
+import { PROJECT_STATUS_META, normProjectStatus } from '@/lib/utils/site-helpers';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 
-export function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
-  const ss       = normSiteStatus(site.siteStatus);
-  const siteMeta = SITE_STATUS_META[ss];
+function formatDeadline(dateStr?: string | null) {
+  if (!dateStr) return null;
+  const d = parseISO(dateStr);
+  return isValid(d) ? format(d, 'dd MMM yyyy') : null;
+}
+
+export function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
+   const ps         = normProjectStatus(site.project_status ?? '');
+  const statusMeta = PROJECT_STATUS_META[ps];
 
   const pct = 0;
+  const deadline = formatDeadline(site.completion_date);
 
   return (
     <div onClick={onClick}
       className="gv-card gv-card-hover flex flex-col gap-3 cursor-pointer group active:scale-[0.98] transition-transform">
       <div className="flex items-start justify-between gap-2">
         <p className="font-bold text-xl text-white leading-tight">{site.name}</p>
-        <span className={`text-base font-semibold px-3 py-1 rounded-full flex-shrink-0 ${siteMeta.bg} ${siteMeta.color}`}>
-          {siteMeta.label}
+        <span className={`text-base font-semibold px-3 py-1 rounded-full flex-shrink-0 ${statusMeta.bg} ${statusMeta.color}`}>
+          {statusMeta.label}
         </span>
       </div>
-      {site.deadlineDate && (
-        <div className="flex items-center gap-2 text-lg" style={{ color: 'var(--gv-text-muted)' }}>
-          <Calendar className="w-4 h-4 flex-shrink-0" />
-          <span>Deadline: {site.deadlineDate}</span>
-        </div>
-      )}
-      {!site.deadlineDate && site.completion_date && (
+      {deadline && (
         <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
           <Calendar className="w-4 h-4 flex-shrink-0" />
-          <span>Deadline: {format(new Date(site.completion_date), 'dd MMM yyyy')}</span>
+          <span>Deadline: {deadline}</span>
         </div>
       )}
       <div className="flex flex-col gap-1.5 mt-1">

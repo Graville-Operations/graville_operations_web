@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useSubcontractorInvoices } from '@/hooks/subcontractor-invoices/useSubcontractorInvoices';
-import { SearchInput } from '@/components/finance/subcontractor-invoices/SearchInput';
-import { SiteFilterDropdown } from '@/components/finance/subcontractor-invoices/SiteFilterDropdown';
-import { StatusFilterDropdown } from '@/components/finance/subcontractor-invoices/StatusFilterDropdown';
-import { DateFilterDropdown } from '@/components/finance/subcontractor-invoices/DateFilterDropdown';
+import SearchInput from '@/components/finance/shared/SearchInput';
+import SiteFilterDropdown from '@/components/finance/shared/SiteFilterDropdown';
+import StatusFilterDropdown from '@/components/finance/shared/StatusFilterDropdown';
+import DateFilterDropdown from '@/components/finance/shared/DateFilterDropdown';
 import { SubcontractorInvoicesTable } from '@/components/finance/subcontractor-invoices/SubcontractorInvoicesTable';
 import { NewInvoiceModal } from '@/components/finance/subcontractor-invoices/NewInvoiceModal';
 import type { SubcontractorInvoiceListItem } from '@/types/subcontractor-invoice';
@@ -26,17 +26,11 @@ export default function SubcontractorInvoicesPage() {
     setSiteFilter,
     statusFilter,
     setStatusFilter,
-    dateMode,
-    setDateMode,
-    dateFilter,
-    setDateFilter,
     dateFrom,
-    setDateFrom,
     dateTo,
-    setDateTo,
-    hasDateFilter,
-    hasFilters,
+    applyDateFilter,
     clearDateFilter,
+    hasFilters,
     clearAllFilters,
     refetch,
   } = useSubcontractorInvoices();
@@ -69,25 +63,23 @@ export default function SubcontractorInvoicesPage() {
           </button>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4">
+        <div className="relative z-20 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4">
           <div className="flex flex-wrap gap-3 items-center">
-            <SearchInput value={search} onChange={setSearch} />
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search by invoice no or subcontractor..."
+            />
 
             <SiteFilterDropdown sites={sites} value={siteFilter} onChange={setSiteFilter} />
 
             <StatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
 
             <DateFilterDropdown
-              dateMode={dateMode}
-              setDateMode={setDateMode}
-              dateFilter={dateFilter}
-              setDateFilter={setDateFilter}
-              dateFrom={dateFrom}
-              setDateFrom={setDateFrom}
-              dateTo={dateTo}
-              setDateTo={setDateTo}
-              hasDateFilter={hasDateFilter}
-              clearDateFilter={clearDateFilter}
+              from={dateFrom}
+              to={dateTo}
+              onApply={applyDateFilter}
+              onClear={clearDateFilter}
             />
 
             {hasFilters && (
@@ -102,7 +94,7 @@ export default function SubcontractorInvoicesPage() {
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden">
+        <div className="relative z-10 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden">
           <SubcontractorInvoicesTable
             invoices={filtered}
             isLoading={isLoading}

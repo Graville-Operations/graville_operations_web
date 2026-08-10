@@ -11,6 +11,18 @@ export interface ClientInvoiceListItem {
   paymentStatus?: InvoicePaymentStatus;
 }
 
+export interface ClientInvoiceListItemDTO {
+  id: number;
+  invoiceNo?: string;
+  clientName?: string;
+  invoiceDate?: string;
+  total?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  site_id?: number;
+  paymentStatus?: InvoicePaymentStatus;
+}
+
 export interface ClientInvoiceItemDraft {
   particulars: string;
   quantity: string;
@@ -45,6 +57,30 @@ export interface ClientInvoiceDetail {
   created_at: string;
   items: ClientInvoiceDetailItem[];
   paymentStatus: InvoicePaymentStatus;
+  totalPaid?: number | null;
+  remainingBalance?: number | null;
+}
+
+export interface ClientInvoiceDetailItemDTO {
+  id: number;
+  index: number;
+  particulars: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+}
+
+export interface ClientInvoiceDetailDTO {
+  id: number;
+  invoiceNo?: string;
+  clientName?: string;
+  invoiceDate?: string;
+  notes?: string;
+  createdBy?: { id: number; name: string };
+  total?: number;
+  created_at?: string;
+  items?: ClientInvoiceDetailItemDTO[];
+  paymentStatus?: InvoicePaymentStatus;
   totalPaid?: number | null;
   remainingBalance?: number | null;
 }

@@ -1,3 +1,5 @@
+import type { DepartmentBrief } from '@/types/department';
+
 export interface User {
   id?: number;
   ref_id: string;
@@ -27,15 +29,14 @@ export interface ApiUser {
   is_active?: boolean;
 }
 
-export interface Department {
-  id: number;
-  name: string;
-}
+export type Department = DepartmentBrief;
 
 export interface Role {
   id: number;
   name: string;
   description: string;
+  created_at?: string;
+  createdAt?: string;
 }
 
 export interface UserDetail extends ApiUser {
@@ -50,13 +51,6 @@ export interface NewUserFormState {
   role_id: string | number;
   department_id: string | number;
   site_ids: number[] | null;
-}
-export interface Role {
-  id: number;
-  name: string;
-  description: string;
-  created_at?: string;
-  createdAt?: string;
 }
 
 export interface RoleFormState {

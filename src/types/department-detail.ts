@@ -1,3 +1,5 @@
+export type { ToastState } from '@/types/department';
+
 export interface Menu {
   id: number;
   name: string;
@@ -17,7 +19,5 @@ export interface DeptDetail {
   name: string;
   description?: string;
 }
-
-export type ToastState = { message: string; type: 'success' | 'error' } | null;
 
 export type AssignResult = { ok: true } | { ok: false; message: string };
