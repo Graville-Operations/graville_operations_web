@@ -1,13 +1,14 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { unwrapArray, unwrapObject } from '@/lib/api-response';
-import { normaliseSupplierInvoice, normalisePaymentHistory, type RawPaymentHistory } from '@/lib/mappers/invoice-mappers';
+import { normaliseSupplierInvoice, normalisePaymentHistory } from '@/lib/mappers/invoice-mappers';
 import {
   Invoice,
-  RawInvoice,
+  SupplierInvoiceDTO,
   InvoicePaymentStatus,
   PaymentHistory,
 } from '@/types/invoice';
+import type { PaymentHistoryDTO } from '@/types/company_invoices';
 
 export interface SupplierInvoiceFilters {
   siteId?: string;
@@ -18,7 +19,7 @@ export interface SupplierInvoiceFilters {
 
 export async function fetchSupplierInvoices(
   filters: SupplierInvoiceFilters = {}
-): Promise<RawInvoice[]> {
+): Promise<SupplierInvoiceDTO[]> {
   const params: Record<string, string> = {};
   if (filters.siteId)    params.site_id       = filters.siteId;
   if (filters.startDate) params.start_date    = filters.startDate;
@@ -26,12 +27,12 @@ export async function fetchSupplierInvoices(
   if (filters.status)    params.payment_status = filters.status;
 
   const { data } = await api.get(API.invoices.all, { params });
-  return unwrapArray<RawInvoice>(data);
+  return unwrapArray<SupplierInvoiceDTO>(data);
 }
 
 export async function fetchSupplierInvoiceDetail(id: string): Promise<Invoice> {
   const { data } = await api.get(API.invoices.detail(Number(id)));
-  return normaliseSupplierInvoice(unwrapObject<RawInvoice>(data));
+  return normaliseSupplierInvoice(unwrapObject<SupplierInvoiceDTO>(data));
 }
 
 export interface UpdateInvoiceStatusResponse {
@@ -74,5 +75,5 @@ export async function fetchSupplierInvoicePaymentHistory(
   id: number | string
 ): Promise<PaymentHistory> {
   const { data } = await api.get(API.invoiceActions.paymentHistory('supplier', id));
-  return normalisePaymentHistory(unwrapObject<RawPaymentHistory>(data));
+  return normalisePaymentHistory(unwrapObject<PaymentHistoryDTO>(data));
 }

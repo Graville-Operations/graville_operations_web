@@ -4,17 +4,7 @@ import { ApiUser } from '@/types/users';
 import { Department, Role, NewUserFormState } from '@/types/users';
 import { RoleFormState } from '@/types/users';
 import { clearCachedLookup } from '@/hooks/useCachedLookup';
-
-export function unwrap<T>(data: unknown): T {
-  const payload = (data as { data?: unknown })?.data ?? data;
-  return payload as T;
-}
-
-export function unwrapList<T>(data: unknown): T[] {
-  const payload = unwrap<T[] | { items?: T[] }>(data);
-  if (Array.isArray(payload)) return payload;
-  return (payload as { items?: T[] })?.items ?? [];
-}
+import { unwrapObject as unwrap, unwrapArray as unwrapList } from '@/lib/api-response';
 
 export async function fetchUsers(): Promise<ApiUser[]> {
   const { data } = await api.get(API.users.list);

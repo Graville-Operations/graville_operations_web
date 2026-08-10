@@ -5,18 +5,18 @@ import {
   normaliseClientInvoiceListItems,
   normaliseClientInvoiceDetail,
   normalisePaymentHistory,
-  type RawClientInvoiceListItem,
-  type RawClientInvoiceDetail,
-  type RawPaymentHistory,
 } from '@/lib/mappers/invoice-mappers';
 import {
   ClientInvoiceListItem,
+  ClientInvoiceListItemDTO,
   ClientInvoiceDetail,
+  ClientInvoiceDetailDTO,
   NewClientInvoiceForm,
   ClientInvoiceItemDraft,
   InvoicePaymentStatus,
   PaymentHistory,
 } from '@/types/client-invoice';
+import type { PaymentHistoryDTO } from '@/types/company_invoices';
 
 export async function fetchClientInvoices(
   siteId?: number,
@@ -26,7 +26,7 @@ export async function fetchClientInvoices(
   if (siteId) params.site_id = siteId;
   if (status) params.payment_status = status;
   const { data } = await api.get(API.clientInvoices.all, { params });
-  const items = normaliseClientInvoiceListItems(unwrapArray<RawClientInvoiceListItem>(data));
+  const items = normaliseClientInvoiceListItems(unwrapArray<ClientInvoiceListItemDTO>(data));
   const inner = unwrapObject<{ total?: number }>(data);
   const total = inner?.total ?? items.length;
   return { items, total };
@@ -34,7 +34,7 @@ export async function fetchClientInvoices(
 
 export async function fetchClientInvoiceDetail(id: string | number): Promise<ClientInvoiceDetail> {
   const { data } = await api.get(API.clientInvoices.detail(id));
-  return normaliseClientInvoiceDetail(unwrapObject<RawClientInvoiceDetail>(data));
+  return normaliseClientInvoiceDetail(unwrapObject<ClientInvoiceDetailDTO>(data));
 }
 
 export async function createClientInvoice(
@@ -95,5 +95,5 @@ export async function fetchClientInvoicePaymentHistory(
   id: number | string
 ): Promise<PaymentHistory> {
   const { data } = await api.get(API.invoiceActions.paymentHistory('client', id));
-  return normalisePaymentHistory(unwrapObject<RawPaymentHistory>(data));
+  return normalisePaymentHistory(unwrapObject<PaymentHistoryDTO>(data));
 }

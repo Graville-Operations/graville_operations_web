@@ -1,66 +1,40 @@
-import type { Site } from '@/lib/sites-cache';
-import type { Task, SubTask, Worker, TaskStatus, SubTaskStatus } from '@/lib/types';
+import type { Site, QualitySiteDTO, Task, TaskDTO, SubTask, SubTaskDTO, Worker, WorkerBriefDTO, TaskStatus, SubTaskStatus } from '@/lib/types';
+import type { SiteDetailDTO } from '@/types/site';
 import type { SiteDetail } from '@/lib/api/quality';
 
-export interface RawQualitySite {
-  id: number;
-  name?: string;
-}
-
-export function normaliseQualitySite(raw: RawQualitySite): Site {
+export function normaliseQualitySite(dto: QualitySiteDTO): Site {
   return {
-    id: raw.id,
-    name: raw.name ?? '',
+    id: dto.id,
+    name: dto.name ?? '',
   };
 }
 
-export function normaliseQualitySites(raw: RawQualitySite[]): Site[] {
-  return raw.map(normaliseQualitySite);
+export function normaliseQualitySites(dtos: QualitySiteDTO[]): Site[] {
+  return dtos.map(normaliseQualitySite);
 }
 
-export interface RawQualitySiteDetail {
-  id: number;
-  name?: string;
-  location?: string | null;
-  description?: string | null;
-  estimatedValue?: number;
-  projectStatus?: string;
-  siteStatus?: string;
-  completionDate?: string | null;
-  tags?: string[] | null;
-  tendererName?: string | null;
-  inquiringEntity?: string | null;
-}
-
-export function normaliseQualitySiteDetail(raw: RawQualitySiteDetail): SiteDetail {
+export function normaliseQualitySiteDetail(dto: SiteDetailDTO): SiteDetail {
   return {
-    id: raw.id,
-    name: raw.name ?? '',
-    location: raw.location ?? null,
-    description: raw.description ?? null,
-    estimatedValue: raw.estimatedValue ?? 0,
-    projectStatus: raw.projectStatus ?? '',
-    siteStatus: raw.siteStatus ?? '',
-    completionDate: raw.completionDate ?? null,
-    tags: raw.tags ?? [],
-    tendererName: raw.tendererName ?? null,
-    inquiringEntity: raw.inquiringEntity ?? null,
+    id: dto.id,
+    name: dto.name ?? '',
+    location: dto.location ?? null,
+    description: dto.description ?? null,
+    estimatedValue: dto.estimatedValue ?? 0,
+    projectStatus: dto.projectStatus ?? '',
+    siteStatus: dto.siteStatus ?? '',
+    completionDate: dto.completionDate ?? null,
+    tags: dto.tags ?? [],
+    tendererName: dto.tendererName ?? null,
+    inquiringEntity: dto.inquiringEntity ?? null,
   };
 }
 
-export interface RawWorkerBrief {
-  id: number;
-  first_name?: string;
-  last_name?: string;
-  skill?: { id: number; name: string; amount: number } | null;
-}
-
-export function normaliseWorkerBrief(raw: RawWorkerBrief): Worker {
+export function normaliseWorkerBrief(dto: WorkerBriefDTO): Worker {
   return {
-    id: raw.id,
-    first_name: raw.first_name ?? '',
-    last_name: raw.last_name ?? '',
-    skill: raw.skill ?? null,
+    id: dto.id,
+    first_name: dto.first_name ?? '',
+    last_name: dto.last_name ?? '',
+    skill: dto.skill ?? null,
   };
 }
 
@@ -76,56 +50,36 @@ function normaliseSubTaskStatus(status: string | undefined): SubTaskStatus {
   return (valid as string[]).includes(upper) ? (upper as SubTaskStatus) : 'PENDING';
 }
 
-export interface RawSubTask {
-  id: number;
-  name?: string;
-  description?: string | null;
-  status?: string;
-  completion_percentage?: number;
-  task_id?: number;
-  assigned_workers?: RawWorkerBrief[];
-}
-
-export function normaliseSubTask(raw: RawSubTask): SubTask {
+export function normaliseSubTask(dto: SubTaskDTO): SubTask {
   return {
-    id: raw.id,
-    name: raw.name ?? '',
-    description: raw.description ?? undefined,
-    status: normaliseSubTaskStatus(raw.status),
-    completion_percentage: raw.completion_percentage ?? 0,
-    task_id: raw.task_id ?? 0,
-    assigned_workers: (raw.assigned_workers ?? []).map(normaliseWorkerBrief),
+    id: dto.id,
+    name: dto.name ?? '',
+    description: dto.description ?? undefined,
+    status: normaliseSubTaskStatus(dto.status),
+    completion_percentage: dto.completion_percentage ?? 0,
+    task_id: dto.task_id ?? 0,
+    assigned_workers: (dto.assigned_workers ?? []).map(normaliseWorkerBrief),
   };
 }
 
-export function normaliseSubTasks(raw: RawSubTask[]): SubTask[] {
-  return raw.map(normaliseSubTask);
+export function normaliseSubTasks(dtos: SubTaskDTO[]): SubTask[] {
+  return dtos.map(normaliseSubTask);
 }
 
-export interface RawTask {
-  id: number;
-  name?: string;
-  description?: string | null;
-  status?: string;
-  start_date?: string;
-  end_date?: string;
-  site_id?: number;
-  subtasks?: RawSubTask[];
-}
-
-export function normaliseTask(raw: RawTask): Task {
+export function normaliseTask(dto: TaskDTO): Task {
   return {
-    id: raw.id,
-    name: raw.name ?? '',
-    description: raw.description ?? undefined,
-    status: normaliseTaskStatus(raw.status),
-    start_date: raw.start_date ?? '',
-    end_date: raw.end_date ?? '',
-    site_id: raw.site_id ?? 0,
-    subtasks: raw.subtasks ? normaliseSubTasks(raw.subtasks) : undefined,
+    id: dto.id,
+    name: dto.name ?? '',
+    description: dto.description ?? undefined,
+    status: normaliseTaskStatus(dto.status),
+    start_date: dto.start_date ?? '',
+    end_date: dto.end_date ?? '',
+    site_id: dto.site_id ?? 0,
+    created_by: dto.created_by ?? null,
+    subtasks: dto.subtasks ? normaliseSubTasks(dto.subtasks) : undefined,
   };
 }
 
-export function normaliseTasks(raw: RawTask[]): Task[] {
-  return raw.map(normaliseTask);
+export function normaliseTasks(dtos: TaskDTO[]): Task[] {
+  return dtos.map(normaliseTask);
 }

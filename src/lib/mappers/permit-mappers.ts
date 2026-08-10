@@ -2,123 +2,79 @@ import { PermitStatus } from '@/types/enums/permit-status';
 import { ApprovalStatus } from '@/types/enums/approval-status';
 import type {
   PermitListItem,
+  PermitListItemDTO,
   PermitDetail,
+  PermitDetailDTO,
   PermitApproval,
+  PermitApprovalDTO,
   PermitCategory,
+  PermitCategoryDTO,
   PendingApprovalItem,
 } from '@/types/permits';
 
-export interface RawPermitListItem {
-  id: number;
-  title?: string;
-  status?: string;
-  current_step?: number;
-  site?: string;
-  category_id?: number;
-  categoryName?: string;
-  updated_at?: string;
-}
-
-export function normalisePermitListItem(raw: RawPermitListItem): PermitListItem {
+export function normalisePermitListItem(dto: PermitListItemDTO): PermitListItem {
   return {
-    id: raw.id,
-    title: raw.title ?? '',
-    status: (raw.status as PermitStatus) ?? PermitStatus.DRAFT,
-    current_step: raw.current_step ?? 1,
-    site: raw.site ?? '',
-    category_id: raw.category_id ?? 0,
-    categoryName: raw.categoryName ?? '',
-    updated_at: raw.updated_at ?? null,
+    id: dto.id,
+    title: dto.title ?? '',
+    status: (dto.status as PermitStatus) ?? PermitStatus.DRAFT,
+    current_step: dto.current_step ?? 1,
+    site: dto.site ?? '',
+    category_id: dto.category_id ?? 0,
+    categoryName: dto.categoryName ?? '',
+    updated_at: dto.updated_at ?? null,
   };
 }
 
-export function normalisePermitListItems(raw: RawPermitListItem[]): PermitListItem[] {
-  return raw.map(normalisePermitListItem);
+export function normalisePermitListItems(dtos: PermitListItemDTO[]): PermitListItem[] {
+  return dtos.map(normalisePermitListItem);
 }
 
-export interface RawPermitApproval {
-  id: number;
-  permit_id?: number;
-  approver_id?: number;
-  approver?: string;
-  step_order?: number;
-  status?: string;
-  comment?: string | null;
-  actioned_at?: string | null;
-  created_at?: string;
-}
-
-export function normalisePermitApproval(raw: RawPermitApproval): PermitApproval {
+export function normalisePermitApproval(dto: PermitApprovalDTO): PermitApproval {
   return {
-    id: raw.id,
-    permit_id: raw.permit_id ?? 0,
-    approver_id: raw.approver_id ?? 0,
-    approver: raw.approver ?? '',
-    step_order: raw.step_order ?? 0,
-    status: (raw.status as ApprovalStatus) ?? ApprovalStatus.PENDING,
-    comment: raw.comment ?? null,
-    actioned_at: raw.actioned_at ?? null,
-    created_at: raw.created_at ?? '',
+    id: dto.id,
+    permit_id: dto.permit_id ?? 0,
+    approver_id: dto.approver_id ?? 0,
+    approver: dto.approver ?? '',
+    step_order: dto.step_order ?? 0,
+    status: (dto.status as ApprovalStatus) ?? ApprovalStatus.PENDING,
+    comment: dto.comment ?? null,
+    actioned_at: dto.actioned_at ?? null,
+    created_at: dto.created_at ?? '',
   };
 }
 
-export function normalisePendingApprovals(raw: RawPermitApproval[]): PendingApprovalItem[] {
-  return raw.map(normalisePermitApproval);
+export function normalisePendingApprovals(dtos: PermitApprovalDTO[]): PendingApprovalItem[] {
+  return dtos.map(normalisePermitApproval);
 }
 
-export interface RawPermitDetail {
-  id: number;
-  title?: string;
-  description?: string | null;
-  status?: string;
-  currentStep?: number;
-  siteId?: number;
-  siteName?: string;
-  categoryId?: number;
-  permitCategory?: string;
-  requested_by?: number | null;
-  requester?: string;
-  created_at?: string;
-  updated_at?: string | null;
-  approvals?: RawPermitApproval[];
-}
-
-export function normalisePermitDetail(raw: RawPermitDetail): PermitDetail {
+export function normalisePermitDetail(dto: PermitDetailDTO): PermitDetail {
   return {
-    id: raw.id,
-    title: raw.title ?? '',
-    description: raw.description ?? '',
-    status: (raw.status as PermitStatus) ?? PermitStatus.DRAFT,
-    currentStep: raw.currentStep ?? 1,
-    siteId: raw.siteId ?? 0,
-    siteName: raw.siteName ?? '',
-    categoryId: raw.categoryId ?? 0,
-    permitCategory: raw.permitCategory ?? '',
-    requested_by: raw.requested_by ?? 0,
-    requester: raw.requester ?? '',
-    created_at: raw.created_at ?? '',
-    updated_at: raw.updated_at ?? '',
-    approvals: (raw.approvals ?? []).map(normalisePermitApproval),
+    id: dto.id,
+    title: dto.title ?? '',
+    description: dto.description ?? '',
+    status: (dto.status as PermitStatus) ?? PermitStatus.DRAFT,
+    currentStep: dto.currentStep ?? 1,
+    siteId: dto.siteId ?? 0,
+    siteName: dto.siteName ?? '',
+    categoryId: dto.categoryId ?? 0,
+    permitCategory: dto.permitCategory ?? '',
+    requested_by: dto.requested_by ?? 0,
+    requester: dto.requester ?? '',
+    created_at: dto.created_at ?? '',
+    updated_at: dto.updated_at ?? '',
+    approvals: (dto.approvals ?? []).map(normalisePermitApproval),
   };
 }
 
-export interface RawPermitCategory {
-  id: number;
-  name?: string;
-  description?: string | null;
-  isActive?: boolean;
-  is_active?: boolean;
-}
-
-export function normalisePermitCategory(raw: RawPermitCategory): PermitCategory {
+export function normalisePermitCategory(dto: PermitCategoryDTO): PermitCategory {
   return {
-    id: raw.id,
-    name: raw.name ?? '',
-    description: raw.description ?? null,
-    is_active: raw.isActive ?? raw.is_active ?? true,
+    id: dto.id,
+    name: dto.name ?? '',
+    description: dto.description ?? null,
+    is_active: dto.isActive ?? dto.is_active ?? true,
   };
 }
 
-export function normalisePermitCategories(raw: RawPermitCategory[]): PermitCategory[] {
-  return raw.map(normalisePermitCategory);
+export function normalisePermitCategories(dtos: PermitCategoryDTO[]): PermitCategory[] {
+  return dtos.map(normalisePermitCategory);
 }

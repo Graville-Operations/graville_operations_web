@@ -44,6 +44,8 @@ export interface DashboardMetrics {
   };
 }
 
+export type DashboardMetricsDTO = Partial<DashboardMetrics>;
+
 export interface AttendanceDay {
   date: string;
   present_count: number;

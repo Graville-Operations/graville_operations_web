@@ -1,7 +1,13 @@
 import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
 import { PaymentHistory } from '@/types/company_invoices';
 
-export interface RawInvoiceItem {
+export interface CreatedByDTO {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export interface SupplierInvoiceItemDTO {
   id: number;
   index: number;
   materialName: string;
@@ -10,13 +16,7 @@ export interface RawInvoiceItem {
   totalMaterialPrice: number;
 }
 
-export interface RawCreatedBy {
-  name: string;
-  email: string;
-  phone: string;
-}
-
-export interface RawInvoice {
+export interface SupplierInvoiceDTO {
   id: number;
   invoiceNo: string;
   deliveryNo: string | null;
@@ -24,7 +24,7 @@ export interface RawInvoice {
   supplierName: string;
   invoiceDate: string;
   notes: string | null;
-  createdBy: RawCreatedBy | null;
+  createdBy: CreatedByDTO | null;
   created_at: string;
   requester: string | null;
   source: string | null;
@@ -32,7 +32,7 @@ export interface RawInvoice {
   total: number;
   amountPaid: number;
   paymentStatus?: InvoicePaymentStatus;
-  items: RawInvoiceItem[];
+  items: SupplierInvoiceItemDTO[];
 }
 
 export interface RawPaginatedResponse<T> {

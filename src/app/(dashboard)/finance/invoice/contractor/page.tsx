@@ -63,7 +63,7 @@ export default function SubcontractorInvoicesPage() {
           </button>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4">
+        <div className="relative z-20 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4">
           <div className="flex flex-wrap gap-3 items-center">
             <SearchInput
               value={search}
@@ -94,7 +94,7 @@ export default function SubcontractorInvoicesPage() {
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden">
+        <div className="relative z-10 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden">
           <SubcontractorInvoicesTable
             invoices={filtered}
             isLoading={isLoading}

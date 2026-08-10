@@ -11,76 +11,69 @@ import {
   normaliseSiteAnalytics,
   normaliseDashboardMetrics,
   normaliseFieldOperatorList,
-  normaliseFieldOperator,
-  type RawSiteListItem,
-  type RawSiteDetail,
-  type RawSiteWorker,
-  type RawAttendanceSummary,
-  type RawSiteTask,
 } from '@/lib/mappers/site-mappers';
 import {
-  Site, SiteDetail, SiteWorker, AttendanceRecord,
-  SiteTask, CreateSitePayload, OverviewKPIs,
-  SiteAnalytics, FieldOperator, UpdateSitePayload,
+  Site, SiteListItemDTO, SiteDetail, SiteDetailDTO, SiteWorker, SiteWorkerDTO,
+  AttendanceRecord, AttendanceSummaryDTO,
+  SiteTask, SiteTaskDTO, CreateSitePayload, OverviewKPIs, OverviewKPIsDTO,
+  SiteAnalytics, SiteAnalyticsDTO, FieldOperator, UpdateSitePayload,
 } from '@/types/site';
-import { DashboardMetrics } from '@/types/dashboard';
+import { DashboardMetrics, DashboardMetricsDTO } from '@/types/dashboard';
 
 export async function fetchSites(): Promise<Site[]> {
   const { data } = await api.get(API.sites.list);
-  return normaliseSiteListItems(unwrapArray<RawSiteListItem>(data));
+  return normaliseSiteListItems(unwrapArray<SiteListItemDTO>(data));
 }
 
 export async function fetchSiteById(siteId: number): Promise<SiteDetail> {
   const { data } = await api.get(API.sites.detail(siteId));
-  return normaliseSiteDetail(unwrapObject<RawSiteDetail>(data));
+  return normaliseSiteDetail(unwrapObject<SiteDetailDTO>(data));
 }
 
 export async function updateSite(siteId: number, payload: UpdateSitePayload): Promise<SiteDetail> {
   const { data } = await api.patch(API.sites.update(siteId), payload);
-  const raw = unwrapObject<Record<string, unknown>>(data);
-  const operator = normaliseFieldOperator(raw.operator);
-  return { ...(raw as unknown as SiteDetail), operator };
+  return normaliseSiteDetail(unwrapObject<SiteDetailDTO>(data));
 }
 
 export async function createSite(payload: CreateSitePayload): Promise<Site> {
   const { data } = await api.post(API.sites.create, payload);
-  return normaliseSiteListItems([unwrapObject<RawSiteListItem>(data)])[0];
+  return normaliseSiteListItems([unwrapObject<SiteListItemDTO>(data)])[0];
 }
 
 export async function fetchWorkersBySite(siteId: number): Promise<SiteWorker[]> {
   const { data } = await api.get(API.workers.listBySite(siteId));
-  return normaliseSiteWorkers(unwrapArray<RawSiteWorker>(data));
+  return normaliseSiteWorkers(unwrapArray<SiteWorkerDTO>(data));
 }
 export async function fetchAttendanceBySite(siteId: number): Promise<AttendanceRecord[]> {
   const { data } = await api.get(API.attendance.summary, {
     params: { site_id: siteId },
   });
-  return normaliseAttendanceSummary(unwrapObject<RawAttendanceSummary>(data)).records;
+  return normaliseAttendanceSummary(unwrapObject<AttendanceSummaryDTO>(data)).records;
 }
 
 export async function fetchTasksBySiteId(siteId: number): Promise<SiteTask[]> {
   const { data } = await api.get(API.tasks.listBySite(siteId));
-  const arr = normaliseSiteTasks(unwrapArray<RawSiteTask>(data));
+  const arr = normaliseSiteTasks(unwrapArray<SiteTaskDTO>(data));
   if (arr.length > 0) return arr;
 
-  const raw = unwrapObject<RawSiteTask | null>(data);
-  return raw ? [normaliseSiteTasks([raw])[0]] : [];
+  const dto = unwrapObject<SiteTaskDTO | null>(data);
+  return dto ? [normaliseSiteTasks([dto])[0]] : [];
 }
 
 export async function fetchOverviewKPIs(): Promise<OverviewKPIs> {
   const { data } = await api.get(API.analytics.overview);
-  return normaliseOverviewKPIs(unwrapObject<Partial<OverviewKPIs>>(data));
+  return normaliseOverviewKPIs(unwrapObject<OverviewKPIsDTO>(data));
 }
 
 export async function fetchSiteAnalytics(siteId: number | string): Promise<SiteAnalytics | null> {
   const { data } = await api.get(API.sites.analytics(siteId));
   if (!data) return null;
-  return normaliseSiteAnalytics(unwrapObject<Partial<SiteAnalytics>>(data));
+  return normaliseSiteAnalytics(unwrapObject<SiteAnalyticsDTO>(data));
 }
 
 export async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   const { data } = await api.get(API.sites.dashboardMetrics);
-  return normaliseDashboardMetrics(unwrapObject<Partial<DashboardMetrics>>(data));
+  return normaliseDashboardMetrics(unwrapObject<DashboardMetricsDTO>(data));
 }
 
 export async function fetchUnassignedFieldOperators(): Promise<FieldOperator[]> {

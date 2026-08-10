@@ -1,51 +1,31 @@
-import type { MaterialItem, ToolItem, UnitBrief } from '@/types/store';
+import type { MaterialItem, MaterialItemDTO, ToolItem, ToolItemDTO } from '@/types/store';
 
-export interface RawMaterialItem {
-  id: number;
-  name?: string;
-  unit?: UnitBrief;
-  quantity?: number;
-  is_low_stock?: boolean | null;
-  store_id?: number;
-}
-
-export function normaliseMaterialItem(raw: RawMaterialItem): MaterialItem {
+export function normaliseMaterialItem(dto: MaterialItemDTO): MaterialItem {
   return {
-    id: raw.id,
-    name: raw.name ?? '',
-    unit: raw.unit ?? { id: 0, name: '', symbol: '' },
-    quantity: raw.quantity ?? 0,
-    is_low_stock: raw.is_low_stock ?? false,
+    id: dto.id,
+    name: dto.name ?? '',
+    unit: dto.unit ?? { id: 0, name: '', symbol: '' },
+    quantity: dto.quantity ?? 0,
+    is_low_stock: dto.is_low_stock ?? false,
   };
 }
 
-export function normaliseMaterialItems(raw: RawMaterialItem[]): MaterialItem[] {
-  return raw.map(normaliseMaterialItem);
+export function normaliseMaterialItems(dtos: MaterialItemDTO[]): MaterialItem[] {
+  return dtos.map(normaliseMaterialItem);
 }
 
-export interface RawToolItem {
-  id: number;
-  name?: string;
-  status?: string;
-  vendor?: string | null;
-  hire_end_date?: string | null;
-  totalHireCost?: number | null;
-  is_overdue?: boolean | null;
-  store_id?: number;
-}
-
-export function normaliseToolItem(raw: RawToolItem): ToolItem {
+export function normaliseToolItem(dto: ToolItemDTO): ToolItem {
   return {
-    id: raw.id,
-    name: raw.name ?? '',
-    status: raw.status ?? '',
-    vendor: raw.vendor ?? undefined,
-    hire_end_date: raw.hire_end_date ?? undefined,
-    total_hire_cost: raw.totalHireCost ?? undefined,
-    is_overdue: raw.is_overdue ?? false,
+    id: dto.id,
+    name: dto.name ?? '',
+    status: dto.status ?? '',
+    vendor: dto.vendor ?? undefined,
+    hire_end_date: dto.hire_end_date ?? undefined,
+    total_hire_cost: dto.totalHireCost ?? undefined,
+    is_overdue: dto.is_overdue ?? false,
   };
 }
 
-export function normaliseToolItems(raw: RawToolItem[]): ToolItem[] {
-  return raw.map(normaliseToolItem);
+export function normaliseToolItems(dtos: ToolItemDTO[]): ToolItem[] {
+  return dtos.map(normaliseToolItem);
 }

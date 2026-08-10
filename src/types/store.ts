@@ -44,6 +44,15 @@ export interface MaterialItem {
   is_low_stock: boolean;
 }
 
+export interface MaterialItemDTO {
+  id: number;
+  name?: string;
+  unit?: UnitBrief;
+  quantity?: number;
+  is_low_stock?: boolean | null;
+  store_id?: number;
+}
+
 export interface StoreMaterial {
   id: number;
   name: string;
@@ -61,6 +70,17 @@ export interface ToolItem {
   hire_end_date?: string;
   total_hire_cost?: number;
   is_overdue?: boolean;
+}
+
+export interface ToolItemDTO {
+  id: number;
+  name?: string;
+  status?: string;
+  vendor?: string | null;
+  hire_end_date?: string | null;
+  totalHireCost?: number | null;
+  is_overdue?: boolean | null;
+  store_id?: number;
 }
 
 export interface StoreTool {

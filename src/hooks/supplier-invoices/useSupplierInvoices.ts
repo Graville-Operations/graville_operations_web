@@ -34,13 +34,13 @@ export function useSupplierInvoices() {
     async (sid: string, start: string, end: string, status: InvoicePaymentStatus | null) => {
       try {
         setIsLoading(true);
-        const raw = await fetchSupplierInvoices({
+        const dtos = await fetchSupplierInvoices({
           siteId: sid,
           startDate: start,
           endDate: end,
           status: status ?? undefined,
         });
-        setInvoices(raw.map(normaliseSupplierInvoice));
+        setInvoices(dtos.map(normaliseSupplierInvoice));
       } catch (err) {
         console.error('Failed to fetch invoices:', err);
       } finally {

@@ -1,46 +1,53 @@
 import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
-import type { RawCreatedBy, RawInvoice, Invoice, InvoiceItem } from '@/types/invoice';
+import type { CreatedByDTO, SupplierInvoiceDTO, Invoice, InvoiceItem } from '@/types/invoice';
 import type {
-  RawCompanyInvoice,
+  CompanyInvoiceDTO,
   CompanyInvoice,
   CompanyInvoiceItem,
   PaymentHistory,
   PaymentRecord,
+  PaymentHistoryDTO,
 } from '@/types/company_invoices';
-import type { ClientInvoiceListItem, ClientInvoiceDetail, ClientInvoiceDetailItem } from '@/types/client-invoice';
+import type {
+  ClientInvoiceListItem,
+  ClientInvoiceListItemDTO,
+  ClientInvoiceDetail,
+  ClientInvoiceDetailDTO,
+  ClientInvoiceDetailItem,
+} from '@/types/client-invoice';
 import type {
   SubcontractorInvoiceListItem,
+  SubcontractorInvoiceListItemDTO,
   SubcontractorInvoiceDetail,
-  LineItem,
-  BriefUserInfo,
+  SubcontractorInvoiceDetailDTO,
   PaymentHistorySummary,
   PaymentHistoryEntry,
 } from '@/types/subcontractor-invoice';
 
-function resolveCreatedByName(createdBy: RawCreatedBy | string | null | undefined): string | null {
+function resolveCreatedByName(createdBy: CreatedByDTO | string | null | undefined): string | null {
   if (!createdBy) return null;
   return typeof createdBy === 'string' ? createdBy : createdBy.name ?? null;
 }
 
-export function normaliseSupplierInvoice(raw: RawInvoice): Invoice {
+export function normaliseSupplierInvoice(dto: SupplierInvoiceDTO): Invoice {
   return {
-    id: raw.id,
-    invoice_number: raw.invoiceNo,
-    lpo_number: raw.lpoNo ?? null,
-    delivery_number: raw.deliveryNo ?? null,
-    supplier_name: raw.supplierName,
-    invoice_date: raw.invoiceDate,
-    total_amount: raw.total,
-    amount_paid: raw.amountPaid ?? 0,
-    status: raw.paymentStatus ?? InvoicePaymentStatus.PENDING,
+    id: dto.id,
+    invoice_number: dto.invoiceNo,
+    lpo_number: dto.lpoNo ?? null,
+    delivery_number: dto.deliveryNo ?? null,
+    supplier_name: dto.supplierName,
+    invoice_date: dto.invoiceDate,
+    total_amount: dto.total,
+    amount_paid: dto.amountPaid ?? 0,
+    status: dto.paymentStatus ?? InvoicePaymentStatus.PENDING,
     total_paid: null,
     remaining_balance: null,
-    site: raw.source ?? null,
-    submitted_by: raw.requester ?? resolveCreatedByName(raw.createdBy),
+    site: dto.source ?? null,
+    submitted_by: dto.requester ?? resolveCreatedByName(dto.createdBy),
     submitted_by_id: 0,
-    notes: raw.notes ?? null,
-    created_at: raw.created_at ?? raw.updatedAt ?? null,
-    items: (raw.items ?? []).map(
+    notes: dto.notes ?? null,
+    created_at: dto.created_at ?? dto.updatedAt ?? null,
+    items: (dto.items ?? []).map(
       (item): InvoiceItem => ({
         id: item.id,
         index: item.index,
@@ -53,23 +60,22 @@ export function normaliseSupplierInvoice(raw: RawInvoice): Invoice {
   };
 }
 
-
-export function normaliseCompanyInvoice(raw: RawCompanyInvoice): CompanyInvoice {
+export function normaliseCompanyInvoice(dto: CompanyInvoiceDTO): CompanyInvoice {
   return {
-    id: raw.id,
-    invoice_number: raw.invoiceNo,
-    invoiced_by: resolveCreatedByName(raw.invoicedBy),
-    source: raw.source ?? null,
-    requester: raw.requester ?? null,
-    invoice_date: raw.invoiceDate ?? null,
-    notes: raw.notes ?? null,
-    total: raw.total,
-    payment_status: raw.paymentStatus ?? InvoicePaymentStatus.PENDING,
+    id: dto.id,
+    invoice_number: dto.invoiceNo,
+    invoiced_by: resolveCreatedByName(dto.invoicedBy),
+    source: dto.source ?? null,
+    requester: dto.requester ?? null,
+    invoice_date: dto.invoiceDate ?? null,
+    notes: dto.notes ?? null,
+    total: dto.total,
+    payment_status: dto.paymentStatus ?? InvoicePaymentStatus.PENDING,
     total_paid: null,
     remaining_balance: null,
-    created_at: raw.created_at ?? null,
-    updated_at: raw.updatedAt ?? null,
-    items: (raw.items ?? []).map(
+    created_at: dto.created_at ?? null,
+    updated_at: dto.updatedAt ?? null,
+    items: (dto.items ?? []).map(
       (item): CompanyInvoiceItem => ({
         id: item.id,
         index: item.index,
@@ -82,73 +88,37 @@ export function normaliseCompanyInvoice(raw: RawCompanyInvoice): CompanyInvoice 
   };
 }
 
-export interface RawClientInvoiceListItem {
-  id: number;
-  invoiceNo?: string;
-  clientName?: string;
-  invoiceDate?: string;
-  total?: number;
-  createdAt?: string;
-  updatedAt?: string;
-  site_id?: number;
-  paymentStatus?: InvoicePaymentStatus;
-}
-
-export function normaliseClientInvoiceListItem(raw: RawClientInvoiceListItem): ClientInvoiceListItem {
+export function normaliseClientInvoiceListItem(dto: ClientInvoiceListItemDTO): ClientInvoiceListItem {
   return {
-    id: raw.id,
-    invoiceNo: raw.invoiceNo ?? '',
-    clientName: raw.clientName ?? '',
-    invoiceDate: raw.invoiceDate ?? '',
-    total: raw.total ?? 0,
-    createdAt: raw.createdAt ?? raw.updatedAt ?? '',
-    site_id: raw.site_id,
-    paymentStatus: raw.paymentStatus,
+    id: dto.id,
+    invoiceNo: dto.invoiceNo ?? '',
+    clientName: dto.clientName ?? '',
+    invoiceDate: dto.invoiceDate ?? '',
+    total: dto.total ?? 0,
+    createdAt: dto.createdAt ?? dto.updatedAt ?? '',
+    site_id: dto.site_id,
+    paymentStatus: dto.paymentStatus,
   };
 }
 
-export function normaliseClientInvoiceListItems(raw: RawClientInvoiceListItem[]): ClientInvoiceListItem[] {
-  return raw.map(normaliseClientInvoiceListItem);
+export function normaliseClientInvoiceListItems(dtos: ClientInvoiceListItemDTO[]): ClientInvoiceListItem[] {
+  return dtos.map(normaliseClientInvoiceListItem);
 }
 
-export interface RawClientInvoiceDetailItem {
-  id: number;
-  index: number;
-  particulars: string;
-  quantity: number;
-  unitPrice: number;
-  totalAmount: number;
-}
-
-export interface RawClientInvoiceDetail {
-  id: number;
-  invoiceNo?: string;
-  clientName?: string;
-  invoiceDate?: string;
-  notes?: string;
-  createdBy?: { id: number; name: string };
-  total?: number;
-  created_at?: string;
-  items?: RawClientInvoiceDetailItem[];
-  paymentStatus?: InvoicePaymentStatus;
-  totalPaid?: number | null;
-  remainingBalance?: number | null;
-}
-
-export function normaliseClientInvoiceDetail(raw: RawClientInvoiceDetail): ClientInvoiceDetail {
+export function normaliseClientInvoiceDetail(dto: ClientInvoiceDetailDTO): ClientInvoiceDetail {
   return {
-    id: raw.id,
-    invoiceNo: raw.invoiceNo ?? '',
-    clientName: raw.clientName ?? '',
-    invoiceDate: raw.invoiceDate ?? '',
-    notes: raw.notes,
-    createdBy: raw.createdBy ?? { id: 0, name: '' },
-    total: raw.total ?? 0,
-    created_at: raw.created_at ?? '',
-    paymentStatus: raw.paymentStatus ?? InvoicePaymentStatus.PENDING,
-    totalPaid: raw.totalPaid ?? null,
-    remainingBalance: raw.remainingBalance ?? null,
-    items: (raw.items ?? []).map(
+    id: dto.id,
+    invoiceNo: dto.invoiceNo ?? '',
+    clientName: dto.clientName ?? '',
+    invoiceDate: dto.invoiceDate ?? '',
+    notes: dto.notes,
+    createdBy: dto.createdBy ?? { id: 0, name: '' },
+    total: dto.total ?? 0,
+    created_at: dto.created_at ?? '',
+    paymentStatus: dto.paymentStatus ?? InvoicePaymentStatus.PENDING,
+    totalPaid: dto.totalPaid ?? null,
+    remainingBalance: dto.remainingBalance ?? null,
+    items: (dto.items ?? []).map(
       (item): ClientInvoiceDetailItem => ({
         id: item.id,
         index: item.index,
@@ -161,91 +131,51 @@ export function normaliseClientInvoiceDetail(raw: RawClientInvoiceDetail): Clien
   };
 }
 
-export interface RawSubcontractorInvoiceListItem {
-  id: number;
-  invoiceNo?: string;
-  contractorName?: string;
-  invoiceDate?: string;
-  total?: number;
-  createdAt?: string;
-  updatedAt?: string;
-  createdBy?: BriefUserInfo;
-  paymentStatus?: InvoicePaymentStatus;
-}
-
 export function normaliseSubcontractorInvoiceListItem(
-  raw: RawSubcontractorInvoiceListItem,
+  dto: SubcontractorInvoiceListItemDTO,
 ): SubcontractorInvoiceListItem {
   return {
-    id: raw.id,
-    invoiceNo: raw.invoiceNo ?? '',
-    contractorName: raw.contractorName ?? '',
-    invoiceDate: raw.invoiceDate ?? '',
-    total: raw.total ?? 0,
-    createdAt: raw.createdAt ?? raw.updatedAt ?? '',
-    createdBy: raw.createdBy,
-    paymentStatus: raw.paymentStatus,
+    id: dto.id,
+    invoiceNo: dto.invoiceNo ?? '',
+    contractorName: dto.contractorName ?? '',
+    invoiceDate: dto.invoiceDate ?? '',
+    total: dto.total ?? 0,
+    createdAt: dto.createdAt ?? dto.updatedAt ?? '',
+    createdBy: dto.createdBy,
+    paymentStatus: dto.paymentStatus,
   };
 }
 
 export function normaliseSubcontractorInvoiceListItems(
-  raw: RawSubcontractorInvoiceListItem[],
+  dtos: SubcontractorInvoiceListItemDTO[],
 ): SubcontractorInvoiceListItem[] {
-  return raw.map(normaliseSubcontractorInvoiceListItem);
-}
-
-export interface RawSubcontractorInvoiceDetail {
-  id: number;
-  invoiceNo?: string;
-  contractorName?: string;
-  invoiceDate?: string;
-  notes?: string | null;
-  createdBy?: BriefUserInfo;
-  total?: number;
-  created_at?: string;
-  items?: LineItem[];
-  paymentStatus?: InvoicePaymentStatus;
+  return dtos.map(normaliseSubcontractorInvoiceListItem);
 }
 
 export function normaliseSubcontractorInvoiceDetail(
-  raw: RawSubcontractorInvoiceDetail,
+  dto: SubcontractorInvoiceDetailDTO,
 ): SubcontractorInvoiceDetail {
   return {
-    id: raw.id,
-    invoiceNo: raw.invoiceNo ?? '',
-    contractorName: raw.contractorName ?? '',
-    invoiceDate: raw.invoiceDate ?? '',
-    notes: raw.notes ?? null,
-    createdBy: raw.createdBy ?? { name: '', email: '', phone: '' },
-    total: raw.total ?? 0,
-    created_at: raw.created_at ?? '',
-    items: raw.items ?? [],
-    paymentStatus: raw.paymentStatus,
+    id: dto.id,
+    invoiceNo: dto.invoiceNo ?? '',
+    contractorName: dto.contractorName ?? '',
+    invoiceDate: dto.invoiceDate ?? '',
+    notes: dto.notes ?? null,
+    createdBy: dto.createdBy ?? { name: '', email: '', phone: '' },
+    total: dto.total ?? 0,
+    created_at: dto.created_at ?? '',
+    items: dto.items ?? [],
+    paymentStatus: dto.paymentStatus,
   };
 }
 
-export interface RawPaymentRecord {
-  id: number;
-  amount: number;
-  payment_date: string;
-  notes?: string | null;
-  recorded_by?: string | null;
-}
-
-export interface RawPaymentHistory {
-  invoice_id: number;
-  total_invoice_value: number;
-  total_paid: number;
-  remaining_balance: number;
-  payments?: RawPaymentRecord[];
-}
-export function normalisePaymentHistory(raw: RawPaymentHistory): PaymentHistory {
+export function normalisePaymentHistory(dto: PaymentHistoryDTO): PaymentHistory {
   return {
-    invoice_id: raw.invoice_id,
-    total_invoice_value: raw.total_invoice_value ?? 0,
-    total_paid: raw.total_paid ?? 0,
-    remaining_balance: raw.remaining_balance ?? 0,
-    payments: (raw.payments ?? []).map(
+    invoice_id: dto.invoice_id,
+    total_invoice_value: dto.total_invoice_value ?? 0,
+    total_paid: dto.total_paid ?? 0,
+    remaining_balance: dto.remaining_balance ?? 0,
+    payments: (dto.payments ?? []).map(
       (p): PaymentRecord => ({
         id: p.id,
         amount: p.amount,
@@ -257,13 +187,13 @@ export function normalisePaymentHistory(raw: RawPaymentHistory): PaymentHistory 
   };
 }
 
-export function normaliseSubcontractorPaymentHistory(raw: RawPaymentHistory): PaymentHistorySummary {
+export function normaliseSubcontractorPaymentHistory(dto: PaymentHistoryDTO): PaymentHistorySummary {
   return {
-    invoiceId: raw.invoice_id,
-    totalInvoiceValue: raw.total_invoice_value ?? 0,
-    totalPaid: raw.total_paid ?? 0,
-    remainingBalance: raw.remaining_balance ?? 0,
-    payments: (raw.payments ?? []).map(
+    invoiceId: dto.invoice_id,
+    totalInvoiceValue: dto.total_invoice_value ?? 0,
+    totalPaid: dto.total_paid ?? 0,
+    remainingBalance: dto.remaining_balance ?? 0,
+    payments: (dto.payments ?? []).map(
       (p): PaymentHistoryEntry => ({
         id: p.id,
         amount: p.amount,

@@ -7,15 +7,15 @@ import {
   normalisePermitDetail,
   normalisePendingApprovals,
   normalisePermitCategories,
-  type RawPermitListItem,
-  type RawPermitDetail,
-  type RawPermitApproval,
-  type RawPermitCategory,
 } from "@/lib/mappers/permit-mappers";
 import {
   PermitListItem,
+  PermitListItemDTO,
   PermitDetail,
+  PermitDetailDTO,
   PermitCategory,
+  PermitCategoryDTO,
+  PermitApprovalDTO,
   PendingApprovalItem,
   CreatePermitPayload,
 } from "@/types/permits";
@@ -33,7 +33,7 @@ export function resolveErrorMessage(err: unknown, fallback: string): string {
 
 export async function fetchMyPermits(): Promise<PermitListItem[]> {
   const { data } = await api.get(API.permits.myPermits);
-  return normalisePermitListItems(unwrapArray<RawPermitListItem>(data));
+  return normalisePermitListItems(unwrapArray<PermitListItemDTO>(data));
 }
 
 interface FetchAllPermitsParams {
@@ -53,7 +53,7 @@ export async function fetchAllPermits(params: FetchAllPermitsParams = {}): Promi
   const { data } = await api.get(API.permits.all, {
     params: { skip, limit, ...(status ? { status } : {}) },
   });
-  const items = normalisePermitListItems(unwrapArray<RawPermitListItem>(data));
+  const items = normalisePermitListItems(unwrapArray<PermitListItemDTO>(data));
   const inner = unwrapObject<{ total?: number }>(data);
   const total = inner?.total ?? items.length;
   return { items, total, skip };
@@ -61,8 +61,8 @@ export async function fetchAllPermits(params: FetchAllPermitsParams = {}): Promi
 
 export async function fetchPermitDetail(id: number): Promise<PermitDetail | null> {
   const { data } = await api.get(API.permits.get(id));
-  const raw = unwrapObject<RawPermitDetail | null>(data);
-  return raw ? normalisePermitDetail(raw) : null;
+  const dto = unwrapObject<PermitDetailDTO | null>(data);
+  return dto ? normalisePermitDetail(dto) : null;
 }
 
 export async function fetchPermitDetailsBatch(ids: number[]): Promise<Record<number, PermitDetail>> {
@@ -106,12 +106,12 @@ export async function takePermitAction(
 
 export async function fetchPendingApprovals(): Promise<PendingApprovalItem[]> {
   const { data } = await api.get(API.permits.pending);
-  return normalisePendingApprovals(unwrapArray<RawPermitApproval>(data));
+  return normalisePendingApprovals(unwrapArray<PermitApprovalDTO>(data));
 }
 
 export async function fetchCategories(): Promise<PermitCategory[]> {
   const { data } = await api.get(API.permits.categories);
-  return normalisePermitCategories(unwrapArray<RawPermitCategory>(data));
+  return normalisePermitCategories(unwrapArray<PermitCategoryDTO>(data));
 }
 
 export async function createCategory(input: { name: string; description: string | null }) {

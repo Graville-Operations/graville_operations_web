@@ -23,6 +23,20 @@ export interface Site {
   field_operator_id: number | null;
 }
 
+export interface SiteBrief {
+  id: number;
+  name: string;
+}
+
+export interface SiteListItemDTO {
+  id: number;
+  name?: string;
+  location?: string | null;
+  projectStatus?: string;
+  siteStatus?: string;
+  deadlineDate?: string | null;
+}
+
 export interface FieldOperator {
   id: number;
   name: string;
@@ -50,6 +64,26 @@ export interface SiteDetail {
   operator?: FieldOperator | null;
 }
 
+export interface SiteDetailDTO {
+  id: number;
+  name?: string;
+  location?: string | null;
+  description?: string | null;
+  projectStatus?: string;
+  siteStatus?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  completionDate?: string | null;
+  tags?: string[];
+  tendererName?: string | null;
+  inquiringEntity?: string | null;
+  createdBy?: string | null;
+  createdAt?: string;
+  updatedAt?: string | null;
+  estimatedValue?: number;
+  operator?: unknown;
+}
+
 export interface SiteWorker {
   id: number;
   first_name: string;
@@ -62,6 +96,14 @@ export interface SiteWorker {
   status: string;
 }
 
+export interface SiteWorkerDTO {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  skill?: { id: number; name: string; amount: number } | null;
+  status?: string;
+}
+
 export interface AttendanceRecord {
   id: number;
   site_id: number;
@@ -72,29 +114,17 @@ export interface AttendanceRecord {
   nationalId: string | null;
 }
 
-export interface SubTask {
+export interface AttendanceRecordDTO {
   id: number;
-  name: string;
-  description: string | null;
-  status: string;
-  start_date: string | null;
-  end_date: string | null;
-  task_id: number;
-  completion_percentage: number;
-  assigned_workers: { id: number; first_name: string; last_name: string }[];
+  site_id?: number;
+  workerName?: string;
+  date?: string;
+  checkInTime?: string;
+  phone?: string | null;
+  nationalId?: string | null;
 }
 
-export interface SiteTask {
-  id: number;
-  name: string;
-  description: string | null;
-  status: string;
-  start_date: string | null;
-  end_date: string | null;
-  site_id: number;
-  created_by: number | null;
-  subtasks: SubTask[];
-}
+export type { Task as SiteTask, TaskDTO as SiteTaskDTO, SubTask, SubTaskDTO } from '@/lib/types';
 
 export interface CreateSitePayload {
   name: string;
@@ -114,10 +144,10 @@ export interface CreateSitePayload {
 export interface UpdateSitePayload {
   name?: string;
   location?: string;
-  description?: string;
   projectStatus?: string;
-  completionDate?: string;
+  completionDate?: string | null;
   tags?: string[];
+  description?: string;
   tenderName?: string;
   inquiringEntity?: string;
 }
@@ -143,16 +173,7 @@ export interface OverviewKPIs {
   presentToday: number;
 }
 
-export interface RawSite {
-  id: number;
-  name: string;
-  location?: string;
-  projectStatus?: string;
-  siteStatus?: string;
-  deadlineDate?: string;
-  completion_date?: string;
-  [key: string]: unknown;
-}
+export type OverviewKPIsDTO = Partial<OverviewKPIs>;
 
 export interface AttendanceSummary {
   site_id: number;
@@ -161,6 +182,15 @@ export interface AttendanceSummary {
   total: number;
   payouts: number;
   records: AttendanceRecord[];
+}
+
+export interface AttendanceSummaryDTO {
+  site_id?: number;
+  start_date?: string;
+  end_date?: string;
+  total?: number;
+  payouts?: number;
+  records?: AttendanceRecordDTO[];
 }
 
 export interface SubtaskBreakdown {
@@ -193,3 +223,5 @@ export interface SiteAnalytics {
   taskBreakdown: TaskBreakdownItem[];
   attendanceBreakdown: AttendanceBreakdownItem[];
 }
+
+export type SiteAnalyticsDTO = Partial<SiteAnalytics>;

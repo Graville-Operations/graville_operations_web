@@ -1,9 +1,9 @@
-import type { RawCreatedBy } from '@/types/invoice';
+import type { CreatedByDTO } from '@/types/invoice';
 import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
 
 export { InvoicePaymentStatus };
 
-export interface RawCompanyInvoiceItem {
+export interface CompanyInvoiceItemDTO {
   id: number;
   index: number;
   particulars: string;
@@ -11,11 +11,10 @@ export interface RawCompanyInvoiceItem {
   unitPrice: number;
   totalAmount: number;
 }
-
-export interface RawCompanyInvoice {
+export interface CompanyInvoiceDTO {
   id: number;
   invoiceNo: string;
-  invoicedBy: RawCreatedBy | string | null;
+  invoicedBy: CreatedByDTO | string | null;
   source?: string;
   requester?: string;
   invoiceDate: string;
@@ -24,7 +23,7 @@ export interface RawCompanyInvoice {
   paymentStatus?: InvoicePaymentStatus;
   created_at?: string;
   updatedAt?: string;
-  items?: RawCompanyInvoiceItem[];
+  items?: CompanyInvoiceItemDTO[];
 }
 
 export interface CompanyInvoiceItem {
@@ -52,6 +51,7 @@ export interface CompanyInvoice {
   updated_at: string | null;
   items: CompanyInvoiceItem[];
 }
+
 export interface PaymentRecord {
   id: number;
   amount: number;
@@ -66,4 +66,20 @@ export interface PaymentHistory {
   total_paid: number;
   remaining_balance: number;
   payments: PaymentRecord[];
+}
+
+export interface PaymentRecordDTO {
+  id: number;
+  amount: number;
+  payment_date: string;
+  notes?: string | null;
+  recorded_by?: string | null;
+}
+
+export interface PaymentHistoryDTO {
+  invoice_id: number;
+  total_invoice_value: number;
+  total_paid: number;
+  remaining_balance: number;
+  payments?: PaymentRecordDTO[];
 }

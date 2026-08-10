@@ -5,16 +5,16 @@ import {
   normaliseSubcontractorInvoiceListItems,
   normaliseSubcontractorInvoiceDetail,
   normaliseSubcontractorPaymentHistory,
-  type RawSubcontractorInvoiceListItem,
-  type RawSubcontractorInvoiceDetail,
-  type RawPaymentHistory,
 } from '@/lib/mappers/invoice-mappers';
 import type {
   SubcontractorInvoiceListItem,
+  SubcontractorInvoiceListItemDTO,
   SubcontractorInvoiceDetail,
+  SubcontractorInvoiceDetailDTO,
   NewSubcontractorInvoicePayload,
   PaymentHistorySummary,
 } from '@/types/subcontractor-invoice';
+import type { PaymentHistoryDTO } from '@/types/company_invoices';
 
 interface FetchInvoicesParams {
   siteId?: string;
@@ -37,7 +37,7 @@ export async function fetchSubcontractorInvoices(
   if (paymentStatus) params.payment_status = paymentStatus;
 
   const { data } = await api.get(API.subcontractorInvoices.all, { params });
-  const inner = unwrapObject<{ items?: RawSubcontractorInvoiceListItem[]; total?: number }>(data);
+  const inner = unwrapObject<{ items?: SubcontractorInvoiceListItemDTO[]; total?: number }>(data);
   const items = normaliseSubcontractorInvoiceListItems(inner?.items ?? []);
   const total = inner?.total ?? items.length;
   return { items, total };
@@ -47,7 +47,7 @@ export async function fetchSubcontractorInvoiceDetail(
   id: number,
 ): Promise<SubcontractorInvoiceDetail> {
   const { data } = await api.get(API.subcontractorInvoices.detail(id));
-  return normaliseSubcontractorInvoiceDetail(unwrapObject<RawSubcontractorInvoiceDetail>(data));
+  return normaliseSubcontractorInvoiceDetail(unwrapObject<SubcontractorInvoiceDetailDTO>(data));
 }
 
 export async function createSubcontractorInvoice(
@@ -75,5 +75,5 @@ export async function fetchSubcontractorInvoicePaymentHistory(
   id: number,
 ): Promise<PaymentHistorySummary> {
   const { data } = await api.get(API.invoiceActions.paymentHistory(INVOICE_TYPE, id));
-  return normaliseSubcontractorPaymentHistory(unwrapObject<RawPaymentHistory>(data));
+  return normaliseSubcontractorPaymentHistory(unwrapObject<PaymentHistoryDTO>(data));
 }

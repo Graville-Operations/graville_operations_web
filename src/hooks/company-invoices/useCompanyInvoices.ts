@@ -32,12 +32,12 @@ export function useCompanyInvoices() {
     async (start?: string, end?: string, status?: InvoicePaymentStatus | null) => {
       try {
         setIsLoading(true);
-        const raw = await fetchCompanyInvoices({
+        const dtos = await fetchCompanyInvoices({
           startDate: start,
           endDate: end,
           status: status ?? undefined,
         });
-        setInvoices(raw.map(normaliseCompanyInvoice));
+        setInvoices(dtos.map(normaliseCompanyInvoice));
       } catch (err) {
         console.error('Failed to fetch company invoices:', err);
       } finally {
