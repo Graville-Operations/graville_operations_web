@@ -36,13 +36,21 @@ export interface StoreSummary {
   overdue_tools: number;
 }
 
-
 export interface MaterialItem {
   id: number;
   name: string;
   unit: UnitBrief;
   quantity: number;
-  minimum_stock: number;
+  is_low_stock: boolean;
+}
+
+export interface MaterialItemDTO {
+  id: number;
+  name?: string;
+  unit?: UnitBrief;
+  quantity?: number;
+  is_low_stock?: boolean | null;
+  store_id?: number;
 }
 
 export interface StoreMaterial {
@@ -58,8 +66,21 @@ export interface ToolItem {
   id: number;
   name: string;
   status: ToolStatus | string;
-  hire_cost?: number;
   vendor?: string;
+  hire_end_date?: string;
+  total_hire_cost?: number;
+  is_overdue?: boolean;
+}
+
+export interface ToolItemDTO {
+  id: number;
+  name?: string;
+  status?: string;
+  vendor?: string | null;
+  hire_end_date?: string | null;
+  totalHireCost?: number | null;
+  is_overdue?: boolean | null;
+  store_id?: number;
 }
 
 export interface StoreTool {

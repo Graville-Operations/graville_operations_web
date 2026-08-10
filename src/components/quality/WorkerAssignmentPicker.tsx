@@ -1,11 +1,11 @@
 'use client';
 
 import { Loader2, AlertCircle, UserCircle2, Search, Check, Users } from 'lucide-react';
-import type { Worker } from '@/lib/types';
+import type { SiteWorker } from '@/types/site';
 import { getWorkerName, getWorkerSubtitle } from '@/lib/utils/worker-helpers';
 
 interface WorkerAssignmentPickerProps {
-  workers: Worker[];
+  workers: SiteWorker[];
   loading: boolean;
   error: string | null;
   selectedWorkers: number[];

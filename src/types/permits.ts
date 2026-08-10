@@ -2,6 +2,7 @@ import { PermitStatus } from '@/types/enums/permit-status';
 import { ApprovalStatus } from '@/types/enums/approval-status';
 
 export { PermitStatus, ApprovalStatus };
+export const STATUS_TABS = ["All", "Draft", "Pending", "In Review", "Approved", "Rejected"] as const;
 
 export interface PermitApproval {
   id:          number;
@@ -15,17 +16,38 @@ export interface PermitApproval {
   created_at:  string;
 }
 
+export interface PermitApprovalDTO {
+  id: number;
+  permit_id?: number;
+  approver_id?: number;
+  approver?: string;
+  step_order?: number;
+  status?: string;
+  comment?: string | null;
+  actioned_at?: string | null;
+  created_at?: string;
+}
+
 export interface PermitListItem {
-  [x: string]: string | number | null | undefined;
   id:           number;
   title:        string;
   status:       PermitStatus;
   current_step: number;
-  site_id:      number;
+  site:         string;
   category_id:  number;
   categoryName: string;
-  created_at:   string;
-  updated_at:   string | null; 
+  updated_at:   string | null;
+}
+
+export interface PermitListItemDTO {
+  id: number;
+  title?: string;
+  status?: string;
+  current_step?: number;
+  site?: string;
+  category_id?: number;
+  categoryName?: string;
+  updated_at?: string;
 }
 
 export interface PermitDetail {
@@ -45,6 +67,23 @@ export interface PermitDetail {
   approvals:      PermitApproval[];
 }
 
+export interface PermitDetailDTO {
+  id: number;
+  title?: string;
+  description?: string | null;
+  status?: string;
+  currentStep?: number;
+  siteId?: number;
+  siteName?: string;
+  categoryId?: number;
+  permitCategory?: string;
+  requested_by?: number | null;
+  requester?: string;
+  created_at?: string;
+  updated_at?: string | null;
+  approvals?: PermitApprovalDTO[];
+}
+
 export interface PermitCategory {
   id:          number;
   name:        string;
@@ -52,18 +91,14 @@ export interface PermitCategory {
   is_active:   boolean;
 }
 
-export interface PendingApprovalItem {
-  id:          number;
-  permit_id:   number;
-  approver_id: number;
-  approver:    string; 
-  step_order:  number;
-  status:      ApprovalStatus;
-  comment:     string | null;
-  actioned_at: string | null;
-  created_at:  string;
-  updated_at:  string;
+export interface PermitCategoryDTO {
+  id: number;
+  name?: string;
+  description?: string | null;
+  isActive?: boolean;
+  is_active?: boolean;
 }
+export type PendingApprovalItem = PermitApproval;
 
 export interface ApproverStep {
   approver_id: number;

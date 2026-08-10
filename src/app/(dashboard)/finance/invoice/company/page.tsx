@@ -3,9 +3,9 @@
 import { Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCompanyInvoices } from '@/hooks/company-invoices/useCompanyInvoices';
-import SearchInput from '@/components/finance/suppliers/SearchInput';
-import CompanyDateFilterDropdown from '@/components/finance/company/DateFilterDropdown';
-import StatusFilterDropdown from '@/components/finance/company/StatusFilterDropdown';
+import SearchInput from '@/components/finance/shared/SearchInput';
+import DateFilterDropdown from '@/components/finance/shared/DateFilterDropdown';
+import StatusFilterDropdown from '@/components/finance/shared/StatusFilterDropdown';
 import CompanyInvoicesTable from '@/components/finance/company/CompanyInvoicesTable';
 import CompanyInvoiceCards from '@/components/finance/company/CompanyInvoiceCards';
 import { ROUTES } from '@/lib/routes';
@@ -17,6 +17,8 @@ export default function CompanyInvoicesPage() {
     isLoading,
     search,
     setSearch,
+    dateFrom,
+    dateTo,
     appliedLabel,
     applyDateFilter,
     clearDateFilter,
@@ -54,7 +56,9 @@ export default function CompanyInvoicesPage() {
             placeholder="Search by invoice no, invoiced by..."
           />
 
-          <CompanyDateFilterDropdown
+          <DateFilterDropdown
+            from={dateFrom}
+            to={dateTo}
             appliedLabel={appliedLabel}
             onApply={applyDateFilter}
             onClear={clearDateFilter}

@@ -1,16 +1,25 @@
 'use client';
 
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { Calendar } from 'lucide-react';
-import { RawSite } from '@/types/site';
+import { Site } from '@/types/site';
+
+
 import { PROJECT_STATUS_META, normProjectStatus } from '@/lib/utils/site-helpers';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 
-export function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void }) {
-  const ps         = normProjectStatus(site.projectStatus ?? '');
+function formatDeadline(dateStr?: string | null) {
+  if (!dateStr) return null;
+  const d = parseISO(dateStr);
+  return isValid(d) ? format(d, 'dd MMM yyyy') : null;
+}
+
+export function SiteCard({ site, onClick }: { site: Site; onClick: () => void }) {
+   const ps         = normProjectStatus(site.project_status ?? '');
   const statusMeta = PROJECT_STATUS_META[ps];
 
   const pct = 0;
+  const deadline = formatDeadline(site.completion_date);
 
   return (
     <div onClick={onClick}
@@ -21,16 +30,10 @@ export function SiteCard({ site, onClick }: { site: RawSite; onClick: () => void
           {statusMeta.label}
         </span>
       </div>
-      {site.deadlineDate && (
-        <div className="flex items-center gap-2 text-lg" style={{ color: 'var(--gv-text-muted)' }}>
-          <Calendar className="w-4 h-4 flex-shrink-0" />
-          <span>Deadline: {site.deadlineDate}</span>
-        </div>
-      )}
-      {!site.deadlineDate && site.completion_date && (
+      {deadline && (
         <div className="flex items-center gap-2 text-base" style={{ color: 'var(--gv-text-muted)' }}>
           <Calendar className="w-4 h-4 flex-shrink-0" />
-          <span>Deadline: {format(new Date(site.completion_date), 'dd MMM yyyy')}</span>
+          <span>Deadline: {deadline}</span>
         </div>
       )}
       <div className="flex flex-col gap-1.5 mt-1">

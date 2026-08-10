@@ -1,16 +1,26 @@
-export type TaskStatus = "pending" | "in_progress" | "completed";
-export type SubTaskStatus = "pending" | "in_progress" | "completed";
+import type { SiteBrief } from '@/types/site';
 
-export interface Site {
+export type TaskStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "ON_HOLD";
+export type SubTaskStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export type Site = SiteBrief;
+export interface QualitySiteDTO {
   id: number;
-  name: string;
+  name?: string;
 }
 
 export interface Worker {
   id: number;
-  name: string;
-  role?: string;
-  department?: string;
+  first_name: string;
+  last_name: string;
+  skill: { id: number; name: string; amount: number } | null;
+}
+
+export interface WorkerBriefDTO {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  skill?: { id: number; name: string; amount: number } | null;
 }
 
 export interface Task {
@@ -21,7 +31,20 @@ export interface Task {
   start_date: string;
   end_date: string;
   site_id: number;
+  created_by?: number | null;
   subtasks?: SubTask[];
+}
+
+export interface TaskDTO {
+  id: number;
+  name?: string;
+  description?: string | null;
+  status?: string;
+  start_date?: string;
+  end_date?: string;
+  site_id?: number;
+  created_by?: number | null;
+  subtasks?: SubTaskDTO[];
 }
 
 export interface SubTask {
@@ -32,6 +55,16 @@ export interface SubTask {
   completion_percentage: number;
   task_id: number;
   assigned_workers?: Worker[];
+}
+
+export interface SubTaskDTO {
+  id: number;
+  name?: string;
+  description?: string | null;
+  status?: string;
+  completion_percentage?: number;
+  task_id?: number;
+  assigned_workers?: WorkerBriefDTO[];
 }
 
 export interface PaginatedResponse<T> {

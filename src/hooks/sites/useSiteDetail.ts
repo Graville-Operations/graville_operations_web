@@ -5,7 +5,6 @@ import { format, parseISO } from 'date-fns';
 import { fetchSiteById, fetchSiteAnalytics, updateSite } from '@/lib/api/sites';
 import { fetchAttendanceSummary } from '@/lib/api/attendance';
 import { SiteAnalytics, AttendanceRecord, SiteDetail, UpdateSitePayload } from '@/types/site';
-import { normalizeTaskBreakdown } from '@/lib/utils/site-helpers';
 import { useSiteStore } from '@/store/site-store';
 
 export function useSiteDetail(siteId: number) {
@@ -28,18 +27,10 @@ export function useSiteDetail(siteId: number) {
 
   const fetchSitesAction = useSiteStore((s) => s.fetchSites);
 
-  const loadAnalytics = useCallback(() => {
+ const loadAnalytics = useCallback(() => {
     setLoadingAnalytics(true);
     fetchSiteAnalytics(siteId)
-      .then((a) => {
-        if (!a) { setAnalytics(a); return; }
-        const rawTaskBreakdown =
-          (a as unknown as Record<string, unknown>).taskBreakdown ??
-          (a as unknown as Record<string, unknown>).task_breakdown ??
-          (a as unknown as Record<string, unknown>).tasks ??
-          (a as unknown as Record<string, unknown>).task_list;
-        setAnalytics({ ...a, taskBreakdown: normalizeTaskBreakdown(rawTaskBreakdown) });
-      })
+      .then(setAnalytics)
       .catch(() => {})
       .finally(() => setLoadingAnalytics(false));
   }, [siteId]);

@@ -31,14 +31,13 @@ export function FieldOperatorCard({ siteId, operator, loading, onOperatorChange 
     function handleClickOutside(e: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setShowAssignDropdown(false);
-        setShowReplaceDropdown(false);
       }
     }
-    if (showAssignDropdown || showReplaceDropdown) {
+    if (showAssignDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showAssignDropdown, showReplaceDropdown]);
+  }, [showAssignDropdown]);
 
   const openAssignDropdown = () => {
     setShowAssignDropdown((prev) => {
@@ -118,7 +117,7 @@ export function FieldOperatorCard({ siteId, operator, loading, onOperatorChange 
   }
 
   return (
-    <div className="relative" ref={wrapperRef}>
+    <div className="relative inline-block" ref={wrapperRef}>
       <div
         className="inline-flex items-center gap-6 px-4 py-3 rounded-xl"
         style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}
@@ -152,50 +151,62 @@ export function FieldOperatorCard({ siteId, operator, loading, onOperatorChange 
 
       {showReplaceDropdown && (
         <div
-          className="absolute z-40 right-0 mt-2 w-72"
-          style={{
-            background: 'var(--gv-glass-bg-strong)',
-            border: '1px solid var(--gv-glass-border)',
-            borderRadius: '0.75rem',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setShowReplaceDropdown(false); }}
         >
-          <OperatorPicker
-            operators={unassignedOperators}
-            loading={loadingUnassigned}
-            submitting={replacing}
-            confirmLabel="Replace Operator"
-            onConfirm={handleReplace}
-            onCancel={() => setShowReplaceDropdown(false)}
-            emptyMessage="No unassigned operators available"
-          />
+          <div
+            className="w-full max-w-sm"
+            style={{
+              background: 'var(--gv-glass-bg-strong)',
+              border: '1px solid var(--gv-glass-border)',
+              borderRadius: '0.75rem',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+            }}
+          >
+            <OperatorPicker
+              operators={unassignedOperators}
+              loading={loadingUnassigned}
+              submitting={replacing}
+              confirmLabel="Replace Operator"
+              onConfirm={handleReplace}
+              onCancel={() => setShowReplaceDropdown(false)}
+              emptyMessage="No unassigned operators available"
+            />
+          </div>
         </div>
       )}
 
       {confirmingUnassign && (
         <div
-          className="absolute z-40 right-0 mt-2 w-72 p-4 rounded-xl"
-          style={{
-            background: 'var(--gv-glass-bg-strong)',
-            border: '1px solid var(--gv-glass-border)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmingUnassign(false); }}
         >
-          <p className="text-sm mb-3" style={{ color: 'var(--gv-text-muted)' }}>
-            Unassign {operator.name} from this site?
-          </p>
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setConfirmingUnassign(false)} disabled={unassigning}>
-              Cancel
-            </Button>
-            <Button variant="destructive" size="sm" onClick={handleUnassign} disabled={unassigning}>
-              {unassigning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}
-              {unassigning ? 'Unassigning…' : 'Confirm'}
-            </Button>
+          <div
+            className="w-full max-w-sm p-4 rounded-xl"
+            style={{
+              background: 'var(--gv-glass-bg-strong)',
+              border: '1px solid var(--gv-glass-border)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+            }}
+          >
+            <p className="text-sm mb-3" style={{ color: 'var(--gv-text-muted)' }}>
+              Unassign {operator.name} from this site?
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmingUnassign(false)} disabled={unassigning}>
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleUnassign} disabled={unassigning}>
+                {unassigning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserMinus className="w-3.5 h-3.5" />}
+                {unassigning ? 'Unassigning…' : 'Confirm'}
+              </Button>
+            </div>
           </div>
         </div>
       )}

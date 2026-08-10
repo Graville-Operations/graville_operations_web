@@ -11,8 +11,8 @@ import CompanyInvoiceMetaCard from '@/components/finance/company/CompanyInvoiceM
 import CompanyInvoiceLineItems from '@/components/finance/company/CompanyInvoiceLineItems';
 import CompanyInvoiceSummary from '@/components/finance/company/CompanyInvoiceSummary';
 import CompanyInvoiceNotes from '@/components/finance/company/CompanyInvoiceNotes';
-import RejectInvoiceModal from '@/components/finance/company/RejectInvoiceModal';
-import RecordPaymentModal from '@/components/finance/company/RecordPaymentModal';
+import RejectInvoiceModal from '@/components/finance/shared/RejectInvoiceModal';
+import RecordPaymentModal from '@/components/finance/shared/RecordPaymentModal';
 import { InvoicePaymentStatus } from '@/types/company_invoices';
 import { ROUTES } from '@/lib/routes';
 

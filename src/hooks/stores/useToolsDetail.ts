@@ -5,10 +5,10 @@ import { useApi } from '@/hooks/useApi';
 import { useCachedLookup } from '@/hooks/useCachedLookup';
 import { API } from '@/lib/endpoints';
 import { fetchToolsPage } from '@/lib/api/store';
+import { extractPagedList } from '@/lib/api-response';
 import type { ToolItem, PagedResponse, Site } from '@/types/store';
 import { ToolTab } from '@/types/enums/tool-tab';
 const LIMIT = 20;
-
 export const TOOL_TABS: { key: ToolTab; label: string }[] = [
   { key: ToolTab.ALL,       label: 'All'       },
   { key: ToolTab.AVAILABLE, label: 'Available' },
@@ -30,8 +30,7 @@ const TAB_OPTIONS: Record<ToolTab, { params: Record<string, unknown> }> = {
 };
 
 function extractList<T>(data: T[] | PagedResponse<T> | null | undefined): T[] {
-  if (!data) return [];
-  return Array.isArray(data) ? data : (data.items ?? []);
+  return extractPagedList(data);
 }
 
 export function useToolsDetail(siteId: number) {

@@ -1,12 +1,13 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { unwrapArray, unwrapObject } from '@/lib/api-response';
+import { normaliseCompanyInvoice, normalisePaymentHistory } from '@/lib/mappers/invoice-mappers';
 import {
   CompanyInvoice,
-  RawCompanyInvoice,
-  normaliseCompanyInvoice,
+  CompanyInvoiceDTO,
   InvoicePaymentStatus,
   PaymentHistory,
+  PaymentHistoryDTO,
 } from '@/types/company_invoices';
 
 export interface CompanyInvoiceFilters {
@@ -17,19 +18,19 @@ export interface CompanyInvoiceFilters {
 
 export async function fetchCompanyInvoices(
   filters: CompanyInvoiceFilters = {}
-): Promise<RawCompanyInvoice[]> {
+): Promise<CompanyInvoiceDTO[]> {
   const params: Record<string, string> = {};
   if (filters.startDate) params.start_date = filters.startDate;
   if (filters.endDate)   params.end_date   = filters.endDate;
   if (filters.status)    params.payment_status = filters.status;
 
   const { data } = await api.get(API.companyInvoices.all, { params });
-  return unwrapArray<RawCompanyInvoice>(data);
+  return unwrapArray<CompanyInvoiceDTO>(data);
 }
 
 export async function fetchCompanyInvoiceDetail(id: string): Promise<CompanyInvoice> {
   const { data } = await api.get(API.companyInvoices.detail(id));
-  return normaliseCompanyInvoice(unwrapObject<RawCompanyInvoice>(data));
+  return normaliseCompanyInvoice(unwrapObject<CompanyInvoiceDTO>(data));
 }
 
 export interface CreateCompanyInvoiceItemPayload {
@@ -89,5 +90,5 @@ export async function fetchCompanyInvoicePaymentHistory(
   id: number | string
 ): Promise<PaymentHistory> {
   const { data } = await api.get(API.invoiceActions.paymentHistory('company', id));
-  return unwrapObject<PaymentHistory>(data);
+  return normalisePaymentHistory(unwrapObject<PaymentHistoryDTO>(data));
 }

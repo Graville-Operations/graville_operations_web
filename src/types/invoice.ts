@@ -1,7 +1,13 @@
 import { InvoicePaymentStatus } from '@/types/enums/invoice-payment-status';
 import { PaymentHistory } from '@/types/company_invoices';
 
-export interface RawInvoiceItem {
+export interface CreatedByDTO {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export interface SupplierInvoiceItemDTO {
   id: number;
   index: number;
   materialName: string;
@@ -10,13 +16,7 @@ export interface RawInvoiceItem {
   totalMaterialPrice: number;
 }
 
-export interface RawCreatedBy {
-  name: string;
-  email: string;
-  phone: string;
-}
-
-export interface RawInvoice {
+export interface SupplierInvoiceDTO {
   id: number;
   invoiceNo: string;
   deliveryNo: string | null;
@@ -24,7 +24,7 @@ export interface RawInvoice {
   supplierName: string;
   invoiceDate: string;
   notes: string | null;
-  createdBy: RawCreatedBy | null;
+  createdBy: CreatedByDTO | null;
   created_at: string;
   requester: string | null;
   source: string | null;
@@ -32,7 +32,7 @@ export interface RawInvoice {
   total: number;
   amountPaid: number;
   paymentStatus?: InvoicePaymentStatus;
-  items: RawInvoiceItem[];
+  items: SupplierInvoiceItemDTO[];
 }
 
 export interface RawPaginatedResponse<T> {
@@ -74,35 +74,6 @@ export interface Invoice {
   submitted_by_id: number;
   notes: string | null;
   created_at: string | null;
-}
-
-export function normaliseInvoice(raw: RawInvoice): Invoice {
-  return {
-    id:                raw.id,
-    invoice_number:    raw.invoiceNo,
-    lpo_number:        raw.lpoNo      ?? null,
-    delivery_number:   raw.deliveryNo ?? null,
-    supplier_name:     raw.supplierName,
-    invoice_date:      raw.invoiceDate,
-    total_amount:      raw.total,
-    amount_paid:       raw.amountPaid  ?? 0,
-    status:            raw.paymentStatus ?? InvoicePaymentStatus.PENDING,
-    total_paid:        null,
-    remaining_balance: null,
-    site:              raw.source      ?? null,
-    submitted_by:      raw.requester   ?? raw.createdBy?.name ?? null,
-    submitted_by_id:   0,
-    notes:             raw.notes       ?? null,
-    created_at:        raw.created_at  ?? raw.updatedAt ?? null,
-    items: (raw.items ?? []).map((item) => ({
-      id:          item.id,
-      index:       item.index,
-      particular:  item.materialName,
-      quantity:    item.quantity,
-      unit_price:  item.unitPrice,
-      total_price: item.totalMaterialPrice,
-    })),
-  };
 }
 
 export { InvoicePaymentStatus };

@@ -2,9 +2,15 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { CompanyInvoice, InvoicePaymentStatus, normaliseCompanyInvoice } from '@/types/company_invoices';
+import { CompanyInvoice, InvoicePaymentStatus } from '@/types/company_invoices';
+import { normaliseCompanyInvoice } from '@/lib/mappers/invoice-mappers';
 import { fetchCompanyInvoices } from '@/lib/api/company-invoices';
 import { ROUTES } from '@/lib/routes';
+
+function formatDateLabel(start?: string, end?: string): string {
+  if (start && end) return start === end ? start : `${start} → ${end}`;
+  return start || end || '';
+}
 
 export function useCompanyInvoices() {
   const router = useRouter();
@@ -12,9 +18,10 @@ export function useCompanyInvoices() {
   const [invoices, setInvoices]         = useState<CompanyInvoice[]>([]);
   const [isLoading, setIsLoading]       = useState(true);
   const [search, setSearch]             = useState('');
-  const [appliedLabel, setAppliedLabel] = useState('');
   const [dateRange, setDateRange]       = useState<{ start?: string; end?: string }>({});
   const [statusFilter, setStatusFilterState] = useState<InvoicePaymentStatus | null>(null);
+
+  const appliedLabel = formatDateLabel(dateRange.start, dateRange.end);
 
   const filtersRef = useRef({ dateRange, statusFilter });
   useEffect(() => {
@@ -25,12 +32,12 @@ export function useCompanyInvoices() {
     async (start?: string, end?: string, status?: InvoicePaymentStatus | null) => {
       try {
         setIsLoading(true);
-        const raw = await fetchCompanyInvoices({
+        const dtos = await fetchCompanyInvoices({
           startDate: start,
           endDate: end,
           status: status ?? undefined,
         });
-        setInvoices(raw.map(normaliseCompanyInvoice));
+        setInvoices(dtos.map(normaliseCompanyInvoice));
       } catch (err) {
         console.error('Failed to fetch company invoices:', err);
       } finally {
@@ -44,10 +51,6 @@ export function useCompanyInvoices() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadInvoices();
   }, [loadInvoices]);
-
-  // Refetch whenever the page becomes visible again (e.g. navigating back
-  // from a detail page after a status update or payment) or the window
-  // regains focus, so the table never shows stale payment statuses.
   useEffect(() => {
     const refetch = () => {
       const { dateRange: dr, statusFilter: sf } = filtersRef.current;
@@ -78,16 +81,14 @@ export function useCompanyInvoices() {
   }, [invoices, search]);
 
   const applyDateFilter = useCallback(
-    (start: string | undefined, end: string | undefined, label: string) => {
-      setDateRange({ start, end });
-      setAppliedLabel(label);
-      loadInvoices(start, end, statusFilter);
+    (start: string, end: string) => {
+      setDateRange({ start: start || undefined, end: end || undefined });
+      loadInvoices(start || undefined, end || undefined, statusFilter);
     },
     [loadInvoices, statusFilter]
   );
 
   const clearDateFilter = useCallback(() => {
-    setAppliedLabel('');
     setDateRange({});
     loadInvoices(undefined, undefined, statusFilter);
   }, [loadInvoices, statusFilter]);
@@ -124,6 +125,8 @@ export function useCompanyInvoices() {
     isLoading,
     search,
     setSearch,
+    dateFrom: dateRange.start ?? '',
+    dateTo: dateRange.end ?? '',
     appliedLabel,
     applyDateFilter,
     clearDateFilter,

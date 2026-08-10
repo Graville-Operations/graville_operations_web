@@ -6,7 +6,7 @@ import { PermitListItem, PermitDetail } from "@/types/permits";
 
 const PAGE_SIZE = 20;
 
-export const STATUS_TABS = ["All", "Draft", "Pending", "In Review", "Approved", "Rejected"] as const;
+export { STATUS_TABS } from "@/types/permits";
 
 export function useAllPermits() {
   const isAuthorized = true;

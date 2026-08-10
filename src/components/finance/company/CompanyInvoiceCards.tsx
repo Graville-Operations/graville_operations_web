@@ -2,19 +2,7 @@
 
 import { CompanyInvoice } from '@/types/company_invoices';
 import EmptyState from '@/components/ui/emptystate';
-
-function ShimmerCard() {
-  return (
-    <div className="gv-card space-y-3" style={{ padding: '14px 16px' }}>
-      <div className="flex justify-between">
-        <div className="h-3.5 w-24 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} />
-        <div className="h-3.5 w-16 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} />
-      </div>
-      <div className="h-3 w-32 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} />
-      <div className="h-3 w-20 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} />
-    </div>
-  );
-}
+import { InvoiceCardSkeleton } from '@/components/shared/Shimmer';
 
 interface CompanyInvoiceCardsProps {
   invoices: CompanyInvoice[];
@@ -34,7 +22,7 @@ export default function CompanyInvoiceCards({
   return (
     <div className="space-y-2 md:hidden">
       {isLoading ? (
-        Array.from({ length: 4 }).map((_, i) => <ShimmerCard key={i} />)
+        Array.from({ length: 4 }).map((_, i) => <InvoiceCardSkeleton key={i} />)
       ) : invoices.length === 0 ? (
         <EmptyState
           title={hasFilter ? 'No results for your filter' : 'No company invoices yet'}

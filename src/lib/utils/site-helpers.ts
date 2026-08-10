@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { AttendanceRecord, SiteAnalytics, AttendanceSummary } from '@/types/site';
+import { AttendanceRecord } from '@/types/site';
 import { SiteStatus } from '@/types/enums/site-status';
 import { ProjectStatus } from '@/types/enums/project-status';
 
@@ -53,64 +53,6 @@ export function getAllowedNextProjectStatuses(current: ProjectStatus): ProjectSt
 
 export function isProjectStatusLocked(status: ProjectStatus): boolean {
   return status === ProjectStatus.COMPLETED || status === ProjectStatus.CANCELLED;
-}
-
-export function unwrapAttendanceSummary(raw: unknown): AttendanceSummary | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const obj = raw as Record<string, unknown>;
-  if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
-    const d = obj.data as Record<string, unknown>;
-    if (Array.isArray(d.records)) return d as unknown as AttendanceSummary;
-  }
-  return null;
-}
-
-export function unwrapObject<T>(raw: unknown): T {
-  if (raw && typeof raw === 'object') {
-    const obj = raw as Record<string, unknown>;
-    if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
-      return obj.data as T;
-    }
-  }
-  return raw as T;
-}
-
-export function unwrapAnalytics(raw: unknown): SiteAnalytics | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const obj = raw as Record<string, unknown>;
-  if (obj.data && typeof obj.data === 'object') return obj.data as SiteAnalytics;
-  return raw as SiteAnalytics;
-}
-
-export function normalizeSubtaskBreakdown(raw: unknown) {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((s) => {
-    const obj = (s ?? {}) as Record<string, unknown>;
-    const pctRaw =
-      obj.completionPercentage ?? obj.completion_percentage ??
-      obj.percentage ?? obj.percent ?? obj.progress ?? 0;
-    const pct = typeof pctRaw === 'number' ? pctRaw : Number(pctRaw) || 0;
-    const nameRaw = obj.subtaskName ?? obj.subtask_name ?? obj.name ?? obj.title ?? '';
-    return {
-      subtaskName: String(nameRaw),
-      completionPercentage: pct,
-    };
-  });
-}
-
-export function normalizeTaskBreakdown(raw: unknown) {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((t) => {
-    const obj = (t ?? {}) as Record<string, unknown>;
-    const nameRaw = obj.taskName ?? obj.task_name ?? obj.name ?? obj.title ?? '';
-    const subtasksRaw =
-      obj.subtaskBreakdown ?? obj.subtask_breakdown ??
-      obj.subtasks ?? obj.sub_tasks ?? obj.items ?? [];
-    return {
-      taskName: String(nameRaw),
-      subtaskBreakdown: normalizeSubtaskBreakdown(subtasksRaw),
-    };
-  });
 }
 
 export function safeFormat(value: unknown, fmt: string): string | null {

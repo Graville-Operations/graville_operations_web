@@ -28,6 +28,18 @@ export interface SubcontractorInvoiceListItem {
   paymentStatus?: InvoicePaymentStatus;
 }
 
+export interface SubcontractorInvoiceListItemDTO {
+  id: number;
+  invoiceNo?: string;
+  contractorName?: string;
+  invoiceDate?: string;
+  total?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: BriefUserInfo;
+  paymentStatus?: InvoicePaymentStatus;
+}
+
 export interface SubcontractorInvoiceDetail {
   id: number;
   invoiceNo: string;
@@ -38,6 +50,19 @@ export interface SubcontractorInvoiceDetail {
   total: number;
   created_at: string;
   items: LineItem[];
+  paymentStatus?: InvoicePaymentStatus;
+}
+
+export interface SubcontractorInvoiceDetailDTO {
+  id: number;
+  invoiceNo?: string;
+  contractorName?: string;
+  invoiceDate?: string;
+  notes?: string | null;
+  createdBy?: BriefUserInfo;
+  total?: number;
+  created_at?: string;
+  items?: LineItem[];
   paymentStatus?: InvoicePaymentStatus;
 }
 

@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { Site } from '@/types/site';
+
+interface SiteOption {
+  id: number | string;
+  name: string;
+}
 
 interface SiteFilterDropdownProps {
-  sites: Site[];
+  sites: SiteOption[];
   value: string;
-  onChange: (val: string) => void;
+  onChange: (value: string) => void;
 }
 
 export default function SiteFilterDropdown({ sites, value, onChange }: SiteFilterDropdownProps) {
