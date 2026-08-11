@@ -1,12 +1,13 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { unwrapArray } from '@/lib/api-response';
-import { Menu, MenuPayload } from '@/types/menu';
+import { Menu, MenuDTO, MenuPayload } from '@/types/menu';
+import { normaliseMenus } from '@/lib/mappers/menu-mappers';
 
 export const menusService = {
   async list(): Promise<Menu[]> {
     const { data } = await api.get(API.menus.list);
-    return unwrapArray<Menu>(data);
+    return normaliseMenus(unwrapArray<MenuDTO>(data));
   },
   async createMenu(body: MenuPayload) {
     return api.post(API.menus.create, body);

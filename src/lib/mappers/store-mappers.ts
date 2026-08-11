@@ -1,4 +1,4 @@
-import type { MaterialItem, MaterialItemDTO, ToolItem, ToolItemDTO } from '@/types/store';
+import type { MaterialItem, MaterialItemDTO, ToolItem, ToolItemDTO, StoreTotals, StoreTotalsDTO, LowStockSite, LowStockSiteDTO } from '@/types/store';
 
 export function normaliseMaterialItem(dto: MaterialItemDTO): MaterialItem {
   return {
@@ -28,4 +28,24 @@ export function normaliseToolItem(dto: ToolItemDTO): ToolItem {
 
 export function normaliseToolItems(dtos: ToolItemDTO[]): ToolItem[] {
   return dtos.map(normaliseToolItem);
+}
+
+export function normaliseLowStockSite(dto: LowStockSiteDTO): LowStockSite {
+  return {
+    siteId: dto.siteId,
+    siteName: dto.siteName ?? '',
+    lowStockMaterialCount: dto.lowStockMaterialCount ?? 0,
+  };
+}
+
+export function normaliseStoreTotals(dto: StoreTotalsDTO): StoreTotals {
+  return {
+    totalOrders: dto.totalOrders ?? 0,
+    lowStockSites: (dto.lowStockSites ?? []).map(normaliseLowStockSite),
+    totalMaterialQuantity: dto.totalMaterialQuantity ?? 0,
+    totalToolsQuantity: dto.totalToolsQuantity ?? 0,
+    totalTransfers: dto.totalTransfers ?? 0,
+    totalDamagedTools: dto.totalDamagedTools ?? 0,
+    totalHireCost: dto.totalHireCost ?? 0,
+  };
 }

@@ -13,7 +13,7 @@ export const PROJECT_STATUS_META: Record<ProjectStatus, { label: string; color: 
   [ProjectStatus.PLANNING]:    { label: 'Planning',    color: 'text-blue-300',   bg: 'bg-blue-500/20 border border-blue-500/40' },
   [ProjectStatus.IN_PROGRESS]: { label: 'In Progress', color: 'text-green-300',  bg: 'bg-green-500/20 border border-green-500/40' },
   [ProjectStatus.ON_HOLD]:     { label: 'On Hold',     color: 'text-yellow-300', bg: 'bg-yellow-500/20 border border-yellow-500/40' },
-  [ProjectStatus.COMPLETED]:   { label: 'Completed',   color: 'text-indigo-300', bg: 'bg-indigo-500/20 border border-indigo-500/40' },
+  [ProjectStatus.COMPLETED]:   { label: 'Completed',   color: 'text-purple-300', bg: 'bg-purple-500/20 border border-purple-500/40' },
   [ProjectStatus.CANCELLED]:   { label: 'Cancelled',   color: 'text-red-300',    bg: 'bg-red-500/20 border border-red-500/40' },
 };
 

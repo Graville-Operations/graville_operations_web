@@ -5,18 +5,48 @@ import { ToolTab } from '@/types/enums/tool-tab';
 import { DetailType } from '@/types/enums/detail-type';
 import { StockTab } from '@/types/enums/stock-tab';
 import { ActivityTab } from '@/types/enums/activity-tab';
+import type { SiteBrief } from '@/types/site';
 
 export { ToolStatus, UsageStatus, UsageLogStatus, ToolTab, DetailType, StockTab, ActivityTab };
 
-export interface Site {
-  id: number;
-  name: string;
-}
+export type Site = SiteBrief;
 
 export interface UnitBrief {
   id: number;
   name: string;
   symbol: string;
+}
+
+export interface LowStockSite {
+  siteId: number;
+  siteName: string;
+  lowStockMaterialCount: number;
+}
+
+export interface StoreTotals {
+  totalOrders: number;
+  lowStockSites: LowStockSite[];
+  totalMaterialQuantity: number;
+  totalToolsQuantity: number;
+  totalTransfers: number;
+  totalDamagedTools: number;
+  totalHireCost: number;
+}
+
+export interface LowStockSiteDTO {
+  siteId: number;
+  siteName?: string;
+  lowStockMaterialCount?: number;
+}
+
+export interface StoreTotalsDTO {
+  totalOrders?: number;
+  lowStockSites?: LowStockSiteDTO[];
+  totalMaterialQuantity?: number;
+  totalToolsQuantity?: number;
+  totalTransfers?: number;
+  totalDamagedTools?: number;
+  totalHireCost?: number;
 }
 
 export interface PagedResponse<T> {
