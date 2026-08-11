@@ -158,32 +158,41 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
               )}
 
               <div>
-                <div className="relative flex items-center mb-1" style={{ minHeight: '2.25rem' }}>
-                  <p className="gv-label">Field Operator</p>
+                <p className="gv-label mb-2">Field Operator</p>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                  <div className="min-w-0">
+                    <FieldOperatorCard
+                      siteId={siteId}
+                      operator={detail?.operator ?? null}
+                      loading={loadingDetail}
+                      onOperatorChange={refreshDetail}
+                    />
+                  </div>
                   <button
                     type="button"
-                    onClick={() => !updateLocked && setShowUpdateSite(true)}
-                    disabled={updateLocked}
-                    title={updateLocked ? "Site is completed or cancelled and can no longer be updated" : undefined}
-                    className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    onClick={() => !updateLocked && !loadingDetail && setShowUpdateSite(true)}
+                    disabled={updateLocked || loadingDetail}
+                    title={
+                      loadingDetail
+                        ? 'Loading site details…'
+                        : updateLocked
+                        ? 'Site is completed or cancelled and can no longer be updated'
+                        : undefined
+                    }
+                    className="flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors justify-self-center"
                     style={{
                       background: 'var(--gv-glass-bg)',
                       border: '1px solid var(--gv-glass-border)',
-                      color: updateLocked ? 'var(--gv-text-faint)' : 'var(--gv-brand)',
-                      opacity: updateLocked ? 0.5 : 1,
-                      cursor: updateLocked ? 'not-allowed' : 'pointer',
+                      color: (updateLocked || loadingDetail) ? 'var(--gv-text-faint)' : 'var(--gv-brand)',
+                      opacity: (updateLocked || loadingDetail) ? 0.5 : 1,
+                      cursor: (updateLocked || loadingDetail) ? 'not-allowed' : 'pointer',
                     }}
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Update Site
                   </button>
+                  <div />
                 </div>
-                <FieldOperatorCard
-                  siteId={siteId}
-                  operator={detail?.operator ?? null}
-                  loading={loadingDetail}
-                  onOperatorChange={refreshDetail}
-                />
               </div>
 
               <div style={{ borderTop: '1px solid var(--gv-glass-border)', paddingTop: '1.25rem' }}>
