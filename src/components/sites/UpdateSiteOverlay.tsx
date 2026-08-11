@@ -61,7 +61,6 @@ export function UpdateSiteOverlay({
   const locked           = isProjectStatusLocked(currentStatus);
 
   const handleClose = (next: boolean) => {
-    if (submitting) return;
     onOpenChange(next);
   };
 
@@ -147,7 +146,7 @@ export function UpdateSiteOverlay({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleClose(false)} disabled={submitting}>
+          <Button variant="outline" onClick={() => handleClose(false)}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting || locked}>
