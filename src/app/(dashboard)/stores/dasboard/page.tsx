@@ -9,20 +9,8 @@ import api from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
 import { API } from '@/lib/endpoints';
 import { extractNestedList as extractList } from '@/lib/api-response';
-
-const PLACEHOLDER_DASHBOARD_DATA = {
-  total_orders:    47,
-  sites_low_stock: [
-    { id: 1, name: 'Mishi Mboko',    low_count: 4 },
-    { id: 2, name: 'Kware Primary',  low_count: 2 },
-    { id: 3, name: 'Huruma',         low_count: 1 },
-  ],
-  total_materials:  312,
-  total_tools:       88,
-  total_transfers:    9,
-  damaged_tools:      5,
-  total_hire_cost: 485_000,
-};
+import { fetchStoreTotals } from '@/lib/api/store';
+import type { StoreTotals, LowStockSite } from '@/types/store';
 
 function fmtKES(n: number) {
   return `KSH ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -65,7 +53,7 @@ function StatCard({ label, value, sub, icon, variant = 'default', badge }: StatC
   );
 }
 
-function LowStockCard({ sites }: { sites: typeof PLACEHOLDER_DASHBOARD_DATA.sites_low_stock }) {
+function LowStockCard({ sites }: { sites: LowStockSite[] }) {
   return (
     <div className={`gv-card flex flex-row gap-4 ${BORDER_CLS.default}`}>
       <div className="flex flex-col gap-4 shrink-0">
@@ -78,9 +66,9 @@ function LowStockCard({ sites }: { sites: typeof PLACEHOLDER_DASHBOARD_DATA.site
       {sites.length > 0 && (
         <ul className="flex flex-col justify-center gap-1.5 pl-4 border-l border-[color:var(--border)] min-w-0">
           {sites.map(s => (
-            <li key={s.id} className="flex items-center gap-3 text-xs">
-              <span className="text-[color:var(--foreground)] truncate flex-1">{s.name}</span>
-              <span className="gv-tag shrink-0 text-[color:var(--muted-foreground)]">{s.low_count} item{s.low_count !== 1 ? 's' : ''}</span>
+            <li key={s.siteId} className="flex items-center gap-3 text-xs">
+              <span className="text-[color:var(--foreground)] truncate flex-1">{s.siteName}</span>
+              <span className="gv-tag shrink-0 text-[color:var(--muted-foreground)]">{s.lowStockMaterialCount} item{s.lowStockMaterialCount !== 1 ? 's' : ''}</span>
             </li>
           ))}
         </ul>
@@ -357,7 +345,9 @@ function AddToolOverlay({ open, onClose, onSuccess }: AddToolOverlayProps) {
 type OverlayKey = 'material' | 'tool' | 'unit' | null;
 
 export default function StoreDashboardPage() {
-  const d = PLACEHOLDER_DASHBOARD_DATA;
+  const [totals, setTotals] = useState<StoreTotals | null>(null);
+  const [loadingTotals, setLoadingTotals] = useState(true);
+  const [totalsError, setTotalsError] = useState<string | null>(null);
   const [activeOverlay, setActiveOverlay] = useState<OverlayKey>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const toastId = useRef(0);
@@ -366,14 +356,33 @@ export default function StoreDashboardPage() {
     setToast({ message, type, id: ++toastId.current });
   }, []);
 
-  const cards = useMemo(() => [
-    { key: 'orders', label: 'Total Orders', value: d.total_orders, sub: 'Across all sites', icon: <ShoppingCart size={18} /> },
-    { key: 'materials', label: 'Total Materials', value: d.total_materials, sub: 'Company-wide catalogue items', icon: <Package size={18} /> },
-    { key: 'tools', label: 'Total Tools', value: d.total_tools, sub: 'All sites combined', icon: <Wrench size={18} /> },
-    { key: 'transfers', label: 'Total Transfers', value: d.total_transfers, sub: 'Material transfers today', icon: <ArrowLeftRight size={18} />, badge: 'Today' },
-    { key: 'damaged', label: 'Damaged Tools', value: d.damaged_tools, sub: 'Tools marked as damaged', icon: <Wrench size={18} /> },
-    { key: 'hire_cost', label: 'Total Hire Cost', value: fmtKES(d.total_hire_cost), sub: 'Active tool hire across all sites', icon: <BarChart3 size={18} /> },
-  ], [d]);
+  const loadTotals = useCallback(() => {
+    setLoadingTotals(true);
+    setTotalsError(null);
+    fetchStoreTotals()
+      .then(setTotals)
+      .catch((err) => {
+        console.error('Failed to fetch store totals:', err);
+        setTotalsError(err instanceof Error ? err.message : 'Failed to load store totals');
+      })
+      .finally(() => setLoadingTotals(false));
+  }, []);
+
+  useEffect(() => {
+    loadTotals();
+  }, [loadTotals]);
+
+  const cards = useMemo(() => {
+    const d = totals;
+    return [
+      { key: 'orders', label: 'Total Orders', value: d?.totalOrders ?? 0, sub: 'Across all sites', icon: <ShoppingCart size={18} /> },
+      { key: 'materials', label: 'Total Materials', value: d?.totalMaterialQuantity ?? 0, sub: 'Total quantity across all sites', icon: <Package size={18} /> },
+      { key: 'tools', label: 'Total Tools', value: d?.totalToolsQuantity ?? 0, sub: 'All sites combined', icon: <Wrench size={18} /> },
+      { key: 'transfers', label: 'Total Transfers', value: d?.totalTransfers ?? 0, sub: 'Material transfers', icon: <ArrowLeftRight size={18} /> },
+      { key: 'damaged', label: 'Damaged Tools', value: d?.totalDamagedTools ?? 0, sub: 'Tools marked as damaged', icon: <Wrench size={18} /> },
+      { key: 'hire_cost', label: 'Total Hire Cost', value: fmtKES(d?.totalHireCost ?? 0), sub: 'Active tool hire across all sites', icon: <BarChart3 size={18} /> },
+    ];
+  }, [totals]);
 
   return (
     <>
@@ -392,18 +401,28 @@ export default function StoreDashboardPage() {
 
         <p className="text-lg text-[color:var(--muted-foreground)]">Company's wide overview of all figures aggregate across every active site.</p>
 
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[color:var(--gv-border-warn)] bg-[color:var(--gv-border-warn)]/10">
-          <AlertTriangle size={16} className="text-[color:var(--gv-text-warn)] flex-shrink-0" />
-          <p className="text-sm text-[color:var(--gv-text-warn)]">
-            Placeholder data — this dashboard isn't wired up to live figures yet. A company-wide store summary endpoint doesn't exist on the backend yet.
-          </p>
-        </div>
+        {totalsError && (
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[color:var(--gv-border-danger)] bg-[color:var(--gv-border-danger)]/10">
+            <AlertTriangle size={16} className="text-[color:var(--destructive)] flex-shrink-0" />
+            <p className="text-sm text-[color:var(--destructive)]">
+              Couldn't load store totals — {totalsError}
+            </p>
+          </div>
+        )}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {cards.slice(0, 1).map(({ key, ...c }) => <StatCard key={key} {...c} />)}
-          <LowStockCard sites={d.sites_low_stock} />
-          {cards.slice(1).map(({ key, ...c }) => <StatCard key={key} {...c} />)}
-        </div>
+        {loadingTotals ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="gv-card h-[124px] animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {cards.slice(0, 1).map(({ key, ...c }) => <StatCard key={key} {...c} />)}
+            <LowStockCard sites={totals?.lowStockSites ?? []} />
+            {cards.slice(1).map(({ key, ...c }) => <StatCard key={key} {...c} />)}
+          </div>
+        )}
       </div>
 
       <AddUnitOverlay open={activeOverlay === 'unit'} onClose={() => setActiveOverlay(null)} onSuccess={() => showToast('Unit created successfully.', 'success')} />
