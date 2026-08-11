@@ -128,6 +128,7 @@ export const API = {
     summary: (siteId: number) => `/store/site/${siteId}`,
     materials: (siteId: number) => `/store/materials/${siteId}/all`,
     tools: (siteId: number) => `/store/tools/${siteId}/all`,
+    totals: '/store/store/totals',
     dailyUsageAll: '/daily-usage/all',
     dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,

@@ -1,7 +1,8 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { unwrapArray } from '@/lib/api-response';
-import { MenuItem } from '@/types/menu';
+import { MenuItem, MenuDTO } from '@/types/menu';
+import { normaliseMenus } from '@/lib/mappers/menu-mappers';
 
 function dedupeByName(menus: MenuItem[]): MenuItem[] {
   const seen = new Set<string>();
@@ -14,6 +15,6 @@ function dedupeByName(menus: MenuItem[]): MenuItem[] {
 
 export async function fetchSidebarMenus(): Promise<MenuItem[]> {
   const { data } = await api.get(API.auth.meMenus);
-  const menuData = unwrapArray<MenuItem>(data);
-  return dedupeByName(menuData);
-} 
+  const menus = normaliseMenus(unwrapArray<MenuDTO>(data));
+  return dedupeByName(menus);
+}

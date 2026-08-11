@@ -7,6 +7,15 @@ export interface SubSubMenu {
   order: number;
 }
 
+export interface SubSubMenuDTO {
+  id: number;
+  name?: string;
+  title?: string;
+  link?: string | null;
+  icon?: string | null;
+  order?: number;
+}
+
 export interface SubMenu {
   id: number;
   name: string;
@@ -14,7 +23,17 @@ export interface SubMenu {
   link?: string | null;
   icon?: string;
   order: number;
-  subsubmenus?: SubSubMenu[];
+  subsubmenus: SubSubMenu[];
+}
+
+export interface SubMenuDTO {
+  id: number;
+  name?: string;
+  title?: string;
+  link?: string | null;
+  icon?: string | null;
+  order?: number;
+  subsubmenus?: SubSubMenuDTO[];
 }
 
 export interface Menu {
@@ -24,18 +43,20 @@ export interface Menu {
   link?: string | null;
   icon?: string;
   order: number;
-  submenus?: SubMenu[];
-}
-
-export interface MenuItem {
-  id: number;
-  name: string;
-  title: string;
-  link?: string | null;
-  icon?: string;
-  order: number;
   submenus: SubMenu[];
 }
+
+export interface MenuDTO {
+  id: number;
+  name?: string;
+  title?: string;
+  link?: string | null;
+  icon?: string | null;
+  order?: number;
+  submenus?: SubMenuDTO[];
+}
+
+export type MenuItem = Menu;
 
 export type ModalType =
   | { type: 'menu-create' }
