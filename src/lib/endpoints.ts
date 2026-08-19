@@ -133,6 +133,14 @@ export const API = {
     dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
   },
+   transport: {
+    vehicleCategories: "/transport/categories",
+    createVehicleCategory: "/transport/categories/create",
+    updateVehicleCategory: (id: number) => `/transport/categories/${id}`,
+    modesOfTransport: "/transport/vehicles",
+    createModeOfTransport: "/transport/vehicles/create",
+    updateModeOfTransport: (id: number) => `/transport/vehicles/${id}`,
+  },
   invoiceActions: {
     updateStatus: (invoiceType: string, invoiceId: number | string) =>
       `/invoices/${invoiceType}/${invoiceId}/status`,
