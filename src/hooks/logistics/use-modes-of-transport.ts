@@ -24,8 +24,8 @@ export function useModesOfTransport() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const fetchAll = useCallback(async () => {
-    setIsLoading(true);
+  const fetchAll = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
     setLoadError(null);
     try {
       const [transportList, categoryList] = await Promise.all([
@@ -40,7 +40,7 @@ export function useModesOfTransport() {
     } catch (err) {
       setLoadError(getApiErrorMessage(err, 'Failed to load modes of transport.'));
     } finally {
-      setIsLoading(false);
+      if (!opts?.silent) setIsLoading(false);
     }
   }, []);
 
@@ -59,7 +59,7 @@ export function useModesOfTransport() {
     try {
       await modesOfTransportService.create(payload);
       showToast('Mode of transport created successfully!', 'success');
-      await fetchAll();
+      await fetchAll({ silent: true });
     } catch (err) {
       throw new Error(getApiErrorMessage(err, 'Failed to create mode of transport.'));
     }
@@ -69,7 +69,7 @@ export function useModesOfTransport() {
     try {
       await modesOfTransportService.update(id, payload);
       showToast('Mode of transport updated successfully!', 'success');
-      await fetchAll();
+      await fetchAll({ silent: true });
     } catch (err) {
       throw new Error(getApiErrorMessage(err, 'Failed to update mode of transport.'));
     }

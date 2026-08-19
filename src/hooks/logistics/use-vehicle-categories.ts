@@ -22,8 +22,8 @@ export function useVehicleCategories() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  const fetchCategories = useCallback(async () => {
-    setIsLoading(true);
+  const fetchCategories = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
     setLoadError(null);
     try {
       const list = await vehicleCategoriesService.list();
@@ -31,7 +31,7 @@ export function useVehicleCategories() {
     } catch (err) {
       setLoadError(getApiErrorMessage(err, 'Failed to load vehicle categories.'));
     } finally {
-      setIsLoading(false);
+      if (!opts?.silent) setIsLoading(false);
     }
   }, []);
 
@@ -47,7 +47,7 @@ export function useVehicleCategories() {
     try {
       await vehicleCategoriesService.create(payload);
       showToast('Vehicle category created successfully!', 'success');
-      await fetchCategories();
+      await fetchCategories({ silent: true });
     } catch (err) {
       throw new Error(getApiErrorMessage(err, 'Failed to create vehicle category.'));
     }
@@ -57,7 +57,7 @@ export function useVehicleCategories() {
     try {
       await vehicleCategoriesService.update(id, payload);
       showToast('Vehicle category updated successfully!', 'success');
-      await fetchCategories();
+      await fetchCategories({ silent: true });
     } catch (err) {
       throw new Error(getApiErrorMessage(err, 'Failed to update vehicle category.'));
     }
