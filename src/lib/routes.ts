@@ -66,6 +66,12 @@ export const ROUTES = {
   types: '/workers/types',
   siteWorkers: (siteId: number | string) => `/workers/site/${siteId}`,
   },
+  logistics: {
+    transport: {
+      modeOfTransport: '/logistics/transport/mode-of-transport',
+      vehicleCategory: '/logistics/transport/vehicle-category',
+    },
+  },
   sections: {
     departments: {
       list: '/sections/departments',
@@ -120,4 +126,5 @@ export const PROTECTED_PREFIX = [
   '/store',
   '/department',
   '/account',
+  '/logistics',
 ];
