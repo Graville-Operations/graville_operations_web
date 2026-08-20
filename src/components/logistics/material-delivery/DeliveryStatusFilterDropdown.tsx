@@ -1,0 +1,82 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { Filter, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { DeliveryStatus, DELIVERY_STATUS_META } from '@/types/material-delivery';
+
+const STATUS_OPTIONS = Object.values(DeliveryStatus).map((value) => ({
+  value,
+  label: DELIVERY_STATUS_META[value].label,
+}));
+
+interface DeliveryStatusFilterDropdownProps {
+  value: DeliveryStatus | null;
+  onChange: (status: DeliveryStatus | null) => void;
+}
+
+export default function DeliveryStatusFilterDropdown({ value, onChange }: DeliveryStatusFilterDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectedLabel = STATUS_OPTIONS.find((o) => o.value === value)?.label;
+
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm"
+        style={{
+          background: value ? 'rgba(51,144,124,0.15)' : 'var(--gv-glass-bg)',
+          border: `1px solid ${value ? 'rgba(51,144,124,0.4)' : 'var(--gv-glass-border)'}`,
+          color: value ? '#33907c' : 'var(--gv-text-muted)',
+        }}
+      >
+        <Filter size={13} />
+        <span className="text-xs font-medium">{selectedLabel || 'Filter by Status'}</span>
+        {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 mt-2 w-48 rounded-2xl z-30 overflow-hidden p-1"
+          style={{
+            background: '#0d1528',
+            border: '1px solid var(--gv-glass-border)',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+          }}
+        >
+          <button
+            onClick={() => { onChange(null); setOpen(false); }}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{ color: !value ? '#33907c' : 'var(--gv-text-muted)', background: !value ? 'rgba(51,144,124,0.1)' : 'transparent' }}
+          >
+            All Statuses
+            {!value && <Check size={13} />}
+          </button>
+          {STATUS_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold"
+              style={{
+                color: value === opt.value ? '#33907c' : 'var(--gv-text-muted)',
+                background: value === opt.value ? 'rgba(51,144,124,0.1)' : 'transparent',
+              }}
+            >
+              {opt.label}
+              {value === opt.value && <Check size={13} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

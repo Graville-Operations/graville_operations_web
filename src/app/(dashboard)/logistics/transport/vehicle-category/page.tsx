@@ -131,8 +131,6 @@ export default function VehicleCategoryPage() {
   const openEdit = (cat: VehicleCategory) => { setEditTarget(cat); setShowModal(true); };
   const closeModal = () => { setShowModal(false); setEditTarget(null); };
 
-
-
   return (
     <div className="space-y-6">
       <ShimmerStyle />
@@ -144,7 +142,7 @@ export default function VehicleCategoryPage() {
           onCreate={createCategory}
           onUpdate={updateCategory}
         />
-      )}      
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">

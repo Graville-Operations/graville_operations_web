@@ -71,6 +71,10 @@ export const ROUTES = {
       modeOfTransport: '/logistics/transport/mode-of-transport',
       vehicleCategory: '/logistics/transport/vehicle-category',
     },
+    deliveries: {
+      internals: '/logistics/deliveries/internals',
+      externals: '/logistics/deliveries/externals',
+    },
   },
   sections: {
     departments: {
