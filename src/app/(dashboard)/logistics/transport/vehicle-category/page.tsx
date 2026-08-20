@@ -117,7 +117,6 @@ export default function VehicleCategoryPage() {
   const {
     filtered,
     isLoading,
-    loadError,
     toast,
     search,
     setSearch,
@@ -176,12 +175,6 @@ export default function VehicleCategoryPage() {
         )}
       </div>
 
-      {loadError && (
-        <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}>
-          {loadError}
-        </div>
-      )}
-
       <Label size="sm" as="p" className="gv-eyebrow">
         All Categories {!isLoading && `(${filtered.length})`}
       </Label>
@@ -236,17 +229,15 @@ export default function VehicleCategoryPage() {
                   </td>
                   <td className="px-4 py-3 text-sm" style={{ color: 'var(--gv-text-muted)' }}>{formatDate(cat.created_at)}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEdit(cat)}
-                        className="p-1.5 rounded-lg transition-colors"
-                        style={{ color: 'var(--gv-text-muted)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#33907c')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => openEdit(cat)}
+                      className="p-1.5 rounded-lg transition-colors"
+                      style={{ color: 'var(--gv-text-muted)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#33907c')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
+                    >
+                      <Pencil size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}

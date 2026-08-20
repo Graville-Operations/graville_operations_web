@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, Pencil, Trash2, Truck, User, Phone, IdCard, Search, X, AlertTriangle, Tag } from 'lucide-react';
+import { Plus, Pencil, Truck, User, Phone, IdCard, Search, X, Tag } from 'lucide-react';
 import { Title, Label } from '@/components/ui/typography';
 import EmptyState from '@/components/ui/emptystate';
 import { Bone, ShimmerStyle } from '@/components/shared/Shimmer';
@@ -13,20 +13,21 @@ import {
   CreateModeOfTransportPayload,
   UpdateModeOfTransportPayload,
 } from '@/types/transport';
-import { formatDate } from '@/lib/utils/date';
+import { ApiUser } from '@/types/users';
 import { ROUTES } from '@/lib/routes';
 
-function Toast({ message, type }: { message: string; type: 'success' | 'error' }) {
-  return (
-    <div
-      className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-xl text-white z-60 shadow-xl pointer-events-none
-        ${type === 'success' ? 'bg-[#33907c]' : 'bg-red-600'}`}
-    >
-      <Label size="sm" as="span" className="text-white normal-case tracking-normal">
-        {message}
-      </Label>
-    </div>
-  );
+/** Masks a national ID so only the first and last 2 digits are visible, e.g. "40****78". */
+function maskNationalId(id: string): string {
+  const digits = id.trim();
+  if (digits.length <= 4) return digits;
+  const first = digits.slice(0, 2);
+  const last = digits.slice(-2);
+  const hidden = '*'.repeat(digits.length - 4);
+  return `${first}${hidden}${last}`;
+}
+
+function driverFullName(u: ApiUser): string {
+  return [u.firstName, u.middleName, u.lastName].filter(Boolean).join(' ');
 }
 
 function StatusPill({ active }: { active: boolean }) {
@@ -48,17 +49,32 @@ interface TransportFormState {
   category_id: string;
   number_plate: string;
   name: string;
+  driver_user_id: string;
   driver_name: string;
   driver_phone: string;
   driver_national_id: string;
   is_active: boolean;
 }
 
-function emptyForm(t: ModeOfTransport | null): TransportFormState {
+function findMatchingDriver(t: ModeOfTransport | null, drivers: ApiUser[]): ApiUser | undefined {
+  if (!t) return undefined;
+  if (t.driver_national_id) {
+    const byId = drivers.find((u) => u.nationalId && u.nationalId === t.driver_national_id);
+    if (byId) return byId;
+  }
+  if (t.driver_name) {
+    return drivers.find((u) => driverFullName(u).toLowerCase() === t.driver_name!.toLowerCase());
+  }
+  return undefined;
+}
+
+function emptyForm(t: ModeOfTransport | null, drivers: ApiUser[]): TransportFormState {
+  const matched = findMatchingDriver(t, drivers);
   return {
     category_id: t?.category_id ? String(t.category_id) : '',
     number_plate: t?.number_plate ?? '',
     name: t?.name ?? '',
+    driver_user_id: matched ? String(matched.id) : '',
     driver_name: t?.driver_name ?? '',
     driver_phone: t?.driver_phone ?? '',
     driver_national_id: t?.driver_national_id ?? '',
@@ -69,22 +85,48 @@ function emptyForm(t: ModeOfTransport | null): TransportFormState {
 function TransportFormModal({
   editTarget,
   categories,
+  drivers,
   onClose,
   onCreate,
   onUpdate,
 }: {
   editTarget: ModeOfTransport | null;
   categories: { id: number; name: string }[];
+  drivers: ApiUser[];
   onClose: () => void;
   onCreate: (payload: CreateModeOfTransportPayload) => Promise<void>;
   onUpdate: (id: number, payload: UpdateModeOfTransportPayload) => Promise<void>;
 }) {
-  const [form, setForm] = useState<TransportFormState>(emptyForm(editTarget));
+  const [form, setForm] = useState<TransportFormState>(emptyForm(editTarget, drivers));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // The driver's own record from the current form's selection (used for the
+  // read-only detail summary and to detect a legacy/unlisted driver).
+  const selectedDriver = useMemo(
+    () => drivers.find((u) => String(u.id) === form.driver_user_id),
+    [drivers, form.driver_user_id],
+  );
+  const hasUnlistedExistingDriver =
+    !!editTarget?.driver_name && !form.driver_user_id && !!form.driver_name;
+
   const update = <K extends keyof TransportFormState>(key: K, value: TransportFormState[K]) =>
     setForm(prev => ({ ...prev, [key]: value }));
+
+  const handleDriverSelect = (value: string) => {
+    if (!value) {
+      setForm(prev => ({ ...prev, driver_user_id: '', driver_name: '', driver_phone: '', driver_national_id: '' }));
+      return;
+    }
+    const chosen = drivers.find((u) => String(u.id) === value);
+    setForm(prev => ({
+      ...prev,
+      driver_user_id: value,
+      driver_name: chosen ? driverFullName(chosen) : prev.driver_name,
+      driver_phone: chosen?.phone ?? '',
+      driver_national_id: chosen?.nationalId ?? '',
+    }));
+  };
 
   const handleSave = async () => {
     setError(null);
@@ -184,41 +226,44 @@ function TransportFormModal({
           </div>
 
           <div className="h-px" style={{ background: 'var(--gv-glass-border)' }} />
-          <Label size="sm" as="p" className="gv-eyebrow">Driver Details</Label>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="gv-eyebrow mb-1 block">Driver Name</label>
-              <input
-                type="text"
-                className="gv-input w-full text-sm"
-                placeholder="Driver's full name"
-                value={form.driver_name}
-                onChange={e => update('driver_name', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="gv-eyebrow mb-1 block">Driver Phone</label>
-              <input
-                type="text"
-                className="gv-input w-full text-sm"
-                placeholder="e.g. 0712 345 678"
-                value={form.driver_phone}
-                onChange={e => update('driver_phone', e.target.value)}
-              />
-            </div>
-          </div>
+          <Label size="sm" as="p" className="gv-eyebrow">Driver</Label>
 
           <div>
-            <label className="gv-eyebrow mb-1 block">Driver National ID</label>
-            <input
-              type="text"
-              className="gv-input w-full text-sm"
-              placeholder="National ID number"
-              value={form.driver_national_id}
-              onChange={e => update('driver_national_id', e.target.value)}
-            />
+            <label className="gv-eyebrow mb-1 block">Assigned Driver</label>
+            <DarkSelect value={form.driver_user_id} onChange={e => handleDriverSelect(e.target.value)}>
+              <option value="">No driver assigned</option>
+              {hasUnlistedExistingDriver && (
+                <option value="existing" disabled>
+                  {form.driver_name} — not in user list, pick a driver below
+                </option>
+              )}
+              {drivers.map(u => (
+                <option key={u.id} value={u.id}>
+                  {driverFullName(u)}{u.role ? ` — ${u.role}` : ''}
+                </option>
+              ))}
+            </DarkSelect>
+            {drivers.length === 0 && (
+              <p className="text-xs mt-1.5" style={{ color: 'var(--gv-text-muted)' }}>
+                No users available to assign as a driver yet.
+              </p>
+            )}
           </div>
+
+          {(selectedDriver || hasUnlistedExistingDriver) && (
+            <div className="rounded-xl px-4 py-3 space-y-1.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gv-glass-border)' }}>
+              <p className="text-sm flex items-center gap-1.5" style={{ color: 'var(--gv-text-primary)' }}>
+                <User size={12} className="text-white/30 shrink-0" /> {form.driver_name || '—'}
+              </p>
+              <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--gv-text-muted)' }}>
+                <Phone size={11} className="text-white/25 shrink-0" /> {form.driver_phone || '—'}
+              </p>
+              <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--gv-text-muted)' }}>
+                <IdCard size={11} className="text-white/25 shrink-0" />
+                {form.driver_national_id ? maskNationalId(form.driver_national_id) : '—'}
+              </p>
+            </div>
+          )}
 
           {editTarget && (
             <label className="flex items-center gap-2.5 pt-1 cursor-pointer select-none">
@@ -254,65 +299,13 @@ function TransportFormModal({
   );
 }
 
-function DeleteTransportModal({
-  transport,
-  deleting,
-  onConfirm,
-  onCancel,
-}: {
-  transport: ModeOfTransport;
-  deleting: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-70 p-4" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)' }}>
-      <div className="w-full max-w-sm rounded-2xl space-y-4 p-6" style={{ background: '#0d1528', border: '1px solid rgba(248,113,113,0.3)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(248,113,113,0.15)' }}>
-            <AlertTriangle size={18} style={{ color: '#f87171' }} />
-          </div>
-          <div>
-            <p className="font-bold text-sm text-white">Delete vehicle?</p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
-              &quot;{transport.name || transport.number_plate}&quot; will be permanently removed.
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            disabled={deleting}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: 'var(--gv-glass-bg)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={deleting}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
-            style={{ background: 'rgba(248,113,113,0.2)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
-          >
-            {deleting ? (
-              <><div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" /> Deleting...</>
-            ) : (
-              'Delete'
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function ModeOfTransportPage() {
   const {
     filtered,
     categories,
+    drivers,
     isLoading,
     loadError,
-    toast,
     search,
     setSearch,
     createTransport,
@@ -321,14 +314,14 @@ export default function ModeOfTransportPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<ModeOfTransport | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<ModeOfTransport | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const openCreate = () => { setEditTarget(null); setShowModal(true); };
   const openEdit = (t: ModeOfTransport) => { setEditTarget(t); setShowModal(true); };
   const closeModal = () => { setShowModal(false); setEditTarget(null); };
 
-  const noCategories = !isLoading && categories.length === 0;
+  // Only gate vehicle creation on a genuinely empty category list, never on a
+  // failed/transient load — a network hiccup shouldn't disable the button.
+  const noCategories = !isLoading && !loadError && categories.length === 0;
 
   return (
     <div className="space-y-6">
@@ -338,6 +331,7 @@ export default function ModeOfTransportPage() {
         <TransportFormModal
           editTarget={editTarget}
           categories={categories}
+          drivers={drivers}
           onClose={closeModal}
           onCreate={createTransport}
           onUpdate={updateTransport}
@@ -389,12 +383,6 @@ export default function ModeOfTransportPage() {
         )}
       </div>
 
-      {loadError && (
-        <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}>
-          {loadError}
-        </div>
-      )}
-
       <Label size="sm" as="p" className="gv-eyebrow">
         All Vehicles {!isLoading && `(${filtered.length})`}
       </Label>
@@ -405,7 +393,7 @@ export default function ModeOfTransportPage() {
           <table className="w-full">
             <thead>
               <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
-                {['Vehicle', 'Category', 'Driver', 'Status', 'Created At', 'Actions'].map(h => (
+                {['Vehicle', 'Number Plate', 'Category', 'Driver Name', 'Driver Phone', 'National ID', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: '#33907c' }}>{h}</th>
                 ))}
               </tr>
@@ -414,10 +402,12 @@ export default function ModeOfTransportPage() {
               {Array.from({ length: 4 }).map((_, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
                   <td className="px-4 py-3"><Bone w="9rem" /></td>
+                  <td className="px-4 py-3"><Bone w="5rem" /></td>
                   <td className="px-4 py-3"><Bone w="6rem" /></td>
-                  <td className="px-4 py-3"><Bone w="8rem" /></td>
+                  <td className="px-4 py-3"><Bone w="7rem" /></td>
+                  <td className="px-4 py-3"><Bone w="6rem" /></td>
+                  <td className="px-4 py-3"><Bone w="5rem" /></td>
                   <td className="px-4 py-3"><Bone w="4rem" /></td>
-                  <td className="px-4 py-3"><Bone w="6rem" /></td>
                   <td className="px-4 py-3"><Bone w="3rem" /></td>
                 </tr>
               ))}
@@ -434,7 +424,7 @@ export default function ModeOfTransportPage() {
           <table className="w-full">
             <thead>
               <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
-                {['Vehicle', 'Category', 'Driver', 'Status', 'Created At', 'Actions'].map(h => (
+                {['Vehicle', 'Number Plate', 'Category', 'Driver Name', 'Driver Phone', 'National ID', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: '#33907c' }}>{h}</th>
                 ))}
               </tr>
@@ -447,59 +437,53 @@ export default function ModeOfTransportPage() {
                       <div className="gv-icon-box" style={{ width: '2rem', height: '2rem' }}>
                         <Truck size={14} className="text-[#33907c]" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--gv-text-primary)' }}>{t.name || t.number_plate}</p>
-                        <p className="text-xs" style={{ color: 'var(--gv-text-muted)' }}>{t.number_plate}</p>
-                      </div>
+                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--gv-text-primary)' }}>{t.name || t.number_plate}</p>
                     </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
+                    {t.number_plate}
                   </td>
                   <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-muted)' }}>
                     {t.category_name ?? '—'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
                     {t.driver_name ? (
-                      <div className="space-y-0.5">
-                        <p className="text-sm flex items-center gap-1.5" style={{ color: 'var(--gv-text-primary)' }}>
-                          <User size={12} className="text-white/30" /> {t.driver_name}
-                        </p>
-                        {t.driver_phone && (
-                          <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--gv-text-muted)' }}>
-                            <Phone size={11} className="text-white/25" /> {t.driver_phone}
-                          </p>
-                        )}
-                        {t.driver_national_id && (
-                          <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--gv-text-muted)' }}>
-                            <IdCard size={11} className="text-white/25" /> {t.driver_national_id}
-                          </p>
-                        )}
-                      </div>
+                      <span className="flex items-center gap-1.5">
+                        <User size={12} className="text-white/30 shrink-0" /> {t.driver_name}
+                      </span>
                     ) : (
-                      <span className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>—</span>
+                      <span style={{ color: 'var(--gv-text-muted)' }}>—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
+                    {t.driver_phone ? (
+                      <span className="flex items-center gap-1.5">
+                        <Phone size={12} className="text-white/30 shrink-0" /> {t.driver_phone}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--gv-text-muted)' }}>—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
+                    {t.driver_national_id ? (
+                      <span className="flex items-center gap-1.5">
+                        <IdCard size={12} className="text-white/30 shrink-0" /> {maskNationalId(t.driver_national_id)}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--gv-text-muted)' }}>—</span>
                     )}
                   </td>
                   <td className="px-4 py-3"><StatusPill active={t.is_active} /></td>
-                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-muted)' }}>{formatDate(t.created_at)}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => openEdit(t)}
-                        className="p-1.5 rounded-lg transition-colors"
-                        style={{ color: 'var(--gv-text-muted)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#33907c')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(t)}
-                        className="p-1.5 rounded-lg transition-colors"
-                        style={{ color: 'var(--gv-text-muted)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => openEdit(t)}
+                      className="p-1.5 rounded-lg transition-colors"
+                      style={{ color: 'var(--gv-text-muted)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#33907c')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
+                    >
+                      <Pencil size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -507,8 +491,6 @@ export default function ModeOfTransportPage() {
           </table>
         )}
       </div>
-
-      {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
   );
 }
