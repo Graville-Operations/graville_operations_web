@@ -67,8 +67,9 @@ export const ROUTES = {
   siteWorkers: (siteId: number | string) => `/workers/site/${siteId}`,
   },
   logistics: {
-    transport: {
+     transport: {
       modeOfTransport: '/logistics/transport/mode-of-transport',
+      modeOfTransportDetail: (id: number | string) => `/logistics/transport/mode-of-transport/${id}`,
       vehicleCategory: '/logistics/transport/vehicle-category',
     },
     deliveries: {

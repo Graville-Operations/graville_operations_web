@@ -13,13 +13,20 @@ export interface UpdateVehicleCategoryPayload {
   name?: string;
 }
 
+/** A driver assigned to a vehicle, as embedded in the ModeOfTransport response. */
+export interface DriverBrief {
+  id: number;
+  first_name: string;
+  last_name: string;
+  phone_no?: string | null;
+  national_id?: string | null;
+}
+
 export interface ModeOfTransport {
   id: number;
   name: string;
   number_plate: string;
-  driver_name?: string | null;
-  driver_phone?: string | null;
-  driver_national_id?: string | null;
+  driver: DriverBrief | null;
   is_active: boolean;
   category_id: number;
   company_id: number;
@@ -30,19 +37,12 @@ export interface ModeOfTransport {
 export interface CreateModeOfTransportPayload {
   category_id: number;
   number_plate: string;
-  name?: string;
-  driver_name?: string;
-  driver_phone?: string;
-  driver_national_id?: string;
+  driver_id?: number | null;
 }
 
 export interface UpdateModeOfTransportPayload {
-  category_id?: number;
   number_plate?: string;
-  name?: string;
-  driver_name?: string;
-  driver_phone?: string;
-  driver_national_id?: string;
+  driver_id?: number | null;
   is_active?: boolean;
 }
 
