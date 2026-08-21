@@ -140,6 +140,8 @@ export const API = {
     modesOfTransport: "/transport/vehicles",
     createModeOfTransport: "/transport/vehicles/create",
     updateModeOfTransport: (id: number) => `/transport/vehicles/${id}`,
+    drivers: "/transport/drivers/list",
+    unassignDriver: (id: number) => `/transport/vehicles/${id}/unassign-driver`,
   },
   invoiceActions: {
     updateStatus: (invoiceType: string, invoiceId: number | string) =>

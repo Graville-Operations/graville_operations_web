@@ -1,6 +1,8 @@
 import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { parseList } from '@/lib/utils/parse-list';
+import { unwrapObject } from '@/lib/api-response';
+import { ApiUser } from '@/types/users';
 import {
   VehicleCategory,
   CreateVehicleCategoryPayload,
@@ -25,17 +27,32 @@ export const vehicleCategoriesService = {
   },
 };
 
+export const driversService = {
+  /** Users with the "Drivers" role, sourced from the dedicated drivers endpoint. */
+  async list(): Promise<ApiUser[]> {
+    const { data } = await api.get(API.transport.drivers, { params: { skip: 0, limit: 100 } });
+    return parseList(data) as ApiUser[];
+  },
+};
+
 export const modesOfTransportService = {
   async list(): Promise<ModeOfTransport[]> {
     const { data } = await api.get(API.transport.modesOfTransport);
     return parseList(data) as ModeOfTransport[];
   },
 
-  async create(payload: CreateModeOfTransportPayload) {
-    return api.post(API.transport.createModeOfTransport, payload);
+  async create(payload: CreateModeOfTransportPayload): Promise<ModeOfTransport> {
+    const { data } = await api.post(API.transport.createModeOfTransport, payload);
+    return unwrapObject<ModeOfTransport>(data);
   },
 
-  async update(id: number, payload: UpdateModeOfTransportPayload) {
-    return api.put(API.transport.updateModeOfTransport(id), payload);
+  async update(id: number, payload: UpdateModeOfTransportPayload): Promise<ModeOfTransport> {
+    const { data } = await api.put(API.transport.updateModeOfTransport(id), payload);
+    return unwrapObject<ModeOfTransport>(data);
+  },
+
+  async unassignDriver(id: number): Promise<ModeOfTransport> {
+    const { data } = await api.post(API.transport.unassignDriver(id));
+    return unwrapObject<ModeOfTransport>(data);
   },
 };
