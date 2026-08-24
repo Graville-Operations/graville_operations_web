@@ -69,6 +69,7 @@ export const ROUTES = {
   logistics: {
      transport: {
       modeOfTransport: '/logistics/transport/mode-of-transport',
+      modeOfTransportAll: '/logistics/transport/mode-of-transport/all',
       modeOfTransportDetail: (id: number | string) => `/logistics/transport/mode-of-transport/${id}`,
       vehicleCategory: '/logistics/transport/vehicle-category',
     },
