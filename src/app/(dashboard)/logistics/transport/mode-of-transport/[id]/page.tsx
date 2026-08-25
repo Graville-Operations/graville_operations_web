@@ -2,16 +2,12 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Truck, User, Phone, IdCard, Tag, Pencil, UserX, Calendar } from 'lucide-react';
+import { ArrowLeft, Truck, User, Phone, IdCard, Tag, Pencil, UserX } from 'lucide-react';
 import { Title, Label } from '@/components/ui/typography';
 import { Bone, ShimmerStyle } from '@/components/shared/Shimmer';
-import { DarkSelect } from '@/components/shared/DarkSelect';
 import { useModeOfTransportDetail } from '@/hooks/logistics/use-mode-of-transport-detail';
-import { ApiUser } from '@/types/users';
-import { formatDate } from '@/lib/utils/date';
+import { VehicleActionMode, VehicleActionModal } from '@/components/logistics/transport/VehicleActionModal';
 import { ROUTES } from '@/lib/routes';
-
-/** Masks a national ID so only the first and last 2 digits are visible, e.g. "40****78". */
 function maskNationalId(id: string): string {
   const digits = id.trim();
   if (digits.length <= 4) return digits;
@@ -19,10 +15,6 @@ function maskNationalId(id: string): string {
   const last = digits.slice(-2);
   const hidden = '*'.repeat(digits.length - 4);
   return `${first}${hidden}${last}`;
-}
-
-function apiUserFullName(u: ApiUser): string {
-  return [u.firstName, u.middleName, u.lastName].filter(Boolean).join(' ');
 }
 
 function StatusToggle({
@@ -59,7 +51,7 @@ function StatusToggle({
 
 function DetailSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="w-full lg:w-[75%] max-w-5xl mx-auto space-y-6">
       <Bone w="6rem" h="1rem" />
       <div className="gv-card space-y-4 p-6">
         <Bone w="12rem" h="1.5rem" />
@@ -90,64 +82,72 @@ export default function ModeOfTransportDetailPage() {
     toggleActive,
     unassignDriver,
   } = useModeOfTransportDetail(transportId);
-
-  const [editingPlate, setEditingPlate] = useState(false);
+  const [activeModal, setActiveModal] = useState<VehicleActionMode | null>(null);
   const [plateDraft, setPlateDraft] = useState('');
-  const [editingDriver, setEditingDriver] = useState(false);
   const [driverDraft, setDriverDraft] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+  const actionsDisabled = isSaving || !transport?.is_active;
 
-  const startEditPlate = () => {
+  const closeModal = () => {
+    setActiveModal(null);
+    setLocalError(null);
+  };
+
+  const openPlateModal = () => {
     setPlateDraft(transport?.number_plate ?? '');
     setLocalError(null);
-    setEditingPlate(true);
+    setActiveModal('plate');
   };
 
-  const savePlate = async () => {
-    if (!plateDraft.trim()) { setLocalError('Number plate is required.'); return; }
-    try {
-      await updateNumberPlate(plateDraft.trim());
-      setEditingPlate(false);
-    } catch {
-      // actionError from the hook already surfaces the message
-    }
-  };
-
-  const startEditDriver = () => {
+  const openDriverModal = () => {
     setDriverDraft('');
     setLocalError(null);
-    setEditingDriver(true);
+    setActiveModal('driver');
   };
 
-  const saveDriver = async () => {
-    if (!driverDraft) { setLocalError('Select a driver first.'); return; }
+  const openUnassignModal = () => {
+    setLocalError(null);
+    setActiveModal('unassign');
+  };
+
+  const confirmPlate = async () => {
+    if (!plateDraft.trim()) {
+      setLocalError('Number plate is required.');
+      return;
+    }
+    try {
+      await updateNumberPlate(plateDraft.trim());
+      closeModal();
+    } catch { }
+  };
+
+  const confirmDriver = async () => {
+    if (!driverDraft) {
+      setLocalError('Select a driver first.');
+      return;
+    }
     try {
       await updateDriver(Number(driverDraft));
-      setEditingDriver(false);
-    } catch {
-      // actionError from the hook already surfaces the message
-    }
+      closeModal();
+    } catch {  }
   };
 
-  const handleUnassign = async () => {
+  const confirmUnassign = async () => {
     try {
       await unassignDriver();
-    } catch {
-      // actionError from the hook already surfaces the message
-    }
+      closeModal();
+    } catch { }
   };
 
   const handleToggleActive = async () => {
     if (!transport) return;
     try {
       await toggleActive(!transport.is_active);
-    } catch {
-      // actionError from the hook already surfaces the message
-    }
+    } catch {}
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full lg:w-[75%] max-w-5xl mx-auto space-y-6">
       <ShimmerStyle />
 
       <button
@@ -155,7 +155,7 @@ export default function ModeOfTransportDetailPage() {
         className="flex items-center gap-2 text-sm"
         style={{ color: 'var(--gv-text-muted)' }}
       >
-        <ArrowLeft size={15} /> Back to Modes of Transport
+        <ArrowLeft size={15} /> Back to Transport
       </button>
 
       {isLoading ? (
@@ -173,15 +173,21 @@ export default function ModeOfTransportDetailPage() {
               <div className="gv-icon-box"><Truck size={18} className="text-[#33907c]" /></div>
               <div>
                 <Label size="sm" as="p" className="gv-eyebrow mb-1">Logistics · Transport</Label>
-                <Title size="lg" as="h1">{transport.name || transport.number_plate}</Title>
+                <Title size="lg" as="h1">{transport.number_plate}</Title>
               </div>
             </div>
             <StatusToggle active={transport.is_active} disabled={isSaving} onToggle={handleToggleActive} />
           </div>
 
-          {(actionError || localError) && (
+          {actionError && !activeModal && (
             <div className="rounded-xl px-4 py-3 text-sm font-medium" style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}>
-              {actionError ?? localError}
+              {actionError}
+            </div>
+          )}
+
+          {!transport.is_active && (
+            <div className="rounded-xl px-4 py-3 text-sm" style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--gv-text-muted)', border: '1px solid var(--gv-glass-border)' }}>
+              This vehicle is inactive, so its details can&apos;t be edited. Turn it back on to make changes.
             </div>
           )}
 
@@ -192,35 +198,16 @@ export default function ModeOfTransportDetailPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs mb-1" style={{ color: 'var(--gv-text-muted)' }}>Number Plate</p>
-                {editingPlate ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      autoFocus
-                      type="text"
-                      className="gv-input text-sm"
-                      value={plateDraft}
-                      onChange={e => setPlateDraft(e.target.value)}
-                    />
-                    <button onClick={savePlate} disabled={isSaving} className="gv-btn-brand px-3 py-2 rounded-lg text-xs disabled:opacity-50">
-                      Save
-                    </button>
-                    <button onClick={() => setEditingPlate(false)} disabled={isSaving} className="gv-btn-outline px-3 py-2 rounded-lg text-xs">
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>{transport.number_plate}</p>
-                )}
+                <p className="text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>{transport.number_plate}</p>
               </div>
-              {!editingPlate && (
-                <button
-                  onClick={startEditPlate}
-                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg"
-                  style={{ color: '#33907c', border: '1px solid var(--gv-glass-border)' }}
-                >
-                  <Pencil size={12} /> Update Number Plate
-                </button>
-              )}
+              <button
+                onClick={openPlateModal}
+                disabled={actionsDisabled}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg disabled:opacity-50"
+                style={{ color: '#33907c', border: '1px solid var(--gv-glass-border)' }}
+              >
+                <Pencil size={12} /> Update Number Plate
+              </button>
             </div>
 
             <div className="h-px" style={{ background: 'var(--gv-glass-border)' }} />
@@ -230,12 +217,6 @@ export default function ModeOfTransportDetailPage() {
               <span style={{ color: 'var(--gv-text-muted)' }}>Category:</span>
               <span style={{ color: 'var(--gv-text-primary)' }}>{categoryName ?? '—'}</span>
             </div>
-
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar size={13} className="text-white/30" />
-              <span style={{ color: 'var(--gv-text-muted)' }}>Created:</span>
-              <span style={{ color: 'var(--gv-text-primary)' }}>{formatDate(transport.created_at)}</span>
-            </div>
           </div>
 
           {/* Driver */}
@@ -243,51 +224,28 @@ export default function ModeOfTransportDetailPage() {
             <div className="flex items-center justify-between">
               <Label size="sm" as="p" className="gv-eyebrow">Driver</Label>
               <div className="flex items-center gap-2">
-                {transport.driver && !editingDriver && (
+                {transport.driver && (
                   <button
-                    onClick={handleUnassign}
-                    disabled={isSaving}
+                    onClick={openUnassignModal}
+                    disabled={actionsDisabled}
                     className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg disabled:opacity-50"
                     style={{ color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}
                   >
                     <UserX size={12} /> Unassign Driver
                   </button>
                 )}
-                {!editingDriver && (
-                  <button
-                    onClick={startEditDriver}
-                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg"
-                    style={{ color: '#33907c', border: '1px solid var(--gv-glass-border)' }}
-                  >
-                    <Pencil size={12} /> Update Driver
-                  </button>
-                )}
+                <button
+                  onClick={openDriverModal}
+                  disabled={actionsDisabled}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg disabled:opacity-50"
+                  style={{ color: '#33907c', border: '1px solid var(--gv-glass-border)' }}
+                >
+                  <Pencil size={12} /> Update Driver
+                </button>
               </div>
             </div>
 
-            {editingDriver ? (
-              <div className="space-y-3">
-                <DarkSelect value={driverDraft} onChange={e => setDriverDraft(e.target.value)}>
-                  <option value="">Select driver…</option>
-                  {drivers.map(u => (
-                    <option key={u.id} value={u.id}>{apiUserFullName(u)}</option>
-                  ))}
-                </DarkSelect>
-                {drivers.length === 0 && (
-                  <p className="text-xs" style={{ color: 'var(--gv-text-muted)' }}>
-                    No drivers found. Add a user with the &quot;Drivers&quot; role first.
-                  </p>
-                )}
-                <div className="flex gap-2">
-                  <button onClick={saveDriver} disabled={isSaving} className="gv-btn-brand px-3 py-2 rounded-lg text-xs disabled:opacity-50">
-                    Save
-                  </button>
-                  <button onClick={() => setEditingDriver(false)} disabled={isSaving} className="gv-btn-outline px-3 py-2 rounded-lg text-xs">
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : transport.driver ? (
+            {transport.driver ? (
               <div className="rounded-xl px-4 py-3 space-y-1.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gv-glass-border)' }}>
                 <p className="text-sm flex items-center gap-1.5" style={{ color: 'var(--gv-text-primary)' }}>
                   <User size={12} className="text-white/30 shrink-0" /> {transport.driver.first_name} {transport.driver.last_name}
@@ -304,6 +262,42 @@ export default function ModeOfTransportDetailPage() {
               <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>No driver assigned.</p>
             )}
           </div>
+
+          {activeModal === 'plate' && (
+            <VehicleActionModal
+              mode="plate"
+              isSaving={isSaving}
+              error={actionError ?? localError}
+              plateValue={plateDraft}
+              onPlateChange={setPlateDraft}
+              onCancel={closeModal}
+              onConfirm={confirmPlate}
+            />
+          )}
+
+          {activeModal === 'driver' && (
+            <VehicleActionModal
+              mode="driver"
+              isSaving={isSaving}
+              error={actionError ?? localError}
+              drivers={drivers}
+              driverValue={driverDraft}
+              onDriverChange={setDriverDraft}
+              onCancel={closeModal}
+              onConfirm={confirmDriver}
+            />
+          )}
+
+          {activeModal === 'unassign' && (
+            <VehicleActionModal
+              mode="unassign"
+              isSaving={isSaving}
+              error={actionError ?? localError}
+              currentDriverName={transport.driver ? `${transport.driver.first_name} ${transport.driver.last_name}` : undefined}
+              onCancel={closeModal}
+              onConfirm={confirmUnassign}
+            />
+          )}
         </>
       )}
     </div>
