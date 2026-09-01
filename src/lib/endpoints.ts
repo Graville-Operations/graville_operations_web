@@ -85,6 +85,8 @@ export const API = {
     unitCreate: "/materials/unit/create",
     materialAdd: "/materials/material/add",
     toolAdd: "/materials/tool/add",
+    all: "/materials/all",
+    toolsAll: "/materials/tools/all",
   },
   attendance: {
     summary: "/attendance/summary",
@@ -132,6 +134,15 @@ export const API = {
     dailyUsageAll: '/daily-usage/all',
     dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
+  },
+  transfers: {
+    create: "/transfers/create",
+    all: "/transfers/all",
+    details: (id: number) => `/transfers/details/${id}`,
+    submit: (id: number) => `/transfers/submit/${id}`,
+    action: (id: number) => `/transfers/action/${id}`,
+    assignTransport: (id: number) => `/transfers/assign-transport/${id}`,
+    receive: (id: number) => `/transfers/receive/${id}`,
   },
    transport: {
     vehicleCategories: "/transport/categories",

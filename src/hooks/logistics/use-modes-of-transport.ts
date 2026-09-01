@@ -17,6 +17,8 @@ export function useModesOfTransport() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [savingId, setSavingId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setIsLoading(true);
@@ -60,6 +62,57 @@ export function useModesOfTransport() {
     }
   }, [fetchAll]);
 
+  const applyUpdatedTransport = useCallback((updated: ModeOfTransport) => {
+    setTransports((prev) => {
+      const category = categories.find((c) => c.id === updated.category_id);
+      return prev.map((t) => (t.id === updated.id ? { ...updated, category_name: category?.name } : t));
+    });
+  }, [categories]);
+
+  const runRowAction = useCallback(async (id: number, action: () => Promise<ModeOfTransport>) => {
+    setActionError(null);
+    setSavingId(id);
+    try {
+      const updated = await action();
+      applyUpdatedTransport(updated);
+      return updated;
+    } catch (err) {
+      const message = getApiErrorMessage(err, 'Failed to update vehicle.');
+      setActionError(message);
+      throw new Error(message);
+    } finally {
+      setSavingId(null);
+    }
+  }, [applyUpdatedTransport]);
+
+  const updateNumberPlate = useCallback((id: number, numberPlate: string) => {
+    return runRowAction(id, () => modesOfTransportService.update(id, { number_plate: numberPlate }));
+  }, [runRowAction]);
+
+  const updateDriver = useCallback((id: number, driverId: number) => {
+    return runRowAction(id, () => modesOfTransportService.update(id, { driver_id: driverId }));
+  }, [runRowAction]);
+
+  const unassignDriver = useCallback((id: number) => {
+    return runRowAction(id, () => modesOfTransportService.unassignDriver(id));
+  }, [runRowAction]);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const toggleActive = useCallback(async (id: number, isActive: boolean) => {
+    setActionError(null);
+    setTogglingId(id);
+    try {
+      const updated = await modesOfTransportService.update(id, { is_active: isActive });
+      applyUpdatedTransport(updated);
+      return updated;
+    } catch (err) {
+      const message = getApiErrorMessage(err, 'Failed to update vehicle status.');
+      setActionError(message);
+      throw new Error(message);
+    } finally {
+      setTogglingId(null);
+    }
+  }, [applyUpdatedTransport]);
+
   const filtered = useMemo(
     () => transports.filter((t) => {
       const q = search.toLowerCase();
@@ -84,5 +137,13 @@ export function useModesOfTransport() {
     setSearch,
     createTransport,
     refresh: fetchAll,
+    savingId,
+    togglingId,
+    actionError,
+    setActionError,
+    updateNumberPlate,
+    updateDriver,
+    unassignDriver,
+    toggleActive,
   };
 }

@@ -30,6 +30,7 @@ export default function VehicleCategoryPage() {
   const {
     filtered,
     isLoading,
+    loadError,
     toast,
     search,
     setSearch,
@@ -45,7 +46,7 @@ export default function VehicleCategoryPage() {
   const closeModal = () => { setShowModal(false); setEditTarget(null); };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-md mx-auto space-y-6">
       <ShimmerStyle />
 
       {showModal && (
@@ -122,12 +123,14 @@ export default function VehicleCategoryPage() {
             </tbody>
           </table>
         ) : filtered.length === 0 ? (
-          <EmptyState
-            title={search ? 'No categories match your search' : 'No vehicle categories yet'}
-            description={search ? 'Try a different search term.' : 'Categories you create will show up here.'}
-            fullScreen={false}
-            action={search ? undefined : { label: 'Create first category', onClick: openCreate }}
-          />
+          !loadError && (
+            <EmptyState
+              title={search ? 'No categories match your search' : 'No vehicle categories yet'}
+              description={search ? 'Try a different search term.' : 'Categories you create will show up here.'}
+              fullScreen={false}
+              action={search ? undefined : { label: 'Create first category', onClick: openCreate }}
+            />
+          )
         ) : (
           <table className="w-full">
             <thead>
@@ -152,6 +155,7 @@ export default function VehicleCategoryPage() {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => openEdit(cat)}
+                      title="Edit Category"
                       className="p-1.5 rounded-lg transition-colors"
                       style={{ color: 'var(--gv-text-muted)' }}
                       onMouseEnter={e => (e.currentTarget.style.color = '#33907c')}

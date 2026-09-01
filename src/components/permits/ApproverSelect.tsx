@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Check } from "lucide-react";
 import { ApiUser } from "@/types/users";
 import { SelectedApprover } from "@/lib/utils/approvers";
@@ -13,22 +14,62 @@ interface ApproverSelectProps {
   buttonClassName?: string;
 }
 
+interface PanelPosition {
+  top?: number;
+  bottom?: number;
+  left: number;
+  width: number;
+}
+
+const PANEL_MAX_HEIGHT = 280; // list (220px) + footer + borders, approx
+
 export function ApproverSelect({ users, selected, onToggle, loading, buttonClassName = "" }: ApproverSelectProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
+  const [position, setPosition] = useState<PanelPosition | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      const insideTrigger = triggerRef.current?.contains(target);
+      const insidePanel = panelRef.current?.contains(target);
+      if (!insideTrigger && !insidePanel) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+
+    const updatePosition = () => {
+      const rect = triggerRef.current!.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const openUp = spaceBelow < PANEL_MAX_HEIGHT && spaceAbove > spaceBelow;
+
+      setPosition({
+        left: rect.left,
+        width: rect.width,
+        ...(openUp
+          ? { bottom: window.innerHeight - rect.top + 4 }
+          : { top: rect.bottom + 4 }),
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <label className="gv-eyebrow mb-1 block">Approvers *</label>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((p) => !p)}
         className={`gv-input w-full text-sm flex items-center justify-between ${buttonClassName}`}
@@ -39,10 +80,18 @@ export function ApproverSelect({ users, selected, onToggle, loading, buttonClass
         </span>
         <ChevronDown size={15} className={`ml-2 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
-      {open && (
+      {open && position && typeof document !== "undefined" && createPortal(
         <div
-          className="absolute z-20 w-full rounded-xl shadow-xl flex flex-col"
-          style={{ background: "#0d1528", border: "1px solid var(--gv-glass-border)", bottom: "calc(100% + 4px)" }}
+          ref={panelRef}
+          className="fixed z-[100] rounded-xl shadow-xl flex flex-col"
+          style={{
+            background: "#0d1528",
+            border: "1px solid var(--gv-glass-border)",
+            left: position.left,
+            width: position.width,
+            top: position.top,
+            bottom: position.bottom,
+          }}
         >
           <div style={{ maxHeight: "220px", overflowY: "auto" }}>
             {loading ? (
@@ -82,7 +131,8 @@ export function ApproverSelect({ users, selected, onToggle, loading, buttonClass
               Done {selected.length > 0 && `(${selected.length} selected)`}
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

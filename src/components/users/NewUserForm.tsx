@@ -5,6 +5,7 @@ interface NewUserFormProps {
   roles: Role[];
   departments: Department[];
   error: string;
+  rolesError?: string | null;
   isLoading: boolean;
   onChange: (key: keyof NewUserFormState, value: string) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -17,7 +18,7 @@ const inputClass =
 const selectClass =
   'w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#33907C] text-sm text-white [&>option]:bg-[#0d1b2a] [&>option]:text-white';
 
-export function NewUserForm({ form, roles, departments, error, isLoading, onChange, onSubmit, onCancel }: NewUserFormProps) {
+export function NewUserForm({ form, roles, departments, error, rolesError, isLoading, onChange, onSubmit, onCancel }: NewUserFormProps) {
   return (
     <form onSubmit={onSubmit} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 space-y-4">
       {error && (
@@ -83,6 +84,9 @@ export function NewUserForm({ form, roles, departments, error, isLoading, onChan
               <option key={r.id} value={r.id}>{r.name}</option>
             ))}
           </select>
+          {rolesError && roles.length === 0 && (
+            <p className="text-xs text-red-300/80 mt-1">Couldn&apos;t load roles: {rolesError}</p>
+          )}
         </div>
 
         <div>
