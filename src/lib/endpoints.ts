@@ -144,6 +144,17 @@ export const API = {
     assignTransport: (id: number) => `/transfers/assign-transport/${id}`,
     receive: (id: number) => `/transfers/receive/${id}`,
   },
+
+  externalWork: {
+    all: "/external-work/all",
+    myWork: "/external-work/my-work",
+    create: "/external-work/create",
+    details: (id: number) => `/external-work/details/${id}`,
+    start: (id: number) => `/external-work/start/${id}`,
+    complete: (id: number) => `/external-work/complete/${id}`,
+    cancel: (id: number) => `/external-work/cancel/${id}`,
+  },
+
    transport: {
     vehicleCategories: "/transport/categories",
     createVehicleCategory: "/transport/categories/create",

@@ -1,3 +1,48 @@
+export interface ExternalWorkApiResponse {
+  id: number;
+  status: string;
+  driver_id: number;
+  transport_id: number | null;
+  pickup_location: string;
+  destination: string;
+  client_name: string | null;
+  client_contact: string | null;
+  description: string | null;
+  amount_charged: number | null;
+  notes: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+export interface CreateExternalWorkPayload {
+  pickup_location: string;
+  destination: string;
+  transport_id?: number;
+  client_name?: string;
+  client_contact?: string;
+  description?: string;
+  amount_charged?: number;
+  notes?: string;
+}
+type DescriptionTag =
+  | { kind: 'motor_vehicle'; vehicle: string; material: string; quantity: string }
+  | { kind: 'heavy_machinery'; vehicle: string; service: string };
+
+function encodeDescription(tag: DescriptionTag): string {
+  return JSON.stringify(tag);
+}
+
+function decodeDescription(raw: string | null): Partial<DescriptionTag> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && 'kind' in parsed) return parsed;
+  } catch {  }
+  return {};
+}
+
+export const EXTERNAL_WORKS_SECTION_LIMIT = 5;
+
 export interface MotorVehicleDelivery {
   id: number;
   vehicle: string;
@@ -8,6 +53,7 @@ export interface MotorVehicleDelivery {
   amount: string;
   clientName: string;
   clientPhone: string;
+  status: string;
 }
 
 export interface HeavyMachineryService {
@@ -18,8 +64,8 @@ export interface HeavyMachineryService {
   amount: string;
   clientName: string;
   clientPhone: string;
+  status: string;
 }
-
 export interface AddMotorVehicleForm {
   vehicle: string;
   material: string;
@@ -64,68 +110,84 @@ export function emptyHeavyMachineryForm(): AddHeavyMachineryForm {
   };
 }
 
-export const EXTERNAL_WORKS_SECTION_LIMIT = 5;
-
-// --- DUMMY DATA ---
-// No backend yet — static in-memory data, same pattern as the Internal
-// Works dummy data. Swap for real fetches once the endpoints exist.
-
-export function getDummyMotorVehicleDeliveries(): MotorVehicleDelivery[] {
-  return [
-    {
-      id: 1, vehicle: 'Tipper Truck — KDB 221A', material: 'Building Sand', quantity: '20 tonnes',
-      pickupPoint: 'Machakos Quarry', destination: 'Athi River Site',
-      amount: 'KES 45,000', clientName: 'Grace Wambui', clientPhone: '0712 345 678',
-    },
-    {
-      id: 2, vehicle: 'Lowbed Trailer — KCF 118B', material: 'Precast Culverts', quantity: '12 pieces',
-      pickupPoint: 'Nairobi Yard', destination: 'Kitengela Site',
-      amount: 'KES 78,500', clientName: 'Daniel Mutiso', clientPhone: '0722 890 112',
-    },
-    {
-      id: 3, vehicle: 'Flatbed Truck — KDG 402C', material: 'Steel Beams', quantity: '6 tonnes',
-      pickupPoint: 'Mombasa Road Store', destination: 'Ruiru Site',
-      amount: 'KES 63,200', clientName: 'Alice Njeri', clientPhone: '0700 456 789',
-    },
-    {
-      id: 4, vehicle: 'Tipper Truck — KDB 221A', material: 'Ballast', quantity: '15 tonnes',
-      pickupPoint: 'Machakos Quarry', destination: 'Kware Primary Site',
-      amount: 'KES 38,000', clientName: 'Brian Otieno', clientPhone: '0733 221 004',
-    },
-    {
-      id: 5, vehicle: 'Water Bowser — KCE 774D', material: 'Water', quantity: '10,000 litres',
-      pickupPoint: 'Huruma Borehole', destination: 'Mishi Mboko Site',
-      amount: 'KES 15,000', clientName: 'Faith Chebet', clientPhone: '0745 998 331',
-    },
-  ];
+function parseAmount(input: string): number | undefined {
+  const cleaned = input.replace(/[^0-9.]/g, '');
+  if (!cleaned) return undefined;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : undefined;
 }
 
-export function getDummyHeavyMachineryServices(): HeavyMachineryService[] {
-  return [
-    {
-      id: 1, vehicle: 'Excavator — CAT 320', location: 'Athi River Site',
-      service: 'Foundation excavation', amount: 'KES 120,000',
-      clientName: 'Grace Wambui', clientPhone: '0712 345 678',
-    },
-    {
-      id: 2, vehicle: 'Bulldozer — Komatsu D65', location: 'Kitengela Site',
-      service: 'Site levelling', amount: 'KES 95,000',
-      clientName: 'Daniel Mutiso', clientPhone: '0722 890 112',
-    },
-    {
-      id: 3, vehicle: 'Backhoe Loader — JCB 3CX', location: 'Ruiru Site',
-      service: 'Trenching for drainage', amount: 'KES 54,000',
-      clientName: 'Alice Njeri', clientPhone: '0700 456 789',
-    },
-    {
-      id: 4, vehicle: 'Crane — Tadano 25T', location: 'Kware Primary Site',
-      service: 'Steel beam lifting', amount: 'KES 150,000',
-      clientName: 'Brian Otieno', clientPhone: '0733 221 004',
-    },
-    {
-      id: 5, vehicle: 'Roller Compactor — Bomag', location: 'Mishi Mboko Site',
-      service: 'Access road compaction', amount: 'KES 42,500',
-      clientName: 'Faith Chebet', clientPhone: '0745 998 331',
-    },
-  ];
+function formatAmount(n: number | null): string {
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  return `KES ${n.toLocaleString('en-KE', { minimumFractionDigits: 0 })}`;
+}
+export function toCreateMotorVehiclePayload(form: AddMotorVehicleForm): CreateExternalWorkPayload {
+  return {
+    pickup_location: form.pickupPoint.trim(),
+    destination: form.destination.trim(),
+    client_name: form.clientName.trim() || undefined,
+    client_contact: form.clientPhone.trim() || undefined,
+    description: encodeDescription({
+      kind: 'motor_vehicle',
+      vehicle: form.vehicle.trim(),
+      material: form.material.trim(),
+      quantity: form.quantity.trim(),
+    }),
+    amount_charged: parseAmount(form.amount),
+  };
+}
+
+export function toCreateHeavyMachineryPayload(form: AddHeavyMachineryForm): CreateExternalWorkPayload {
+  return {
+    pickup_location: form.location.trim(),
+    destination: '',
+    client_name: form.clientName.trim() || undefined,
+    client_contact: form.clientPhone.trim() || undefined,
+    description: encodeDescription({
+      kind: 'heavy_machinery',
+      vehicle: form.vehicle.trim(),
+      service: form.service.trim(),
+    }),
+    amount_charged: parseAmount(form.amount),
+  };
+}
+export function splitExternalWork(items: ExternalWorkApiResponse[]): {
+  motorVehicles: MotorVehicleDelivery[];
+  heavyMachinery: HeavyMachineryService[];
+} {
+  const motorVehicles: MotorVehicleDelivery[] = [];
+  const heavyMachinery: HeavyMachineryService[] = [];
+
+  for (const r of items) {
+    const tag = decodeDescription(r.description);
+    const isMotorVehicle = tag.kind ? tag.kind === 'motor_vehicle' : !!r.destination;
+
+    if (isMotorVehicle) {
+      motorVehicles.push({
+        id: r.id,
+        vehicle: (tag as { vehicle?: string }).vehicle || '—',
+        material: (tag as { material?: string }).material || '—',
+        quantity: (tag as { quantity?: string }).quantity || '—',
+        pickupPoint: r.pickup_location || '—',
+        destination: r.destination || '—',
+        amount: formatAmount(r.amount_charged),
+        clientName: r.client_name || '—',
+        clientPhone: r.client_contact || '—',
+        status: r.status,
+      });
+    } else {
+      heavyMachinery.push({
+        id: r.id,
+        vehicle: (tag as { vehicle?: string }).vehicle || '—',
+        location: r.pickup_location || '—',
+        service: (tag as { service?: string }).service || r.description || '—',
+        amount: formatAmount(r.amount_charged),
+        clientName: r.client_name || '—',
+        clientPhone: r.client_contact || '—',
+        status: r.status,
+      });
+    }
+  }
+
+  return { motorVehicles, heavyMachinery };
 }
