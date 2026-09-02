@@ -2,16 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Filter, ChevronDown, ChevronUp, Check } from 'lucide-react';
-import { DeliveryStatus, DELIVERY_STATUS_META } from '@/types/material-delivery';
+import { DriverTaskStatus, DRIVER_TASK_STATUS_META } from '@/types/driver-task';
 
-const STATUS_OPTIONS = Object.values(DeliveryStatus).map((value) => ({
+const STATUS_OPTIONS = Object.values(DriverTaskStatus).map((value) => ({
   value,
-  label: DELIVERY_STATUS_META[value].label,
+  label: DRIVER_TASK_STATUS_META[value].label,
 }));
 
 interface DeliveryStatusFilterDropdownProps {
-  value: DeliveryStatus | null;
-  onChange: (status: DeliveryStatus | null) => void;
+  value: DriverTaskStatus | null;
+  onChange: (status: DriverTaskStatus | null) => void;
 }
 
 export default function DeliveryStatusFilterDropdown({ value, onChange }: DeliveryStatusFilterDropdownProps) {
