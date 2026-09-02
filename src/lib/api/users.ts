@@ -22,6 +22,9 @@ export async function fetchUserDepartments(id: number): Promise<Department[]> {
 }
 
 const ROLES_CACHE_KEY = 'gv:roles';
+export function getCachedRoles(): Role[] | null {
+  return cacheGet<Role[]>(ROLES_CACHE_KEY);
+}
 
 export async function fetchRoles(forceRefresh = false): Promise<Role[]> {
   if (!forceRefresh) {
