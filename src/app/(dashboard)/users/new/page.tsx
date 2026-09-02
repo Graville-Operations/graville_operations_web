@@ -6,7 +6,7 @@ import { NewUserForm } from '@/components/users/NewUserForm';
 
 export default function NewUserPage() {
   const router = useRouter();
-  const { roles, departments, form, updateField, handleSubmit, isLoading, error } = useCreateUser();
+  const { roles, rolesError, departments, form, updateField, handleSubmit, isLoading, error } = useCreateUser();
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -20,6 +20,7 @@ export default function NewUserPage() {
         roles={roles}
         departments={departments}
         error={error}
+        rolesError={rolesError}
         isLoading={isLoading}
         onChange={updateField}
         onSubmit={handleSubmit}

@@ -7,7 +7,7 @@ import { AddMotorVehicleForm, emptyMotorVehicleForm } from '@/types/external-wor
 interface AddMotorVehicleOverlayProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (form: AddMotorVehicleForm) => void;
+  onSubmit: (form: AddMotorVehicleForm) => Promise<void>;
 }
 
 const inputCls = 'w-full px-3 py-2 rounded-lg text-sm bg-[color:var(--muted)] border border-[color:var(--border)] text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-colors';
@@ -43,7 +43,7 @@ export default function AddMotorVehicleOverlay({ open, onClose, onSubmit }: AddM
     return () => window.removeEventListener('keydown', h);
   }, [open, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.vehicle.trim()) return setError('Vehicle is required.');
     if (!form.destination.trim()) return setError('Destination is required.');
@@ -51,8 +51,14 @@ export default function AddMotorVehicleOverlay({ open, onClose, onSubmit }: AddM
 
     setSubmitting(true);
     setError(null);
-    onSubmit(form);
-    setSubmitting(false);
+    try {
+      await onSubmit(form);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add delivery.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

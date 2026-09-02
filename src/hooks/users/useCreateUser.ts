@@ -1,14 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/user-store';
 import { ROUTES } from '@/lib/routes';
-import { useRoles } from '@/hooks/users/useRoles';
 import { useDepartmentOptions } from '@/hooks/department/use-department-options';
 import { Role, NewUserFormState } from '@/types/users';
-import { fetchRoles, createUser, assignUserToDepartment } from '@/lib/api/users';
-import { useEffect } from 'react';
+import { fetchRoles, getCachedRoles, createUser, assignUserToDepartment } from '@/lib/api/users';
+import { getApiErrorMessage } from '@/lib/api/api-error';
 
 const initialForm: NewUserFormState = {
   first_name:    '',
@@ -23,14 +22,29 @@ const initialForm: NewUserFormState = {
 export function useCreateUser() {
   const router = useRouter();
   const { clearUsers } = useUserStore();
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [roles, setRoles] = useState<Role[]>(() => getCachedRoles() ?? []);
+  const [rolesLoading, setRolesLoading] = useState<boolean>(() => getCachedRoles() === null);
+  const [rolesError, setRolesError] = useState<string | null>(null);
+
   const { departments, isLoading: departmentsLoading } = useDepartmentOptions();
   const [form, setForm] = useState<NewUserFormState>(initialForm);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchRoles().then(setRoles).catch((err) => console.error('Failed to fetch roles:', err));
+    const cached = getCachedRoles();
+    if (cached) {
+      setRolesLoading(false);
+      return;
+    }
+    setRolesLoading(true);
+    fetchRoles()
+      .then(setRoles)
+      .catch((err) => {
+        console.error('Failed to fetch roles:', err);
+        setRolesError(getApiErrorMessage(err, 'Failed to load roles.'));
+      })
+      .finally(() => setRolesLoading(false));
   }, []);
 
   const updateField = (key: keyof NewUserFormState, value: string) => {
@@ -58,5 +72,9 @@ export function useCreateUser() {
     }
   };
 
-  return { roles, departments, departmentsLoading, form, updateField, handleSubmit, isLoading, error };
+  return {
+    roles, rolesLoading, rolesError,
+    departments, departmentsLoading,
+    form, updateField, handleSubmit, isLoading, error,
+  };
 }

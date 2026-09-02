@@ -7,7 +7,7 @@ import { AddHeavyMachineryForm, emptyHeavyMachineryForm } from '@/types/external
 interface AddHeavyMachineryOverlayProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (form: AddHeavyMachineryForm) => void;
+  onSubmit: (form: AddHeavyMachineryForm) => Promise<void>;
 }
 
 const inputCls = 'w-full px-3 py-2 rounded-lg text-sm bg-[color:var(--muted)] border border-[color:var(--border)] text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-colors';
@@ -43,7 +43,7 @@ export default function AddHeavyMachineryOverlay({ open, onClose, onSubmit }: Ad
     return () => window.removeEventListener('keydown', h);
   }, [open, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.vehicle.trim()) return setError('Vehicle is required.');
     if (!form.service.trim()) return setError('Service is required.');
@@ -51,8 +51,14 @@ export default function AddHeavyMachineryOverlay({ open, onClose, onSubmit }: Ad
 
     setSubmitting(true);
     setError(null);
-    onSubmit(form);
-    setSubmitting(false);
+    try {
+      await onSubmit(form);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add service.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
