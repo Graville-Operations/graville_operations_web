@@ -135,6 +135,7 @@ export const API = {
     dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
   },
+
   transfers: {
     create: "/transfers/create",
     all: "/transfers/all",
@@ -164,6 +165,17 @@ export const API = {
     updateModeOfTransport: (id: number) => `/transport/vehicles/${id}`,
     drivers: "/transport/drivers/list",
     unassignDriver: (id: number) => `/transport/vehicles/${id}/unassign-driver`,
+  },
+  driverTasks: {
+    all: "/driver-tasks/all",
+    myTasks: "/driver-tasks/my-tasks",
+    create: "/driver-tasks/create",
+    detail: (id: number) => `/driver-tasks/details/${id}`,
+    assign: (id: number) => `/driver-tasks/assign/${id}`,
+    start: (id: number) => `/driver-tasks/start/${id}`,
+    cancel: (id: number) => `/driver-tasks/cancel/${id}`,
+    completeSupplierPickup: (id: number) => `/driver-tasks/complete/supplier-pickup/${id}`,
+    completeTransfer: (id: number) => `/driver-tasks/complete/transfer/${id}`,
   },
   invoiceActions: {
     updateStatus: (invoiceType: string, invoiceId: number | string) =>

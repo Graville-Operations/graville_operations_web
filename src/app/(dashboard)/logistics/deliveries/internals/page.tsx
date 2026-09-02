@@ -11,12 +11,15 @@ import InitiateDeliveryOverlay from '@/components/logistics/material-delivery/In
 
 export default function InternalWorksPage() {
   const {
-    deliveries, totalDeliveries, inTransitCount,
+    deliveries, totalDeliveries, inTransitCount, loading,
     search, setSearch,
     statusFilter, setStatusFilter,
     dateFrom, dateTo, appliedLabel, applyDateFilter, clearDateFilter,
     hasFilter,
     showInitiateModal, openInitiateModal, closeInitiateModal, initiateDelivery,
+    siteNameById, transportLabelById,
+    sites, transportOptions, transferOptions,
+    materialsBySite, toolsBySite, loadMaterialsForSite, loadToolsForSite,
   } = useInternalDeliveries();
 
   return (
@@ -31,14 +34,14 @@ export default function InternalWorksPage() {
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
         >
           <Plus size={15} />
-          Initiate Delivery
+          Create Driver Task
         </button>
       </div>
 
       <DeliveryStatCards total={totalDeliveries} inTransit={inTransitCount} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <SearchInput value={search} onChange={setSearch} placeholder="Search by material, destination…" />
+        <SearchInput value={search} onChange={setSearch} placeholder="Search by title, material…" />
         <DeliveryStatusFilterDropdown value={statusFilter} onChange={setStatusFilter} />
         <DateFilterDropdown
           from={dateFrom}
@@ -49,12 +52,25 @@ export default function InternalWorksPage() {
         />
       </div>
 
-      <MaterialDeliveryTable deliveries={deliveries} hasFilter={hasFilter} />
+      <MaterialDeliveryTable
+        deliveries={deliveries}
+        loading={loading}
+        hasFilter={hasFilter}
+        siteNameById={siteNameById}
+        transportLabelById={transportLabelById}
+      />
 
       <InitiateDeliveryOverlay
         open={showInitiateModal}
         onClose={closeInitiateModal}
         onSubmit={initiateDelivery}
+        sites={sites}
+        transportOptions={transportOptions}
+        transferOptions={transferOptions}
+        materialsBySite={materialsBySite}
+        toolsBySite={toolsBySite}
+        loadMaterialsForSite={loadMaterialsForSite}
+        loadToolsForSite={loadToolsForSite}
       />
     </div>
   );
