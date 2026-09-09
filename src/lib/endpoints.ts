@@ -164,6 +164,11 @@ export const API = {
     updateModeOfTransport: (id: number) => `/transport/vehicles/${id}`,
     drivers: "/transport/drivers/list",
     unassignDriver: (id: number) => `/transport/vehicles/${id}/unassign-driver`,
+    fuel: {
+      vehicles: "/transport/fuel/vehicles",
+      vehicleDetail: (id: number) => `/transport/fuel/vehicles/${id}`,
+      log: "/transport/fuel/log",
+    },
   },
   invoiceActions: {
     updateStatus: (invoiceType: string, invoiceId: number | string) =>

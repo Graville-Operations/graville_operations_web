@@ -13,7 +13,6 @@ export interface UpdateVehicleCategoryPayload {
   name?: string;
 }
 
-/** A driver assigned to a vehicle, as embedded in the ModeOfTransport response. */
 export interface DriverBrief {
   id: number;
   first_name: string;
