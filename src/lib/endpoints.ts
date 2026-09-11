@@ -137,13 +137,19 @@ export const API = {
   },
 
   transfers: {
-    create: "/transfers/create",
+    create: "/transfers/create", 
     all: "/transfers/all",
     details: (id: number) => `/transfers/details/${id}`,
     submit: (id: number) => `/transfers/submit/${id}`,
     action: (id: number) => `/transfers/action/${id}`,
     assignTransport: (id: number) => `/transfers/assign-transport/${id}`,
     receive: (id: number) => `/transfers/receive/${id}`,
+  },
+    services: {
+    all: "/services/all",
+    create: "/services/create",
+    action: (id: number) => `/services/action/${id}`,
+    complete: (id: number) => `/services/complete/${id}`,
   },
 
   externalWork: {
