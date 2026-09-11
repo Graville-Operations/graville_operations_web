@@ -46,7 +46,7 @@ export default function FuelVehicleDetailPage() {
       <ShimmerStyle />
 
       <button
-        onClick={() => router.push(ROUTES.logistics.transport.fuelManagement)}
+        onClick={() => router.push(ROUTES.logistics.fuelManagement.list)}
         className="flex items-center gap-2 text-sm"
         style={{ color: 'var(--gv-text-muted)' }}
       >

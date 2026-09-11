@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { fuelService } from '@/lib/api/fuel-service';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 import { FuelVehicleSummary, FuelType } from '@/types/fuel';
@@ -36,8 +36,14 @@ export function useFuelManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, fuelTypeFilter]);
 
+  // Vehicles with no fuel_type reported have no logged entries yet — hide them from the list.
+  const filteredVehicles = useMemo(
+    () => vehicles.filter((v) => Boolean(v.fuelType)),
+    [vehicles],
+  );
+
   return {
-    filteredVehicles: vehicles,
+    filteredVehicles,
     isLoading,
     loadError,
     search,

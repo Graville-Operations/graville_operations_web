@@ -20,6 +20,61 @@ const modalTitle: Record<string, string> = {
   'subsubmenu-edit': 'Edit Sub-submenu',
 };
 
+const deleteNoun: Record<'menu' | 'submenu' | 'subsubmenu', string> = {
+  menu: 'menu',
+  submenu: 'submenu',
+  subsubmenu: 'sub-submenu',
+};
+
+function ConfirmDeleteModal({
+  type, busy, error, onCancel, onConfirm,
+}: {
+  type: 'menu' | 'submenu' | 'subsubmenu';
+  busy: boolean;
+  error: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={(e) => { if (e.target === e.currentTarget && !busy) onCancel(); }}
+    >
+      <div className="w-full max-w-sm bg-[#0d1528] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
+          <h3 className="text-base font-bold text-white">Delete {deleteNoun[type]}?</h3>
+          <button onClick={onCancel} disabled={busy} className="p-1 -mt-1 -mr-1 text-white/30 hover:text-white transition-colors disabled:opacity-40">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-6 pb-5">
+          <p className="text-sm text-blue-100/60">
+            This will permanently remove this {deleteNoun[type]}
+            {type === 'menu' ? ' and all of its submenus' : type === 'submenu' ? ' and all of its sub-submenus' : ''}.
+          </p>
+          {error && (
+            <div className="mt-3 bg-red-500/20 border border-red-400/30 text-red-300 px-3 py-2 rounded-lg text-sm">{error}</div>
+          )}
+        </div>
+        <div className="px-6 py-4 border-t border-white/10 flex items-center justify-end gap-2">
+          <button onClick={onCancel} disabled={busy} className="px-4 py-1.5 border border-white/20 rounded-lg text-white/60 hover:bg-white/10 transition-colors text-sm disabled:opacity-50">
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={busy}
+            className="flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+            style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#f87171' }}
+          >
+            {busy && <div className="w-3.5 h-3.5 border-2 border-red-300/40 border-t-red-300 rounded-full animate-spin" />}
+            {busy ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function toggle(set: Set<number>, id: number): Set<number> {
   const next = new Set(set);
   if (next.has(id)) next.delete(id); else next.add(id);
@@ -27,10 +82,10 @@ function toggle(set: Set<number>, id: number): Set<number> {
 }
 
 export default function MenusPage() {
-  // All data + CRUD logic lives in the hook. This component only renders.
   const {
     menus, isLoading, modal, form, saving, error,
-    setForm, openModal, closeModal, handleSave, handleDelete,
+    setForm, openModal, closeModal, handleSave,
+    deleteTarget, deleting, deleteError, requestDelete, cancelDelete, confirmDelete,
   } = useMenus();
 
 
@@ -87,7 +142,7 @@ export default function MenusPage() {
                   <button onClick={() => openModal({ type: 'menu-edit', menu }, { name: menu.name, title: menu.title, link: menu.link ?? '', order: String(menu.order) })} className="p-1.5 text-white/40 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors">
                     <Pencil size={14} />
                   </button>
-                  <button onClick={() => handleDelete('menu', menu.id)} className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                  <button onClick={() => requestDelete('menu', menu.id)} className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -117,7 +172,7 @@ export default function MenusPage() {
                             <button onClick={() => openModal({ type: 'submenu-edit', submenu: sub, menuId: menu.id }, { name: sub.name, title: sub.title, link: sub.link ?? '', order: String(sub.order) })} className="p-1.5 text-white/30 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors">
                               <Pencil size={13} />
                             </button>
-                            <button onClick={() => handleDelete('submenu', sub.id)} className="p-1.5 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                            <button onClick={() => requestDelete('submenu', sub.id)} className="p-1.5 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                               <Trash2 size={13} />
                             </button>
                           </div>
@@ -137,7 +192,7 @@ export default function MenusPage() {
                                     <button onClick={() => openModal({ type: 'subsubmenu-edit', subsubmenu: ssub, submenuId: sub.id }, { name: ssub.name, title: ssub.title, link: ssub.link ?? '', order: String(ssub.order) })} className="p-1.5 text-white/20 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors">
                                       <Pencil size={12} />
                                     </button>
-                                    <button onClick={() => handleDelete('subsubmenu', ssub.id)} className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                                    <button onClick={() => requestDelete('subsubmenu', ssub.id)} className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                                       <Trash2 size={12} />
                                     </button>
                                   </div>
@@ -204,6 +259,16 @@ export default function MenusPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          type={deleteTarget.type}
+          busy={deleting}
+          error={deleteError}
+          onCancel={cancelDelete}
+          onConfirm={confirmDelete}
+        />
       )}
     </div>
   );

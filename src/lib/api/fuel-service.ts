@@ -10,7 +10,7 @@ export const fuelService = {
     fuelType?: FuelType | '';
     search?: string;
   }): Promise<FuelVehicleSummary[]> {
-    const { data } = await api.get(API.transport.fuel.vehicles, {
+    const { data } = await api.get(API.fuel.vehicles, {
       params: {
         fuel_type: params?.fuelType || undefined,
         search: params?.search || undefined,
@@ -20,12 +20,12 @@ export const fuelService = {
   },
 
   async getVehicleDetail(transportId: number): Promise<FuelVehicleDetail> {
-    const { data } = await api.get(API.transport.fuel.vehicleDetail(transportId));
+    const { data } = await api.get(API.fuel.vehicleDetail(transportId));
     return normaliseFuelVehicleDetail(unwrapObject(data));
   },
 
   async createLog(payload: CreateFuelLogPayload) {
-    const { data } = await api.post(API.transport.fuel.log, {
+    const { data } = await api.post(API.fuel.log, {
       transport_id: payload.transportId,
       date: payload.date,
       purpose: payload.purpose,

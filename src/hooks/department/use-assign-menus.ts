@@ -1,37 +1,28 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { departmentDetailService } from '@/lib/api/department-detail-service';
 import { getApiErrorMessage } from '@/lib/api/api-error';
+import { useCachedLookup } from '@/hooks/useCachedLookup';
+import { API } from '@/lib/endpoints';
+import { parseMenus } from '@/lib/utils/parse-entities';
 import { AssignResult, Menu } from '@/types/department-detail';
 
 export function useAssignMenus(deptId: number, currentMenuIds: Set<number>) {
-  const [allMenus, setAllMenus] = useState<Menu[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errMsg, setErrMsg] = useState<string | null>(null);
+  const { data, loading, error } = useCachedLookup<unknown>(API.menus.list);
+
+  const allMenus = useMemo<Menu[]>(
+    () => (data ? parseMenus(data) : []),
+    [data],
+  );
+
+  const errMsg = error
+    ? 'Failed to load menus'
+    : (!loading && allMenus.length === 0 ? 'Menus API returned 0 items.' : null);
+
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    departmentDetailService.listAllMenus()
-      .then((parsed) => {
-        if (cancelled) return;
-        if (parsed.length === 0) setErrMsg('Menus API returned 0 items.');
-        setAllMenus(parsed);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error('[useAssignMenus] listAllMenus failed:', err);
-        setErrMsg(getApiErrorMessage(err, 'Failed to load menus'));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
 
   const available = useMemo(
     () => allMenus

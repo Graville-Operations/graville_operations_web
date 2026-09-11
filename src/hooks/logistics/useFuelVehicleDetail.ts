@@ -1,39 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { FuelVehicleDetail, getDummyFuelVehicleDetail } from '@/types/fuel';
+import { useState, useEffect, useCallback } from 'react';
+import { fuelService } from '@/lib/api/fuel-service';
+import { getApiErrorMessage } from '@/lib/api/api-error';
+import { FuelVehicleDetail } from '@/types/fuel';
 
 export function useFuelVehicleDetail(vehicleId: number) {
   const [vehicle, setVehicle] = useState<FuelVehicleDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchVehicle = useCallback(async (opts?: { silent?: boolean }) => {
     if (!vehicleId) return;
-    let cancelled = false;
-    setIsLoading(true);
+    if (!opts?.silent) setIsLoading(true);
     setLoadError(null);
-
-    getDummyFuelVehicleDetail(vehicleId)
-      .then((data) => {
-        if (cancelled) return;
-        if (!data) {
-          setLoadError('Vehicle not found.');
-        } else {
-          setVehicle(data);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoadError('Failed to load fuel breakdown.');
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const data = await fuelService.getVehicleDetail(vehicleId);
+      setVehicle(data);
+    } catch (err) {
+      setLoadError(getApiErrorMessage(err, 'Failed to load fuel breakdown.'));
+    } finally {
+      if (!opts?.silent) setIsLoading(false);
+    }
   }, [vehicleId]);
 
-  return { vehicle, isLoading, loadError };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchVehicle();
+  }, [fetchVehicle]);
+
+  return { vehicle, isLoading, loadError, refresh: fetchVehicle };
 }

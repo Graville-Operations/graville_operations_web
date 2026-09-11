@@ -165,12 +165,14 @@ export const API = {
     updateModeOfTransport: (id: number) => `/transport/vehicles/${id}`,
     drivers: "/transport/drivers/list",
     unassignDriver: (id: number) => `/transport/vehicles/${id}/unassign-driver`,
-    fuel: {
-      vehicles: "/transport/fuel/vehicles",
-      vehicleDetail: (id: number) => `/transport/fuel/vehicles/${id}`,
-      log: "/transport/fuel/log",
-    },
   },
+
+ fuel: {
+      vehicles: "/fuel/vehicles",
+      vehicleDetail: (id: number) => `/fuel/vehicles/${id}`,
+      log: "/fuel/log",
+    },
+
   driverTasks: {
     all: "/driver-tasks/all",
     myTasks: "/driver-tasks/my-tasks",
