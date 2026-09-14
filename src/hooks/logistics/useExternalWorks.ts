@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { externalWorkService } from '@/lib/api/external-work';
+import { modesOfTransportService } from '@/lib/api/transport-service';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 import {
   MotorVehicleDelivery,
@@ -9,6 +10,7 @@ import {
   AddMotorVehicleForm,
   AddHeavyMachineryForm,
   EXTERNAL_WORKS_SECTION_LIMIT,
+  VehicleLookup,
   splitExternalWork,
   toCreateMotorVehiclePayload,
   toCreateHeavyMachineryPayload,
@@ -24,8 +26,14 @@ export function useExternalWorks() {
     if (!opts?.silent) setIsLoading(true);
     setLoadError(null);
     try {
-      const items = await externalWorkService.list();
-      const { motorVehicles: mv, heavyMachinery: hm } = splitExternalWork(items);
+      const [items, vehicles] = await Promise.all([
+        externalWorkService.list(),
+        modesOfTransportService.list().catch(() => []),
+      ]);
+      const vehicleById: VehicleLookup = new Map(
+        vehicles.map((v) => [v.id, { name: v.name, numberPlate: v.number_plate }]),
+      );
+      const { motorVehicles: mv, heavyMachinery: hm } = splitExternalWork(items, vehicleById);
       setMotorVehicles(mv);
       setHeavyMachinery(hm);
     } catch (err) {
