@@ -1,11 +1,11 @@
 'use client';
 
-import { MotorVehicleDelivery } from '@/types/external-work';
+import { MotorVehicleDeliveryRow } from '@/hooks/logistics/useExternalWorks';
 import EmptyState from '@/components/ui/emptystate';
 import { Bone, ShimmerStyle } from '@/components/shared/Shimmer';
 
 interface MotorVehiclesTableProps {
-  deliveries: MotorVehicleDelivery[];
+  deliveries: MotorVehicleDeliveryRow[];
   isLoading?: boolean;
 }
 
@@ -26,40 +26,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const COLUMN_COUNT = 9;
+
 export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehiclesTableProps) {
-  if (isLoading) {
-    return (
-      <div className="gv-card p-0 overflow-x-auto">
-        <ShimmerStyle />
-        <table className="w-full text-sm">
-          <tbody>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <tr key={i} className="border-b border-[color:var(--border)] last:border-0">
-                {Array.from({ length: 9 }).map((__, j) => (
-                  <td key={j} className="px-4 py-3">
-                    <Bone w={j === 0 ? '7rem' : '5rem'} />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
-  if (deliveries.length === 0) {
-    return (
-      <EmptyState
-        title="No motor vehicle deliveries yet"
-        description="Deliveries you add will show up here"
-        fullScreen={false}
-      />
-    );
-  }
-
   return (
     <div className="gv-card p-0 overflow-x-auto">
+      {isLoading && <ShimmerStyle />}
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[color:var(--border)] text-left">
@@ -75,19 +47,44 @@ export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehic
           </tr>
         </thead>
         <tbody>
-          {deliveries.map((d) => (
-            <tr key={d.id} className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--muted)] transition-colors">
-              <td className="px-4 py-3 font-medium text-[color:var(--foreground)]">{d.vehicle}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.material}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.quantity}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.pickupPoint}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.destination}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.amount}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.clientName}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.clientPhone}</td>
-              <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <tr key={i} className="border-b border-[color:var(--border)] last:border-0">
+                {Array.from({ length: COLUMN_COUNT }).map((__, j) => (
+                  <td key={j} className="px-4 py-3">
+                    <Bone w={j === 0 ? '7rem' : '5rem'} />
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : deliveries.length === 0 ? (
+            <tr>
+              <td colSpan={COLUMN_COUNT} className="p-0">
+                <EmptyState
+                  title="No motor vehicle deliveries yet"
+                  description="Deliveries you add will show up here"
+                  fullScreen={false}
+                />
+              </td>
             </tr>
-          ))}
+          ) : (
+            deliveries.map((d) => (
+              <tr key={d.id} className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--muted)] transition-colors">
+                <td className="px-4 py-3">
+                  <p className="font-medium text-[color:var(--foreground)]">{d.vehicleName}</p>
+                  <p className="text-xs text-[color:var(--muted-foreground)]">{d.numberPlate}</p>
+                </td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.material}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.quantity}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.pickupPoint}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.destination}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.amount}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.clientName}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.clientPhone}</td>
+                <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
