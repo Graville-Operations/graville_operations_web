@@ -51,9 +51,6 @@ export function useVehicleServices() {
     ? `${dateRange.start} → ${dateRange.end}`
     : (dateRange.start || dateRange.end || '');
 
-  // NOTE: the backend's `status` filter is already applied server-side
-  // above (see loadServices). Search, service-type, and date are
-  // applied client-side against whatever page of results came back.
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return services.filter((s) => {
