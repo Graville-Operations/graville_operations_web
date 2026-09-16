@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Truck, User, Phone, IdCard, Search, X, Tag } from 'lucide-react';
+import { ArrowLeft, Pencil, Plus, Search, Tag, Truck, User, UserX, X } from 'lucide-react';
 import { Title, Label } from '@/components/ui/typography';
 import EmptyState from '@/components/ui/emptystate';
 import { Bone, ShimmerStyle } from '@/components/shared/Shimmer';
@@ -11,9 +11,27 @@ import { useModesOfTransport } from '@/hooks/logistics/use-modes-of-transport';
 import { ModeOfTransport } from '@/types/transport';
 import { ROUTES } from '@/lib/routes';
 import { maskNationalId, driverBriefName } from '@/lib/utils/transport';
-import { cacheTransportPreview } from '@/lib/utils/transport-preview';
 import { TransportFormModal } from '@/components/logistics/transport/TransportFormModal';
+import { VehicleActionMode, VehicleActionModal } from '@/components/logistics/transport/VehicleActionModal';
 import { StatusPill } from '@/components/logistics/transport/StatusPill';
+
+function StatusToggle({ active, disabled, onToggle }: { active: boolean; disabled: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      title={active ? 'Deactivate vehicle' : 'Activate vehicle'}
+      className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 disabled:opacity-50"
+      style={{ background: active ? '#33907c' : 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}
+    >
+      <span
+        className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
+        style={{ transform: active ? 'translateX(17px)' : 'translateX(2px)' }}
+      />
+    </button>
+  );
+}
 
 export default function AllVehiclesPage() {
   const router = useRouter();
@@ -26,21 +44,86 @@ export default function AllVehiclesPage() {
     search,
     setSearch,
     createTransport,
+    savingId,
+    togglingId,
+    actionError,
+    setActionError,
+    updateNumberPlate,
+    updateDriver,
+    unassignDriver,
+    toggleActive,
   } = useModesOfTransport();
 
   const [showModal, setShowModal] = useState(false);
   const openCreate = () => setShowModal(true);
   const closeModal = () => setShowModal(false);
 
-  const goToDetail = (t: ModeOfTransport) => {
-    cacheTransportPreview(t);
-    router.push(ROUTES.logistics.transport.modeOfTransportDetail(t.id));
+  const [activeModal, setActiveModal] = useState<{ id: number; mode: VehicleActionMode } | null>(null);
+  const [plateDraft, setPlateDraft] = useState('');
+  const [driverDraft, setDriverDraft] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const activeTransport = activeModal ? filtered.find((t) => t.id === activeModal.id) : undefined;
+  const isSavingActive = activeModal ? savingId === activeModal.id : false;
+
+  const closeActionModal = () => {
+    setActiveModal(null);
+    setLocalError(null);
+    setActionError(null);
+  };
+
+  const openPlateModal = (t: ModeOfTransport) => {
+    setPlateDraft(t.number_plate);
+    setLocalError(null);
+    setActiveModal({ id: t.id, mode: 'plate' });
+  };
+
+  const openDriverModal = (t: ModeOfTransport) => {
+    setDriverDraft('');
+    setLocalError(null);
+    setActiveModal({ id: t.id, mode: 'driver' });
+  };
+
+  const openUnassignModal = (t: ModeOfTransport) => {
+    setLocalError(null);
+    setActiveModal({ id: t.id, mode: 'unassign' });
+  };
+
+  const confirmPlate = async () => {
+    if (!activeModal) return;
+    if (!plateDraft.trim()) { setLocalError('Number plate is required.'); return; }
+    try {
+      await updateNumberPlate(activeModal.id, plateDraft.trim());
+      closeActionModal();
+    } catch {  }
+  };
+
+  const confirmDriver = async () => {
+    if (!activeModal) return;
+    if (!driverDraft) { setLocalError('Select a driver first.'); return; }
+    try {
+      await updateDriver(activeModal.id, Number(driverDraft));
+      closeActionModal();
+    } catch {  }
+  };
+
+  const confirmUnassign = async () => {
+    if (!activeModal) return;
+    try {
+      await unassignDriver(activeModal.id);
+      closeActionModal();
+    } catch {  }
+  };
+
+  const handleToggle = (t: ModeOfTransport) => {
+    toggleActive(t.id, !t.is_active).catch(() => {  });
   };
 
   const noCategories = !isLoading && !loadError && categories.length === 0;
+  const rowActionsDisabled = (t: ModeOfTransport) => savingId === t.id || togglingId === t.id || !t.is_active;
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-4xl mx-auto space-y-6">
       <ShimmerStyle />
 
       {showModal && (
@@ -49,6 +132,26 @@ export default function AllVehiclesPage() {
           drivers={drivers}
           onClose={closeModal}
           onCreate={createTransport}
+        />
+      )}
+
+      {activeModal && activeTransport && (
+        <VehicleActionModal
+          mode={activeModal.mode}
+          isSaving={isSavingActive}
+          error={actionError ?? localError}
+          plateValue={plateDraft}
+          onPlateChange={setPlateDraft}
+          drivers={drivers}
+          driverValue={driverDraft}
+          onDriverChange={setDriverDraft}
+          currentDriverName={activeTransport.driver ? driverBriefName(activeTransport.driver) : undefined}
+          onCancel={closeActionModal}
+          onConfirm={
+            activeModal.mode === 'plate' ? confirmPlate :
+            activeModal.mode === 'driver' ? confirmDriver :
+            confirmUnassign
+          }
         />
       )}
 
@@ -113,7 +216,7 @@ export default function AllVehiclesPage() {
           <table className="w-full">
             <thead>
               <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
-                {['Vehicle', 'Number Plate', 'Category', 'Driver Name', 'Driver Phone', 'National ID', 'Status'].map(h => (
+                {['Vehicle', 'Category', 'Driver', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: '#33907c' }}>{h}</th>
                 ))}
               </tr>
@@ -122,84 +225,121 @@ export default function AllVehiclesPage() {
               {Array.from({ length: 4 }).map((_, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
                   <td className="px-4 py-3"><Bone w="9rem" /></td>
-                  <td className="px-4 py-3"><Bone w="5rem" /></td>
                   <td className="px-4 py-3"><Bone w="6rem" /></td>
                   <td className="px-4 py-3"><Bone w="7rem" /></td>
-                  <td className="px-4 py-3"><Bone w="6rem" /></td>
-                  <td className="px-4 py-3"><Bone w="5rem" /></td>
                   <td className="px-4 py-3"><Bone w="4rem" /></td>
+                  <td className="px-4 py-3"><Bone w="6rem" /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : filtered.length === 0 ? (
-          <EmptyState
-            fullScreen={false}
-            title={search ? 'No vehicles match your search' : 'No vehicles yet'}
-            description={search ? 'Try a different search term.' : 'Add your first vehicle to get started.'}
-            action={!search && !noCategories ? { label: 'New Vehicle', onClick: openCreate } : undefined}
-          />
+          // Only a genuinely empty list gets the empty state — a failed
+          // fetch is handled silently, not this.
+          !loadError && (
+            <EmptyState
+              fullScreen={false}
+              title={search ? 'No vehicles match your search' : 'No vehicles yet'}
+              description={search ? 'Try a different search term.' : 'Add your first vehicle to get started.'}
+              action={!search && !noCategories ? { label: 'New Vehicle', onClick: openCreate } : undefined}
+            />
+          )
         ) : (
           <table className="w-full">
             <thead>
               <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
-                {['Vehicle', 'Number Plate', 'Category', 'Driver Name', 'Driver Phone', 'National ID', 'Status'].map(h => (
+                {['Vehicle', 'Category', 'Driver', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: '#33907c' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((t, idx) => (
-                <tr
-                  key={t.id}
-                  onClick={() => goToDetail(t)}
-                  className="cursor-pointer transition-colors hover:bg-white/[0.03]"
-                  style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="gv-icon-box" style={{ width: '2rem', height: '2rem' }}>
-                        <Truck size={14} className="text-[#33907c]" />
+              {filtered.map((t, idx) => {
+                const actionsDisabled = rowActionsDisabled(t);
+                return (
+                  <tr key={t.id} style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--gv-glass-border)' : 'none' }}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="gv-icon-box" style={{ width: '2rem', height: '2rem' }}>
+                          <Truck size={14} className="text-[#33907c]" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold truncate" style={{ color: 'var(--gv-text-primary)' }}>{t.number_plate}</p>
+                          {t.driver?.national_id && (
+                            <p className="text-[11px] flex items-center gap-1" style={{ color: 'var(--gv-text-muted)' }}>
+                              ID {maskNationalId(t.driver.national_id)}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--gv-text-primary)' }}>{t.number_plate}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
-                    {t.number_plate}
-                  </td>
-                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-muted)' }}>
-                    {t.category_name ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
-                    {t.driver ? (
-                      <span className="flex items-center gap-1.5">
-                        <User size={12} className="text-white/30 shrink-0" /> {driverBriefName(t.driver)}
-                      </span>
-                    ) : (
-                      <span style={{ color: 'var(--gv-text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
-                    {t.driver?.phone_no ? (
-                      <span className="flex items-center gap-1.5">
-                        <Phone size={12} className="text-white/30 shrink-0" /> {t.driver.phone_no}
-                      </span>
-                    ) : (
-                      <span style={{ color: 'var(--gv-text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
-                    {t.driver?.national_id ? (
-                      <span className="flex items-center gap-1.5">
-                        <IdCard size={12} className="text-white/30 shrink-0" /> {maskNationalId(t.driver.national_id)}
-                      </span>
-                    ) : (
-                      <span style={{ color: 'var(--gv-text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3"><StatusPill active={t.is_active} /></td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-muted)' }}>
+                      {t.category_name ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
+                      {t.driver ? (
+                        <span className="flex items-center gap-1.5">
+                          <User size={12} className="text-white/30 shrink-0" /> {driverBriefName(t.driver)}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--gv-text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <StatusToggle
+                          active={t.is_active}
+                          disabled={togglingId === t.id}
+                          onToggle={() => handleToggle(t)}
+                        />
+                        <StatusPill active={t.is_active} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          title="Update Number Plate"
+                          onClick={() => openPlateModal(t)}
+                          disabled={actionsDisabled}
+                          className="p-1.5 rounded-lg transition-colors disabled:opacity-40"
+                          style={{ color: 'var(--gv-text-muted)' }}
+                          onMouseEnter={e => !actionsDisabled && (e.currentTarget.style.color = '#33907c')}
+                          onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          title="Update Driver"
+                          onClick={() => openDriverModal(t)}
+                          disabled={actionsDisabled}
+                          className="p-1.5 rounded-lg transition-colors disabled:opacity-40"
+                          style={{ color: 'var(--gv-text-muted)' }}
+                          onMouseEnter={e => !actionsDisabled && (e.currentTarget.style.color = '#33907c')}
+                          onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
+                        >
+                          <User size={14} />
+                        </button>
+                        {t.driver && (
+                          <button
+                            type="button"
+                            title="Unassign Driver"
+                            onClick={() => openUnassignModal(t)}
+                            disabled={actionsDisabled}
+                            className="p-1.5 rounded-lg transition-colors disabled:opacity-40"
+                            style={{ color: 'var(--gv-text-muted)' }}
+                            onMouseEnter={e => !actionsDisabled && (e.currentTarget.style.color = '#f87171')}
+                            onMouseLeave={e => (e.currentTarget.style.color = 'var(--gv-text-muted)')}
+                          >
+                            <UserX size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

@@ -10,7 +10,7 @@ import { ROUTES } from '@/lib/routes';
 
 export default function RolesPage() {
   const {
-    roles, isLoading, showCreate, editingRole, formData, saving, error,
+    roles, isLoading, loadError, showCreate, editingRole, formData, saving, error,
     openCreate, openEdit, closeModal, updateField, handleSave, handleDelete,
   } = useRoles();
 
@@ -44,7 +44,7 @@ export default function RolesPage() {
           </div>
         </div>
 
-        <RolesGrid roles={roles} isLoading={isLoading} onEdit={openEdit} onDelete={handleDelete} />
+        <RolesGrid roles={roles} isLoading={isLoading} loadError={loadError} onEdit={openEdit} onDelete={handleDelete} />
 
         <RoleFormModal
           open={showCreate}

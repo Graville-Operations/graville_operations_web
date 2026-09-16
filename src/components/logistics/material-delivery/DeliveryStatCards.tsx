@@ -20,7 +20,7 @@ export default function DeliveryStatCards({ total, inTransit }: DeliveryStatCard
       <div className="gv-card flex items-center gap-4">
         <div className="gv-icon-box"><Truck size={18} className="text-[color:var(--gv-text-info)]" /></div>
         <div>
-          <p className="gv-label">Deliveries in Transit</p>
+          <p className="gv-label">Driver Tasks In Progress</p>
           <p className="text-2xl font-bold tracking-tight text-[color:var(--gv-text-info)]">{inTransit}</p>
         </div>
       </div>

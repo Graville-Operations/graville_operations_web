@@ -1,0 +1,13 @@
+export enum VehicleServiceType {
+  MAJOR = 'MAJOR',
+  MINOR = 'MINOR',
+  MEDIUM = 'MEDIUM',
+}
+
+export enum VehicleServiceStatus {
+  AWAITING_APPROVAL = 'AWAITING_APPROVAL',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  AWAITING_SERVICE = 'AWAITING_SERVICE',
+  COMPLETED = 'COMPLETED',
+}

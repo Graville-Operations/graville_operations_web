@@ -85,6 +85,8 @@ export const API = {
     unitCreate: "/materials/unit/create",
     materialAdd: "/materials/material/add",
     toolAdd: "/materials/tool/add",
+    all: "/materials/all",
+    toolsAll: "/materials/tools/all",
   },
   attendance: {
     summary: "/attendance/summary",
@@ -133,6 +135,33 @@ export const API = {
     dailyUsage: (usageId: number) => `/daily-usage/${usageId}`,
     dailyUsageOrders: (usageId: number) => `/daily-usage/orders/${usageId}`,
   },
+
+  transfers: {
+    create: "/transfers/create", 
+    all: "/transfers/all",
+    details: (id: number) => `/transfers/details/${id}`,
+    submit: (id: number) => `/transfers/submit/${id}`,
+    action: (id: number) => `/transfers/action/${id}`,
+    assignTransport: (id: number) => `/transfers/assign-transport/${id}`,
+    receive: (id: number) => `/transfers/receive/${id}`,
+  },
+    services: {
+    all: "/services/all",
+    create: "/services/create",
+    action: (id: number) => `/services/action/${id}`,
+    complete: (id: number) => `/services/complete/${id}`,
+  },
+
+  externalWork: {
+    all: "/external-work/all",
+    myWork: "/external-work/my-work",
+    create: "/external-work/create",
+    details: (id: number) => `/external-work/details/${id}`,
+    start: (id: number) => `/external-work/start/${id}`,
+    complete: (id: number) => `/external-work/complete/${id}`,
+    cancel: (id: number) => `/external-work/cancel/${id}`,
+  },
+
    transport: {
     vehicleCategories: "/transport/categories",
     createVehicleCategory: "/transport/categories/create",
@@ -142,6 +171,24 @@ export const API = {
     updateModeOfTransport: (id: number) => `/transport/vehicles/${id}`,
     drivers: "/transport/drivers/list",
     unassignDriver: (id: number) => `/transport/vehicles/${id}/unassign-driver`,
+  },
+
+ fuel: {
+      vehicles: "/fuel/vehicles",
+      vehicleDetail: (id: number) => `/fuel/vehicles/${id}`,
+      log: "/fuel/log",
+    },
+
+  driverTasks: {
+    all: "/driver-tasks/all",
+    myTasks: "/driver-tasks/my-tasks",
+    create: "/driver-tasks/create",
+    detail: (id: number) => `/driver-tasks/details/${id}`,
+    assign: (id: number) => `/driver-tasks/assign/${id}`,
+    start: (id: number) => `/driver-tasks/start/${id}`,
+    cancel: (id: number) => `/driver-tasks/cancel/${id}`,
+    completeSupplierPickup: (id: number) => `/driver-tasks/complete/supplier-pickup/${id}`,
+    completeTransfer: (id: number) => `/driver-tasks/complete/transfer/${id}`,
   },
   invoiceActions: {
     updateStatus: (invoiceType: string, invoiceId: number | string) =>

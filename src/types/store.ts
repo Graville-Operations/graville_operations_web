@@ -150,6 +150,49 @@ export interface ReceiptRecord {
   received_at: string;
 }
 
+export interface MaterialCatalogItem {
+  id: number;
+  name: string;
+  unit?: UnitBrief;
+}
+
+export interface ToolCatalogItem {
+  id: number;
+  name: string;
+  description?: string | null;
+}
+
+export interface TransportOption {
+  id: number;
+  name: string;
+  number_plate: string;
+  is_active?: boolean;
+}
+
+export interface CreateTransferItemPayload {
+  material_id: number;
+  quantity: number;
+}
+
+export interface CreateTransferToolItemPayload {
+  tool_id: number;
+  quantity: number;
+}
+
+export interface CreateTransferApproverPayload {
+  approver_id: number;
+  step_order: number;
+}
+
+export interface CreateTransferPayload {
+  destination_site_id: number;
+  notes?: string;
+  transport_id?: number;
+  items: CreateTransferItemPayload[];
+  tool_items: CreateTransferToolItemPayload[];
+  approvers: CreateTransferApproverPayload[];
+}
+
 export type MaybeArray<T> = T[] | { items?: T[] };
 
 export interface StoreActivityResponse {

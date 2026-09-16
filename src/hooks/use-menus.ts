@@ -3,9 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useMenuStore } from '@/store/menu-store';
 import { menusService, getApiErrorMessage } from '@/lib/api/menus-service';
+import { clearCachedLookup } from '@/hooks/useCachedLookup';
+import { API } from '@/lib/endpoints';
 import { Menu, ModalType, MenuFormData, MenuPayload } from '@/types/menu';
 
 const emptyForm: MenuFormData = { name: '', title: '', link: '', order: '0' };
+
+export type DeleteTarget = { type: 'menu' | 'submenu' | 'subsubmenu'; id: number } | null;
 
 export function useMenus() {
   const { menus: cachedMenus, isLoaded, setMenus, clearMenus } = useMenuStore();
@@ -16,6 +20,10 @@ export function useMenus() {
   const [form, setForm] = useState<MenuFormData>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const fetchMenus = useCallback(async () => {
   try {
@@ -51,6 +59,10 @@ export function useMenus() {
 
   const invalidateAndRefresh = async () => {
     clearMenus();
+    // The "Assign Menu" modal (department detail page) reads menus from its
+    // own cached-lookup of this same endpoint — bust it too so it doesn't
+    // keep showing stale titles/links/order after an edit.
+    clearCachedLookup(API.menus.list);
     await fetchMenus();
   };
 
@@ -96,15 +108,33 @@ export function useMenus() {
     }
   };
 
-  const handleDelete = async (type: 'menu' | 'submenu' | 'subsubmenu', id: number) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+  // Opens the in-app confirm modal instead of the browser's native confirm().
+  const requestDelete = (type: 'menu' | 'submenu' | 'subsubmenu', id: number) => {
+    setDeleteError('');
+    setDeleteTarget({ type, id });
+  };
+
+  const cancelDelete = () => {
+    if (deleting) return;
+    setDeleteTarget(null);
+    setDeleteError('');
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { type, id } = deleteTarget;
+    setDeleting(true);
+    setDeleteError('');
     try {
       if (type === 'menu') await menusService.deleteMenu(id);
       else if (type === 'submenu') await menusService.deleteSubmenu(id);
       else await menusService.deleteSubsubmenu(id);
       await invalidateAndRefresh();
-    } catch {
-      alert('Failed to delete');
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, 'Failed to delete'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -119,6 +149,11 @@ export function useMenus() {
     openModal,
     closeModal,
     handleSave,
-    handleDelete,
+    deleteTarget,
+    deleting,
+    deleteError,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
   };
 }

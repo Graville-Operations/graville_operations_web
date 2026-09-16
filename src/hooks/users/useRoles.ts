@@ -1,17 +1,45 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Role, RoleFormState } from '@/types/users';
-import { API } from '@/lib/endpoints';
-import { unwrapArray } from '@/lib/api-response';
-import { createRole, updateRole, deleteRole } from '@/lib/api/users';
-import { useCachedLookup } from '@/hooks/useCachedLookup';
+import { fetchRoles, getCachedRoles, createRole, updateRole, deleteRole } from '@/lib/api/users';
+import { getApiErrorMessage } from '@/lib/api/api-error';
 
 const emptyForm: RoleFormState = { name: '', description: '' };
 
 export function useRoles() {
-  const { data, loading: isLoading, refetch } = useCachedLookup<unknown>(API.roles.list);
-  const roles = useMemo(() => (data ? unwrapArray<Role>(data) : []), [data]);
+  const [roles, setRoles] = useState<Role[]>(() => getCachedRoles() ?? []);
+  const [isLoading, setIsLoading] = useState<boolean>(() => getCachedRoles() === null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const load = useCallback(async (opts?: { force?: boolean }) => {
+    const force = opts?.force ?? false;
+
+    if (!force) {
+      const cached = getCachedRoles();
+      if (cached) {
+        setRoles(cached);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const data = await fetchRoles(force);
+      setRoles(data);
+    } catch (err) {
+      setLoadError(getApiErrorMessage(err, 'Failed to load roles.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
@@ -54,7 +82,7 @@ export function useRoles() {
       } else {
         await createRole(formData);
       }
-      refetch(); 
+      await load({ force: true });
       closeModal();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -68,7 +96,7 @@ export function useRoles() {
     if (!confirm('Are you sure you want to delete this role?')) return;
     try {
       await deleteRole(id);
-      refetch();
+      await load({ force: true });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       alert(e.response?.data?.message ?? 'Failed to delete role');
@@ -76,7 +104,8 @@ export function useRoles() {
   };
 
   return {
-    roles, isLoading, showCreate, editingRole, formData, saving, error,
-    openCreate, openEdit, closeModal, updateField, handleSave, handleDelete, refetch,
+    roles, isLoading, loadError, showCreate, editingRole, formData, saving, error,
+    openCreate, openEdit, closeModal, updateField, handleSave, handleDelete,
+    refetch: () => load({ force: true }),
   };
 }

@@ -7,10 +7,17 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
+import { useUsers } from '@/hooks/users/useUsers';
+import { useSiteStore } from '@/store/site-store';
 import { API } from '@/lib/endpoints';
 import { extractNestedList as extractList } from '@/lib/api-response';
 import { fetchStoreTotals } from '@/lib/api/store';
-import type { StoreTotals, LowStockSite } from '@/types/store';
+import type {
+  StoreTotals, LowStockSite, MaterialCatalogItem, ToolCatalogItem,
+  TransportOption, CreateTransferPayload,
+} from '@/types/store';
+import { ApproverSelect } from '@/components/permits/ApproverSelect';
+import { SelectedApprover, toggleApproverIn } from '@/lib/utils/approvers';
 
 function fmtKES(n: number) {
   return `KSH ${n.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -95,13 +102,17 @@ function Field({ label, required, children }: { label: string; required?: boolea
   );
 }
 
-const inputCls = 'w-full px-3 py-2 rounded-lg text-sm bg-[color:var(--muted)] border border-[color:var(--border)] text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-colors';
+const inputCls = 'w-full px-3 py-2 rounded-xl text-sm bg-[color:var(--muted)] border border-[color:var(--border)] text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-colors';
+
+// Same as inputCls but strips the native number-input increment/decrement spinner arrows,
+// so it renders as a plain numeric text field.
+const numberInputCls = `${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0`;
 
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) { return <input {...props} className={inputCls} />; }
 function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) { return <textarea {...props} rows={3} className={`${inputCls} resize-none`} />; }
 
 function DarkSelect(props: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
-  const selectCls = 'w-full appearance-none px-3 py-2 pr-9 rounded-lg text-sm bg-[color:var(--gv-glass-bg)] border border-[color:var(--border)] text-[color:var(--foreground)] cursor-pointer outline-none transition-colors focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white';
+  const selectCls = 'w-full appearance-none px-3 py-2 pr-9 rounded-xl text-sm bg-[color:var(--gv-glass-bg)] border border-[color:var(--border)] text-[color:var(--foreground)] cursor-pointer outline-none transition-colors focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] hover:border-[color:var(--gv-glass-border)] [&>option]:bg-[#0d1528] [&>option]:text-white';
   return (
     <div className="relative">
       <select {...props} className={selectCls}>{props.children}</select>
@@ -342,7 +353,177 @@ function AddToolOverlay({ open, onClose, onSuccess }: AddToolOverlayProps) {
   );
 }
 
-type OverlayKey = 'material' | 'tool' | 'unit' | null;
+interface TransferItemRow { material_id: string; quantity: string; }
+interface TransferToolRow { tool_id: string; quantity: string; }
+
+interface CreateTransferOverlayProps { open: boolean; onClose: () => void; onSuccess?: () => void; }
+function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverlayProps) {
+  const { sites } = useSiteStore();
+  const { users, isLoading: usersLoading } = useUsers();
+
+  const materialsApi = useApi(API.materials.all, { params: { limit: 100, skip: 0 }, enabled: open });
+  const materials = extractList(materialsApi.data) as MaterialCatalogItem[];
+  const materialsLoading = materialsApi.loading;
+
+  const toolsApi = useApi(API.materials.toolsAll, { params: { limit: 100, skip: 0 }, enabled: open });
+  const tools = extractList(toolsApi.data) as ToolCatalogItem[];
+  const toolsLoading = toolsApi.loading;
+
+  const transportApi = useApi(API.transport.modesOfTransport, { enabled: open });
+  const transportOptions = (extractList(transportApi.data) as TransportOption[]).filter(t => t.is_active !== false);
+  const transportLoading = transportApi.loading;
+
+  const [destinationSiteId, setDestinationSiteId] = useState('');
+  const [transportId, setTransportId] = useState('');
+  const [notes, setNotes] = useState('');
+  const [items, setItems] = useState<TransferItemRow[]>([{ material_id: '', quantity: '' }]);
+  const [toolItems, setToolItems] = useState<TransferToolRow[]>([{ tool_id: '', quantity: '' }]);
+  const [selectedApprovers, setSelectedApprovers] = useState<SelectedApprover[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggleApprover = (user: (typeof users)[number]) => {
+    setSelectedApprovers(prev => toggleApproverIn(prev, user));
+  };
+
+  const resetForm = () => {
+    setDestinationSiteId('');
+    setTransportId('');
+    setNotes('');
+    setItems([{ material_id: '', quantity: '' }]);
+    setToolItems([{ tool_id: '', quantity: '' }]);
+    setSelectedApprovers([]);
+    setError(null);
+  };
+
+  const handleClose = () => { resetForm(); onClose(); };
+
+  const updateItem = (idx: number, patch: Partial<TransferItemRow>) => {
+    setItems(prev => prev.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
+  };
+  const addItem = () => setItems(prev => [...prev, { material_id: '', quantity: '' }]);
+
+  const updateToolItem = (idx: number, patch: Partial<TransferToolRow>) => {
+    setToolItems(prev => prev.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
+  };
+  const addToolItem = () => setToolItems(prev => [...prev, { tool_id: '', quantity: '' }]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!destinationSiteId) return setError('Please select a destination site.');
+
+    const validItems = items
+      .filter(r => r.material_id && Number(r.quantity) > 0)
+      .map(r => ({ material_id: Number(r.material_id), quantity: Number(r.quantity) }));
+    const validToolItems = toolItems
+      .filter(r => r.tool_id && Number(r.quantity) > 0)
+      .map(r => ({ tool_id: Number(r.tool_id), quantity: Number(r.quantity) }));
+
+    if (validItems.length === 0 && validToolItems.length === 0) {
+      return setError('Add at least one material or tool with a valid quantity.');
+    }
+    if (selectedApprovers.length === 0) {
+      return setError('Please select at least one approver.');
+    }
+
+    setLoading(true);
+    try {
+      const payload: CreateTransferPayload = {
+        destination_site_id: Number(destinationSiteId),
+        notes: notes.trim() || undefined,
+        transport_id: transportId ? Number(transportId) : undefined,
+        items: validItems,
+        tool_items: validToolItems,
+        approvers: selectedApprovers.map(a => ({ approver_id: a.userId, step_order: a.stepOrder })),
+      };
+      const res = await api.post(API.transfers.create, payload);
+      console.log('[CreateTransfer] create response:', res.data);
+      onSuccess?.();
+      handleClose();
+    } catch (err: unknown) {
+      console.error('Transfer creation failed:', err);
+      const message = err instanceof Error ? err.message : 'Failed to create transfer';
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(detail ?? message);
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <Overlay open={open} onClose={handleClose} title="Create Transfer" subtitle="Move materials or tools from your site to another" icon={<ArrowLeftRight size={18} />}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <Field label="Destination Site" required>
+          <DarkSelect value={destinationSiteId} onChange={e => setDestinationSiteId(e.target.value)}>
+            <option value="">Select destination site…</option>
+            {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </DarkSelect>
+        </Field>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-[color:var(--muted-foreground)] uppercase tracking-wider">Materials</label>
+            <button type="button" onClick={addItem} className="flex items-center gap-1 text-xs font-medium text-[color:var(--primary)] hover:opacity-80 cursor-pointer"><Plus size={12} /> Add material</button>
+          </div>
+          {materialsLoading ? (
+            <div className={`${inputCls} flex items-center gap-2 text-[color:var(--muted-foreground)]`}><Loader2 size={14} className="animate-spin" /> Loading materials…</div>
+          ) : items.map((row, idx) => (
+            <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl border border-[color:var(--border)]">
+              <DarkSelect value={row.material_id} onChange={e => updateItem(idx, { material_id: e.target.value })}>
+                <option value="">Select material…</option>
+                {materials.map(m => <option key={m.id} value={m.id}>{m.name}{m.unit?.symbol ? ` (${m.unit.symbol})` : ''}</option>)}
+              </DarkSelect>
+              <input type="number" min="0" step="any" placeholder="Qty" value={row.quantity} onChange={e => updateItem(idx, { quantity: e.target.value })} className={numberInputCls} />
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-[color:var(--muted-foreground)] uppercase tracking-wider">Tools</label>
+            <button type="button" onClick={addToolItem} className="flex items-center gap-1 text-xs font-medium text-[color:var(--primary)] hover:opacity-80 cursor-pointer"><Plus size={12} /> Add tool</button>
+          </div>
+          <p className="text-xs text-[color:var(--muted-foreground)]">Add at least one material or tool.</p>
+          {toolsLoading && toolItems.length > 0 ? (
+            <div className={`${inputCls} flex items-center gap-2 text-[color:var(--muted-foreground)]`}><Loader2 size={14} className="animate-spin" /> Loading tools…</div>
+          ) : toolItems.map((row, idx) => (
+            <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl border border-[color:var(--border)]">
+              <DarkSelect value={row.tool_id} onChange={e => updateToolItem(idx, { tool_id: e.target.value })}>
+                <option value="">Select tool…</option>
+                {tools.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </DarkSelect>
+              <input type="number" min="0" step="1" placeholder="Qty" value={row.quantity} onChange={e => updateToolItem(idx, { quantity: e.target.value })} className={numberInputCls} />
+            </div>
+          ))}
+        </div>
+
+        <ApproverSelect users={users} selected={selectedApprovers} onToggle={toggleApprover} loading={usersLoading} />
+
+        <Field label="Transport">
+          {transportLoading ? (
+            <div className={`${inputCls} flex items-center gap-2 text-[color:var(--muted-foreground)]`}><Loader2 size={14} className="animate-spin" /> Loading transport…</div>
+          ) : (
+            <DarkSelect value={transportId} onChange={e => setTransportId(e.target.value)}>
+              <option value="">No transport assigned</option>
+              {transportOptions.map(t => <option key={t.id} value={t.id}>{t.name} ({t.number_plate})</option>)}
+            </DarkSelect>
+          )}
+        </Field>
+
+        <Field label="Notes"><Textarea placeholder="Optional notes about this transfer…" value={notes} onChange={e => setNotes(e.target.value)} /></Field>
+
+        {error && <p className="text-xs text-[color:var(--destructive)] bg-[color:var(--destructive)]/10 px-3 py-2 rounded-lg">{error}</p>}
+
+        <div className="flex flex-col gap-2 pt-2">
+          <SubmitBtn loading={loading} label="Create Transfer" />
+          <button type="button" onClick={handleClose} className="w-full py-2 text-sm text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] transition-colors cursor-pointer">Cancel</button>
+        </div>
+      </form>
+    </Overlay>
+  );
+}
+
+type OverlayKey = 'material' | 'tool' | 'unit' | 'transfer' | null;
 
 export default function StoreDashboardPage() {
   const [totals, setTotals] = useState<StoreTotals | null>(null);
@@ -393,6 +574,7 @@ export default function StoreDashboardPage() {
             <h1 className="text-2xl font-bold mt-1">Dashboard</h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <ActionBtn label="Create Transfer" icon={<ArrowLeftRight size={15} />} variant="primary" onClick={() => setActiveOverlay('transfer')} />
             <ActionBtn label="Add Unit" icon={<Plus size={15} />} variant="primary" onClick={() => setActiveOverlay('unit')} />
             <ActionBtn label="Add Material" icon={<Plus size={15} />} onClick={() => setActiveOverlay('material')} />
             <ActionBtn label="Add Tool" icon={<Plus size={15} />} onClick={() => setActiveOverlay('tool')} />
@@ -428,6 +610,7 @@ export default function StoreDashboardPage() {
       <AddUnitOverlay open={activeOverlay === 'unit'} onClose={() => setActiveOverlay(null)} onSuccess={() => showToast('Unit created successfully.', 'success')} />
       <AddMaterialOverlay open={activeOverlay === 'material'} onClose={() => setActiveOverlay(null)} onSuccess={() => showToast('Material created successfully.', 'success')} />
       <AddToolOverlay open={activeOverlay === 'tool'} onClose={() => setActiveOverlay(null)} onSuccess={() => showToast('Tool created successfully.', 'success')} />
+      <CreateTransferOverlay open={activeOverlay === 'transfer'} onClose={() => setActiveOverlay(null)} onSuccess={() => { showToast('Transfer created successfully.', 'success'); loadTotals(); }} />
 
       {toast && <Toast toast={toast} onDismiss={() => setToast(null)} />}
     </>
