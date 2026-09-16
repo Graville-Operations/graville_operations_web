@@ -5,7 +5,7 @@ import MotorVehiclesTable from '@/components/logistics/external-works/MotorVehic
 import HeavyMachineryTable from '@/components/logistics/external-works/HeavyMachineryTable';
 
 export default function ExternalWorksPage() {
-  const { motorVehicles, heavyMachinery, sectionLimit } = useExternalWorks();
+  const { motorVehicles, heavyMachinery, isLoading, sectionLimit } = useExternalWorks();
 
   return (
     <div className="space-y-8">
@@ -19,7 +19,7 @@ export default function ExternalWorksPage() {
           <h2 className="text-sm font-semibold text-[color:var(--foreground)]">Motor Vehicles</h2>
           <span className="text-xs text-[color:var(--muted-foreground)]">({motorVehicles.length}/{sectionLimit})</span>
         </div>
-        <MotorVehiclesTable deliveries={motorVehicles} />
+        <MotorVehiclesTable deliveries={motorVehicles} isLoading={isLoading} />
       </section>
 
       <section className="space-y-3">
@@ -27,7 +27,7 @@ export default function ExternalWorksPage() {
           <h2 className="text-sm font-semibold text-[color:var(--foreground)]">Heavy Machinery</h2>
           <span className="text-xs text-[color:var(--muted-foreground)]">({heavyMachinery.length}/{sectionLimit})</span>
         </div>
-        <HeavyMachineryTable services={heavyMachinery} />
+        <HeavyMachineryTable services={heavyMachinery} isLoading={isLoading} />
       </section>
     </div>
   );

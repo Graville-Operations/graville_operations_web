@@ -25,8 +25,8 @@ export interface CreateExternalWorkPayload {
   notes?: string;
 }
 type DescriptionTag =
-  | { kind: 'motor_vehicle'; vehicle: string; material: string; quantity: string }
-  | { kind: 'heavy_machinery'; vehicle: string; service: string };
+  | { kind: 'motor_vehicle'; vehicle?: string; material: string; quantity: string }
+  | { kind: 'heavy_machinery'; vehicle?: string; service: string };
 
 function encodeDescription(tag: DescriptionTag): string {
   return JSON.stringify(tag);
@@ -45,6 +45,7 @@ export const EXTERNAL_WORKS_SECTION_LIMIT = 5;
 
 export interface MotorVehicleDelivery {
   id: number;
+  transportId: number | null;
   vehicle: string;
   material: string;
   quantity: string;
@@ -58,6 +59,7 @@ export interface MotorVehicleDelivery {
 
 export interface HeavyMachineryService {
   id: number;
+  transportId: number | null;
   vehicle: string;
   location: string;
   service: string;
@@ -67,7 +69,7 @@ export interface HeavyMachineryService {
   status: string;
 }
 export interface AddMotorVehicleForm {
-  vehicle: string;
+  transportId: string;
   material: string;
   quantity: string;
   pickupPoint: string;
@@ -79,7 +81,7 @@ export interface AddMotorVehicleForm {
 
 export function emptyMotorVehicleForm(): AddMotorVehicleForm {
   return {
-    vehicle: '',
+    transportId: '',
     material: '',
     quantity: '',
     pickupPoint: '',
@@ -91,7 +93,7 @@ export function emptyMotorVehicleForm(): AddMotorVehicleForm {
 }
 
 export interface AddHeavyMachineryForm {
-  vehicle: string;
+  transportId: string;
   location: string;
   service: string;
   amount: string;
@@ -101,7 +103,7 @@ export interface AddHeavyMachineryForm {
 
 export function emptyHeavyMachineryForm(): AddHeavyMachineryForm {
   return {
-    vehicle: '',
+    transportId: '',
     location: '',
     service: '',
     amount: '',
@@ -125,11 +127,11 @@ export function toCreateMotorVehiclePayload(form: AddMotorVehicleForm): CreateEx
   return {
     pickup_location: form.pickupPoint.trim(),
     destination: form.destination.trim(),
+    transport_id: form.transportId ? Number(form.transportId) : undefined,
     client_name: form.clientName.trim() || undefined,
     client_contact: form.clientPhone.trim() || undefined,
     description: encodeDescription({
       kind: 'motor_vehicle',
-      vehicle: form.vehicle.trim(),
       material: form.material.trim(),
       quantity: form.quantity.trim(),
     }),
@@ -141,17 +143,30 @@ export function toCreateHeavyMachineryPayload(form: AddHeavyMachineryForm): Crea
   return {
     pickup_location: form.location.trim(),
     destination: '',
+    transport_id: form.transportId ? Number(form.transportId) : undefined,
     client_name: form.clientName.trim() || undefined,
     client_contact: form.clientPhone.trim() || undefined,
     description: encodeDescription({
       kind: 'heavy_machinery',
-      vehicle: form.vehicle.trim(),
       service: form.service.trim(),
     }),
     amount_charged: parseAmount(form.amount),
   };
 }
-export function splitExternalWork(items: ExternalWorkApiResponse[]): {
+export type VehicleLookup = Map<number, { name: string; numberPlate: string }>;
+function resolveVehicleLabel(
+  transportId: number | null,
+  vehicleById: VehicleLookup | undefined,
+  legacyVehicle?: string,
+): string {
+  const match = transportId != null ? vehicleById?.get(transportId) : undefined;
+  return match?.name || match?.numberPlate || legacyVehicle || '—';
+}
+
+export function splitExternalWork(
+  items: ExternalWorkApiResponse[],
+  vehicleById?: VehicleLookup,
+): {
   motorVehicles: MotorVehicleDelivery[];
   heavyMachinery: HeavyMachineryService[];
 } {
@@ -165,7 +180,8 @@ export function splitExternalWork(items: ExternalWorkApiResponse[]): {
     if (isMotorVehicle) {
       motorVehicles.push({
         id: r.id,
-        vehicle: (tag as { vehicle?: string }).vehicle || '—',
+        transportId: r.transport_id,
+        vehicle: resolveVehicleLabel(r.transport_id, vehicleById, (tag as { vehicle?: string }).vehicle),
         material: (tag as { material?: string }).material || '—',
         quantity: (tag as { quantity?: string }).quantity || '—',
         pickupPoint: r.pickup_location || '—',
@@ -178,7 +194,8 @@ export function splitExternalWork(items: ExternalWorkApiResponse[]): {
     } else {
       heavyMachinery.push({
         id: r.id,
-        vehicle: (tag as { vehicle?: string }).vehicle || '—',
+        transportId: r.transport_id,
+        vehicle: resolveVehicleLabel(r.transport_id, vehicleById, (tag as { vehicle?: string }).vehicle),
         location: r.pickup_location || '—',
         service: (tag as { service?: string }).service || r.description || '—',
         amount: formatAmount(r.amount_charged),

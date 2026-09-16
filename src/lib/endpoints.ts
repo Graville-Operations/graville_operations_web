@@ -174,6 +174,13 @@ export const API = {
     drivers: "/transport/drivers/list",
     unassignDriver: (id: number) => `/transport/vehicles/${id}/unassign-driver`,
   },
+
+ fuel: {
+      vehicles: "/fuel/vehicles",
+      vehicleDetail: (id: number) => `/fuel/vehicles/${id}`,
+      log: "/fuel/log",
+    },
+
   driverTasks: {
     all: "/driver-tasks/all",
     myTasks: "/driver-tasks/my-tasks",
