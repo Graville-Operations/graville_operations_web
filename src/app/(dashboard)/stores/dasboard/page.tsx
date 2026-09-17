@@ -373,6 +373,7 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
   const transportOptions = (extractList(transportApi.data) as TransportOption[]).filter(t => t.is_active !== false);
   const transportLoading = transportApi.loading;
 
+  const [sourceSiteId, setSourceSiteId] = useState('');
   const [destinationSiteId, setDestinationSiteId] = useState('');
   const [transportId, setTransportId] = useState('');
   const [notes, setNotes] = useState('');
@@ -387,6 +388,7 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
   };
 
   const resetForm = () => {
+    setSourceSiteId('');
     setDestinationSiteId('');
     setTransportId('');
     setNotes('');
@@ -412,7 +414,9 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
     e.preventDefault();
     setError(null);
 
+    if (!sourceSiteId) return setError('Please select a pickup point.');
     if (!destinationSiteId) return setError('Please select a destination site.');
+    if (sourceSiteId === destinationSiteId) return setError('Pickup point and destination cannot be the same site.');
 
     const validItems = items
       .filter(r => r.material_id && Number(r.quantity) > 0)
@@ -431,6 +435,7 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
     setLoading(true);
     try {
       const payload: CreateTransferPayload = {
+        source_site_id: Number(sourceSiteId),
         destination_site_id: Number(destinationSiteId),
         notes: notes.trim() || undefined,
         transport_id: transportId ? Number(transportId) : undefined,
@@ -453,10 +458,17 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
   return (
     <Overlay open={open} onClose={handleClose} title="Create Transfer" subtitle="Move materials or tools from your site to another" icon={<ArrowLeftRight size={18} />}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <Field label="Pickup Point" required>
+          <DarkSelect value={sourceSiteId} onChange={e => setSourceSiteId(e.target.value)}>
+            <option value="">Select pickup site…</option>
+            {sites.filter(s => String(s.id) !== destinationSiteId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </DarkSelect>
+        </Field>
+
         <Field label="Destination Site" required>
           <DarkSelect value={destinationSiteId} onChange={e => setDestinationSiteId(e.target.value)}>
             <option value="">Select destination site…</option>
-            {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {sites.filter(s => String(s.id) !== sourceSiteId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </DarkSelect>
         </Field>
 
