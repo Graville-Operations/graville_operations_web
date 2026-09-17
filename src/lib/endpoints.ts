@@ -145,8 +145,10 @@ export const API = {
     assignTransport: (id: number) => `/transfers/assign-transport/${id}`,
     receive: (id: number) => `/transfers/receive/${id}`,
   },
-    services: {
+      services: {
     all: "/services/all",
+    awaitingApproval: "/services/awaiting-approval",
+    detail: (id: number) => `/services/${id}`,
     create: "/services/create",
     action: (id: number) => `/services/action/${id}`,
     complete: (id: number) => `/services/complete/${id}`,
@@ -172,6 +174,13 @@ export const API = {
     drivers: "/transport/drivers/list",
     unassignDriver: (id: number) => `/transport/vehicles/${id}/unassign-driver`,
   },
+
+ fuel: {
+      vehicles: "/fuel/vehicles",
+      vehicleDetail: (id: number) => `/fuel/vehicles/${id}`,
+      log: "/fuel/log",
+    },
+
   driverTasks: {
     all: "/driver-tasks/all",
     myTasks: "/driver-tasks/my-tasks",

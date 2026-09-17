@@ -24,11 +24,6 @@ export interface CreateExternalWorkPayload {
   amount_charged?: number;
   notes?: string;
 }
-
-// "Vehicle" is NOT encoded here anymore — it's the real `transport_id` FK,
-// resolved against the live transport list in useExternalWorks. Only the
-// fields the backend genuinely has nowhere else to put (material/quantity
-// for a delivery, service for a machinery job) go through this tag.
 type DescriptionTag =
   | { kind: 'motor_vehicle'; material: string; quantity: string }
   | { kind: 'heavy_machinery'; service: string };
@@ -131,6 +126,7 @@ export function toCreateMotorVehiclePayload(form: AddMotorVehicleForm): CreateEx
     transport_id: form.transportId ? Number(form.transportId) : undefined,
     pickup_location: form.pickupPoint.trim(),
     destination: form.destination.trim(),
+    transport_id: form.transportId ? Number(form.transportId) : undefined,
     client_name: form.clientName.trim() || undefined,
     client_contact: form.clientPhone.trim() || undefined,
     description: encodeDescription({

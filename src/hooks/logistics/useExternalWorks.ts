@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { externalWorkService } from '@/lib/api/external-work';
+import { modesOfTransportService } from '@/lib/api/transport-service';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 import { useModesOfTransport } from '@/hooks/logistics/use-modes-of-transport';
 import {
@@ -10,6 +11,7 @@ import {
   AddMotorVehicleForm,
   AddHeavyMachineryForm,
   EXTERNAL_WORKS_SECTION_LIMIT,
+  VehicleLookup,
   splitExternalWork,
   toCreateMotorVehiclePayload,
   toCreateHeavyMachineryPayload,
@@ -26,12 +28,6 @@ export interface HeavyMachineryServiceRow extends HeavyMachineryService {
   vehicleName: string;
   numberPlate: string;
 }
-
-// Live-data hook: fetches from GET /external-work/all and splits the flat
-// list into the two sections this page shows, then resolves each item's
-// `transport_id` against the live transport list so the real vehicle name
-// and number plate can be displayed.
-
 export function useExternalWorks() {
   const { transports, isLoading: transportsLoading, loadError: transportsError } = useModesOfTransport();
 
@@ -40,10 +36,6 @@ export function useExternalWorks() {
   const [worksLoading, setWorksLoading] = useState(true);
   const [worksError, setWorksError] = useState<string | null>(null);
 
-  // Guards against overlapping fetchAll calls (e.g. React Strict Mode's
-  // dev-only double effect invocation) applying stale results out of order
-  // — without this, an earlier/stray fetch can flip isLoading false with
-  // empty data right before the real fetch finishes.
   const requestIdRef = useRef(0);
 
   const fetchAll = useCallback(async (opts?: { silent?: boolean }) => {

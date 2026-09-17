@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { X, Truck, Loader2 } from 'lucide-react';
 import { AddMotorVehicleForm, emptyMotorVehicleForm } from '@/types/external-work';
+import { modesOfTransportService } from '@/lib/api/transport-service';
+import { ModeOfTransport } from '@/types/transport';
 
 interface AddMotorVehicleOverlayProps {
   open: boolean;
@@ -28,11 +30,19 @@ export default function AddMotorVehicleOverlay({ open, onClose, onSubmit }: AddM
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [vehicles, setVehicles] = useState<ModeOfTransport[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
+
   useEffect(() => {
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm(emptyMotorVehicleForm());
       setError(null);
+      setVehiclesLoading(true);
+      modesOfTransportService.list()
+        .then((list) => setVehicles(list.filter((v) => v.is_active)))
+        .catch(() => setVehicles([]))
+        .finally(() => setVehiclesLoading(false));
     }
   }, [open]);
 
@@ -45,7 +55,7 @@ export default function AddMotorVehicleOverlay({ open, onClose, onSubmit }: AddM
 
     const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.vehicle.trim()) return setError('Vehicle is required.');
+    if (!form.transportId) return setError('Vehicle is required.');
     if (!form.destination.trim()) return setError('Destination is required.');
     if (!form.clientName.trim()) return setError('Client name is required.');
 
@@ -90,8 +100,22 @@ export default function AddMotorVehicleOverlay({ open, onClose, onSubmit }: AddM
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
             <Field label="Vehicle" required>
-              <input className={inputCls} placeholder="e.g. Tipper Truck — KDB 221A" value={form.vehicle}
-                onChange={(e) => setForm((p) => ({ ...p, vehicle: e.target.value }))} />
+              <select
+                className={inputCls}
+                value={form.transportId}
+                disabled={vehiclesLoading}
+                onChange={(e) => setForm((p) => ({ ...p, transportId: e.target.value }))}
+              >
+                <option value="">{vehiclesLoading ? 'Loading vehicles…' : 'Select a vehicle…'}</option>
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name} — {v.number_plate}</option>
+                ))}
+              </select>
+              {!vehiclesLoading && vehicles.length === 0 && (
+                <p className="text-xs text-[color:var(--muted-foreground)]">
+                  No active vehicles found. Add one under Logistics · Transport first.
+                </p>
+              )}
             </Field>
             <Field label="Material">
               <input className={inputCls} placeholder="e.g. Building Sand" value={form.material}
