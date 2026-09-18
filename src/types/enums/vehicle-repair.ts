@@ -1,0 +1,12 @@
+export enum VehicleRepairStatus {
+  AWAITING_APPROVAL = 'AWAITING_APPROVAL',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  AWAITING_REPAIR = 'AWAITING_REPAIR',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum RepairActionType {
+  APPROVE = 'APPROVE',
+  REJECT = 'REJECT',
+}

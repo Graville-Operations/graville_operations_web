@@ -153,6 +153,15 @@ export const API = {
     action: (id: number) => `/services/action/${id}`,
     complete: (id: number) => `/services/complete/${id}`,
   },
+    repairs: {
+    all: "/repairs/all",
+    awaitingApproval: "/repairs/awaiting-approval",
+    awaitingApprovalDetail: (id: number) => `/repairs/awaiting-approval/${id}`,
+    details: (id: number) => `/repairs/details/${id}`,
+    create: "/repairs/create",
+    action: (id: number) => `/repairs/action/${id}`,
+    complete: (id: number) => `/repairs/complete/${id}`,
+  },
 
   externalWork: {
     all: "/external-work/all",
