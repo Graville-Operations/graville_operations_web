@@ -186,6 +186,7 @@ export interface CreateTransferApproverPayload {
 
 export interface CreateTransferPayload {
   destination_site_id: number;
+  source_site_id: number;
   notes?: string;
   transport_id?: number;
   items: CreateTransferItemPayload[];

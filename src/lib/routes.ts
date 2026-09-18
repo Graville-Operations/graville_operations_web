@@ -101,6 +101,10 @@ export const ROUTES = {
       detail: (usageId: string) => `/stores/orders/${usageId}`,
     },
     stocks: '/stores/stocks',
+    transfers: {
+      list: '/stores/transfers',
+      detail: (id: number | string) => `/stores/transfers/${id}`,
+    },
   },
   quality: {
     dashboard: '/quality/dashboard',

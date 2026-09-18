@@ -26,40 +26,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const COLUMN_COUNT = 8;
+
 export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehiclesTableProps) {
-  if (isLoading) {
-    return (
-      <div className="gv-card p-0 overflow-x-auto">
-        <ShimmerStyle />
-        <table className="w-full text-sm">
-          <tbody>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <tr key={i} className="border-b border-[color:var(--border)] last:border-0">
-                {Array.from({ length: 9 }).map((__, j) => (
-                  <td key={j} className="px-4 py-3">
-                    <Bone w={j === 0 ? '7rem' : '5rem'} />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
-  if (deliveries.length === 0) {
-    return (
-      <EmptyState
-        title="No motor vehicle deliveries yet"
-        description="Deliveries you add will show up here"
-        fullScreen={false}
-      />
-    );
-  }
-
   return (
     <div className="gv-card p-0 overflow-x-auto">
+      {isLoading && <ShimmerStyle />}
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[color:var(--border)] text-left">
@@ -69,25 +41,56 @@ export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehic
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Pickup Point</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Destination</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Amount</span></th>
-            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Client Name</span></th>
-            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Client Phone No.</span></th>
+            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Client</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Status</span></th>
           </tr>
         </thead>
         <tbody>
-          {deliveries.map((d) => (
-            <tr key={d.id} className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--muted)] transition-colors">
-              <td className="px-4 py-3 font-medium text-[color:var(--foreground)]">{d.vehicle}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.material}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.quantity}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.pickupPoint}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.destination}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.amount}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.clientName}</td>
-              <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.clientPhone}</td>
-              <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <tr key={i} className="border-b border-[color:var(--border)] last:border-0">
+                {Array.from({ length: COLUMN_COUNT }).map((__, j) => (
+                  <td key={j} className="px-4 py-3">
+                    <Bone w={j === 0 ? '7rem' : j === 1 ? '10rem' : '5rem'} />
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : deliveries.length === 0 ? (
+            <tr>
+              <td colSpan={COLUMN_COUNT} className="p-0">
+                <EmptyState
+                  title="No motor vehicle deliveries yet"
+                  description="Deliveries you add will show up here"
+                  fullScreen={false}
+                />
+              </td>
             </tr>
-          ))}
+          ) : (
+            deliveries.map((d) => (
+              <tr key={d.id} className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--muted)] transition-colors">
+                <td className="px-4 py-3 font-medium text-[color:var(--foreground)] whitespace-nowrap">{d.numberPlate}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] max-w-xs">
+                  {d.materials.map((m, idx) => (
+                    <p key={idx} className="whitespace-nowrap">{m.name}</p>
+                  ))}
+                </td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">
+                  {d.materials.map((m, idx) => (
+                    <p key={idx}>{m.quantity}</p>
+                  ))}
+                </td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.pickupPoint}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.destination}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">{d.amount}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">
+                  <p>{d.clientName}</p>
+                  <p className="text-xs">{d.clientPhone}</p>
+                </td>
+                <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

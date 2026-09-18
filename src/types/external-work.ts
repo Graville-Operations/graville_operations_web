@@ -1,10 +1,54 @@
+export type ExternalWorkType = 'vehicle' | 'heavy_machinery';
+
+export type BillingMethod = 'per_trip' | 'hourly' | 'daily' | 'weekly' | 'monthly';
+
+export const BILLING_METHOD_OPTIONS: { value: BillingMethod; label: string }[] = [
+  { value: 'per_trip', label: 'Per Trip' },
+  { value: 'hourly', label: 'Hourly' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+];
+
+const BILLING_METHOD_LABELS: Record<BillingMethod, string> = {
+  per_trip: 'Per Trip',
+  hourly: 'Hourly',
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+};
+
+const DURATION_UNIT_LABELS: Record<BillingMethod, string> = {
+  per_trip: 'trip(s)',
+  hourly: 'hr(s)',
+  daily: 'day(s)',
+  weekly: 'wk(s)',
+  monthly: 'mo(s)',
+};
+
+export interface ExternalWorkMaterialResponse {
+  id: number;
+  material: { id: number; name: string; unit: { id: number; name: string; symbol: string } };
+  quantity: number;
+}
+
 export interface ExternalWorkApiResponse {
   id: number;
   status: string;
+  work_type: ExternalWorkType;
   driver_id: number;
-  transport_id: number | null;
-  pickup_location: string;
-  destination: string;
+  transport_id: number;
+  number_plate: string | null;
+  machine: string | null;
+  pickup_location: string | null;
+  destination: string | null;
+  materials: ExternalWorkMaterialResponse[];
+  location: string | null;
+  service: string | null;
+  billing_method: BillingMethod | null;
+  duration: number | null;
+  unit_amount: number | null;
+  total_amount: number | null;
   client_name: string | null;
   client_contact: string | null;
   description: string | null;
@@ -14,41 +58,40 @@ export interface ExternalWorkApiResponse {
   completed_at: string | null;
   created_at: string;
 }
+
+export interface CreateExternalWorkMaterialItem {
+  material_id: number;
+  quantity: number;
+}
+
 export interface CreateExternalWorkPayload {
-  pickup_location: string;
-  destination: string;
-  transport_id?: number;
+  transport_id: number;
+  pickup_location?: string;
+  destination?: string;
+  materials?: CreateExternalWorkMaterialItem[];
+  location?: string;
+  service?: string;
+  billing_method?: BillingMethod;
+  duration?: number;
+  unit_amount?: number;
+  total_amount?: number;
   client_name?: string;
   client_contact?: string;
   description?: string;
   amount_charged?: number;
   notes?: string;
 }
-type DescriptionTag =
-  | { kind: 'motor_vehicle'; vehicle?: string; material: string; quantity: string }
-  | { kind: 'heavy_machinery'; vehicle?: string; service: string };
 
-function encodeDescription(tag: DescriptionTag): string {
-  return JSON.stringify(tag);
+export interface MaterialLine {
+  name: string;
+  quantity: string;
 }
-
-function decodeDescription(raw: string | null): Partial<DescriptionTag> {
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && 'kind' in parsed) return parsed;
-  } catch {  }
-  return {};
-}
-
-export const EXTERNAL_WORKS_SECTION_LIMIT = 5;
 
 export interface MotorVehicleDelivery {
   id: number;
-  transportId: number | null;
-  vehicle: string;
-  material: string;
-  quantity: string;
+  transportId: number;
+  numberPlate: string;
+  materials: MaterialLine[];
   pickupPoint: string;
   destination: string;
   amount: string;
@@ -59,19 +102,33 @@ export interface MotorVehicleDelivery {
 
 export interface HeavyMachineryService {
   id: number;
-  transportId: number | null;
-  vehicle: string;
+  transportId: number;
+  numberPlate: string;
+  machine: string;
   location: string;
   service: string;
-  amount: string;
+  billingMethodLabel: string;
+  duration: string;
+  unitAmount: string;
+  totalAmount: string;
   clientName: string;
   clientPhone: string;
   status: string;
 }
+
+export interface MaterialFormRow {
+  rowId: string;
+  materialId: string;
+  quantity: string;
+}
+
+export function emptyMaterialRow(): MaterialFormRow {
+  return { rowId: crypto.randomUUID(), materialId: '', quantity: '' };
+}
+
 export interface AddMotorVehicleForm {
   transportId: string;
-  material: string;
-  quantity: string;
+  materials: MaterialFormRow[];
   pickupPoint: string;
   destination: string;
   amount: string;
@@ -82,8 +139,7 @@ export interface AddMotorVehicleForm {
 export function emptyMotorVehicleForm(): AddMotorVehicleForm {
   return {
     transportId: '',
-    material: '',
-    quantity: '',
+    materials: [emptyMaterialRow()],
     pickupPoint: '',
     destination: '',
     amount: '',
@@ -96,7 +152,10 @@ export interface AddHeavyMachineryForm {
   transportId: string;
   location: string;
   service: string;
-  amount: string;
+  billingMethod: BillingMethod | '';
+  duration: string;
+  unitAmount: string;
+  totalAmount: string;
   clientName: string;
   clientPhone: string;
 }
@@ -106,17 +165,22 @@ export function emptyHeavyMachineryForm(): AddHeavyMachineryForm {
     transportId: '',
     location: '',
     service: '',
-    amount: '',
+    billingMethod: '',
+    duration: '',
+    unitAmount: '',
+    totalAmount: '',
     clientName: '',
     clientPhone: '',
   };
 }
 
+export const EXTERNAL_WORKS_SECTION_LIMIT = 5;
+
 function parseAmount(input: string): number | undefined {
   const cleaned = input.replace(/[^0-9.]/g, '');
   if (!cleaned) return undefined;
   const n = Number(cleaned);
-  return Number.isFinite(n) ? n : undefined;
+  return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
 function formatAmount(n: number | null): string {
@@ -124,49 +188,74 @@ function formatAmount(n: number | null): string {
   return `KES ${n.toLocaleString('en-KE', { minimumFractionDigits: 0 })}`;
 }
 export function toCreateMotorVehiclePayload(form: AddMotorVehicleForm): CreateExternalWorkPayload {
+  const materials = form.materials
+    .filter((row) => row.materialId && row.quantity)
+    .map((row) => ({ material_id: Number(row.materialId), quantity: Number(row.quantity) }));
+
   return {
-    pickup_location: form.pickupPoint.trim(),
+    transport_id: Number(form.transportId),
+    pickup_location: form.pickupPoint.trim() || undefined,
     destination: form.destination.trim(),
-    transport_id: form.transportId ? Number(form.transportId) : undefined,
+    materials,
     client_name: form.clientName.trim() || undefined,
     client_contact: form.clientPhone.trim() || undefined,
-    description: encodeDescription({
-      kind: 'motor_vehicle',
-      material: form.material.trim(),
-      quantity: form.quantity.trim(),
-    }),
     amount_charged: parseAmount(form.amount),
   };
 }
 
 export function toCreateHeavyMachineryPayload(form: AddHeavyMachineryForm): CreateExternalWorkPayload {
   return {
-    pickup_location: form.location.trim(),
-    destination: '',
-    transport_id: form.transportId ? Number(form.transportId) : undefined,
-    client_name: form.clientName.trim() || undefined,
-    client_contact: form.clientPhone.trim() || undefined,
-    description: encodeDescription({
-      kind: 'heavy_machinery',
-      service: form.service.trim(),
-    }),
-    amount_charged: parseAmount(form.amount),
+    transport_id: Number(form.transportId),
+    location: form.location.trim(),
+    service: form.service.trim(),
+    billing_method: (form.billingMethod || undefined) as BillingMethod | undefined,
+    duration: parseAmount(form.duration),
+    unit_amount: parseAmount(form.unitAmount),
+    total_amount: form.totalAmount.trim() ? parseAmount(form.totalAmount) : undefined,
+    client_name: form.clientName.trim(),
+    client_contact: form.clientPhone.trim(),
   };
 }
-export type VehicleLookup = Map<number, { name: string; numberPlate: string }>;
-function resolveVehicleLabel(
-  transportId: number | null,
-  vehicleById: VehicleLookup | undefined,
-  legacyVehicle?: string,
-): string {
-  const match = transportId != null ? vehicleById?.get(transportId) : undefined;
-  return match?.name || match?.numberPlate || legacyVehicle || '—';
+
+export function toMotorVehicleDelivery(r: ExternalWorkApiResponse): MotorVehicleDelivery {
+  const materials: MaterialLine[] = r.materials.length
+    ? r.materials.map((m) => ({ name: m.material.name, quantity: `${m.quantity} ${m.material.unit.name}` }))
+    : [{ name: '—', quantity: '—' }];
+
+  return {
+    id: r.id,
+    transportId: r.transport_id,
+    numberPlate: r.number_plate || '—',
+    materials,
+    pickupPoint: r.pickup_location || '—',
+    destination: r.destination || '—',
+    amount: formatAmount(r.amount_charged),
+    clientName: r.client_name || '—',
+    clientPhone: r.client_contact || '—',
+    status: r.status,
+  };
 }
 
-export function splitExternalWork(
-  items: ExternalWorkApiResponse[],
-  vehicleById?: VehicleLookup,
-): {
+export function toHeavyMachineryService(r: ExternalWorkApiResponse): HeavyMachineryService {
+  const unitLabel = r.billing_method ? DURATION_UNIT_LABELS[r.billing_method] : '';
+  return {
+    id: r.id,
+    transportId: r.transport_id,
+    numberPlate: r.number_plate || '—',
+    machine: r.machine || '—',
+    location: r.location || '—',
+    service: r.service || '—',
+    billingMethodLabel: r.billing_method ? BILLING_METHOD_LABELS[r.billing_method] : '—',
+    duration: r.duration !== null && r.duration !== undefined ? `${r.duration} ${unitLabel}` : '—',
+    unitAmount: formatAmount(r.unit_amount),
+    totalAmount: formatAmount(r.total_amount ?? r.amount_charged),
+    clientName: r.client_name || '—',
+    clientPhone: r.client_contact || '—',
+    status: r.status,
+  };
+}
+
+export function splitExternalWork(items: ExternalWorkApiResponse[]): {
   motorVehicles: MotorVehicleDelivery[];
   heavyMachinery: HeavyMachineryService[];
 } {
@@ -174,35 +263,10 @@ export function splitExternalWork(
   const heavyMachinery: HeavyMachineryService[] = [];
 
   for (const r of items) {
-    const tag = decodeDescription(r.description);
-    const isMotorVehicle = tag.kind ? tag.kind === 'motor_vehicle' : !!r.destination;
-
-    if (isMotorVehicle) {
-      motorVehicles.push({
-        id: r.id,
-        transportId: r.transport_id,
-        vehicle: resolveVehicleLabel(r.transport_id, vehicleById, (tag as { vehicle?: string }).vehicle),
-        material: (tag as { material?: string }).material || '—',
-        quantity: (tag as { quantity?: string }).quantity || '—',
-        pickupPoint: r.pickup_location || '—',
-        destination: r.destination || '—',
-        amount: formatAmount(r.amount_charged),
-        clientName: r.client_name || '—',
-        clientPhone: r.client_contact || '—',
-        status: r.status,
-      });
+    if (r.work_type === 'heavy_machinery') {
+      heavyMachinery.push(toHeavyMachineryService(r));
     } else {
-      heavyMachinery.push({
-        id: r.id,
-        transportId: r.transport_id,
-        vehicle: resolveVehicleLabel(r.transport_id, vehicleById, (tag as { vehicle?: string }).vehicle),
-        location: r.pickup_location || '—',
-        service: (tag as { service?: string }).service || r.description || '—',
-        amount: formatAmount(r.amount_charged),
-        clientName: r.client_name || '—',
-        clientPhone: r.client_contact || '—',
-        status: r.status,
-      });
+      motorVehicles.push(toMotorVehicleDelivery(r));
     }
   }
 

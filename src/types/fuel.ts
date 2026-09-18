@@ -9,7 +9,7 @@ export interface FuelVehicleSummary {
 
 export interface FuelLogEntry {
   id: number;
-  date: string; // ISO date
+  date: string; 
   purpose: string;
   amount: number;
 }
