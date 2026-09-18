@@ -33,6 +33,19 @@ export interface ModeOfTransport {
   category_name?: string;
 }
 
+export interface ModeOfTransport {
+  id: number;
+  name: string;
+  number_plate: string;
+  driver: DriverBrief | null;
+  is_active: boolean;
+  is_heavy_machinery: boolean; 
+  category_id: number;
+  company_id: number;
+  created_at: string;
+  category_name?: string;
+}
+
 export interface CreateModeOfTransportPayload {
   category_id: number;
   number_plate: string;

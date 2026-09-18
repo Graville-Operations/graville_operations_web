@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { modesOfTransportService, vehicleCategoriesService, driversService } from '@/lib/api/transport-service';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 import { ApiUser } from '@/types/users';
@@ -20,7 +20,12 @@ export function useModesOfTransport() {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // Guards against overlapping fetchAll calls (e.g. React Strict Mode's
+  // dev-only double effect invocation) applying stale results out of order.
+  const requestIdRef = useRef(0);
+
   const fetchAll = useCallback(async (opts?: { silent?: boolean }) => {
+    const requestId = ++requestIdRef.current;
     if (!opts?.silent) setIsLoading(true);
     setLoadError(null);
     try {
@@ -29,6 +34,7 @@ export function useModesOfTransport() {
         vehicleCategoriesService.list(),
         driversService.list(),
       ]);
+      if (requestId !== requestIdRef.current) return; // a newer fetch has since started — ignore this one
       const categoryNameById = new Map(categoryList.map((c) => [c.id, c.name]));
       setCategories(categoryList);
       setDrivers(driverList);
@@ -36,9 +42,10 @@ export function useModesOfTransport() {
         transportList.map((t) => ({ ...t, category_name: categoryNameById.get(t.category_id) })),
       );
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setLoadError(getApiErrorMessage(err, 'Failed to load modes of transport.'));
     } finally {
-      if (!opts?.silent) setIsLoading(false);
+      if (requestId === requestIdRef.current && !opts?.silent) setIsLoading(false);
     }
   }, []);
 

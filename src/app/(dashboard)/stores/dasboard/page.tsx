@@ -12,6 +12,7 @@ import { useSiteStore } from '@/store/site-store';
 import { API } from '@/lib/endpoints';
 import { extractNestedList as extractList } from '@/lib/api-response';
 import { fetchStoreTotals } from '@/lib/api/store';
+import { submitTransfer } from '@/lib/api/transfers';
 import type {
   StoreTotals, LowStockSite, MaterialCatalogItem, ToolCatalogItem,
   TransportOption, CreateTransferPayload,
@@ -104,8 +105,6 @@ function Field({ label, required, children }: { label: string; required?: boolea
 
 const inputCls = 'w-full px-3 py-2 rounded-xl text-sm bg-[color:var(--muted)] border border-[color:var(--border)] text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-colors';
 
-// Same as inputCls but strips the native number-input increment/decrement spinner arrows,
-// so it renders as a plain numeric text field.
 const numberInputCls = `${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0`;
 
 function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) { return <input {...props} className={inputCls} />; }
@@ -356,6 +355,13 @@ function AddToolOverlay({ open, onClose, onSuccess }: AddToolOverlayProps) {
 interface TransferItemRow { material_id: string; quantity: string; }
 interface TransferToolRow { tool_id: string; quantity: string; }
 
+interface CreatedTransfer {
+  id: number;
+  status: string;
+  pickUpPoint: string;
+  dropOffPoint: string;
+}
+
 interface CreateTransferOverlayProps { open: boolean; onClose: () => void; onSuccess?: () => void; }
 function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverlayProps) {
   const { sites } = useSiteStore();
@@ -373,13 +379,17 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
   const transportOptions = (extractList(transportApi.data) as TransportOption[]).filter(t => t.is_active !== false);
   const transportLoading = transportApi.loading;
 
+  const [step, setStep] = useState<'form' | 'confirm'>('form');
+  const [sourceSiteId, setSourceSiteId] = useState('');
   const [destinationSiteId, setDestinationSiteId] = useState('');
   const [transportId, setTransportId] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<TransferItemRow[]>([{ material_id: '', quantity: '' }]);
   const [toolItems, setToolItems] = useState<TransferToolRow[]>([{ tool_id: '', quantity: '' }]);
   const [selectedApprovers, setSelectedApprovers] = useState<SelectedApprover[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [createdTransfer, setCreatedTransfer] = useState<CreatedTransfer | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const toggleApprover = (user: (typeof users)[number]) => {
@@ -387,12 +397,15 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
   };
 
   const resetForm = () => {
+    setStep('form');
+    setSourceSiteId('');
     setDestinationSiteId('');
     setTransportId('');
     setNotes('');
     setItems([{ material_id: '', quantity: '' }]);
     setToolItems([{ tool_id: '', quantity: '' }]);
     setSelectedApprovers([]);
+    setCreatedTransfer(null);
     setError(null);
   };
 
@@ -408,11 +421,15 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
   };
   const addToolItem = () => setToolItems(prev => [...prev, { tool_id: '', quantity: '' }]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Step 1: create the transfer as a DRAFT, then move to the review step —
+  // mirrors useCreatePermit's handleCreate.
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    if (!sourceSiteId) return setError('Please select a pickup point.');
     if (!destinationSiteId) return setError('Please select a destination site.');
+    if (sourceSiteId === destinationSiteId) return setError('Pickup point and destination cannot be the same site.');
 
     const validItems = items
       .filter(r => r.material_id && Number(r.quantity) > 0)
@@ -428,9 +445,10 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
       return setError('Please select at least one approver.');
     }
 
-    setLoading(true);
+    setCreating(true);
     try {
       const payload: CreateTransferPayload = {
+        source_site_id: Number(sourceSiteId),
         destination_site_id: Number(destinationSiteId),
         notes: notes.trim() || undefined,
         transport_id: transportId ? Number(transportId) : undefined,
@@ -439,86 +457,158 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
         approvers: selectedApprovers.map(a => ({ approver_id: a.userId, step_order: a.stepOrder })),
       };
       const res = await api.post(API.transfers.create, payload);
-      console.log('[CreateTransfer] create response:', res.data);
-      onSuccess?.();
-      handleClose();
+      const t = res.data?.data ?? res.data;
+      setCreatedTransfer({
+        id: t.id,
+        status: t.status,
+        pickUpPoint: sites.find(s => String(s.id) === sourceSiteId)?.name ?? '',
+        dropOffPoint: sites.find(s => String(s.id) === destinationSiteId)?.name ?? '',
+      });
+      setStep('confirm');
     } catch (err: unknown) {
       console.error('Transfer creation failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to create transfer';
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setError(detail ?? message);
-    } finally { setLoading(false); }
+    } finally { setCreating(false); }
+  };
+
+  // Step 2: submit the DRAFT so it flips to PENDING and enters the approval
+  // chain — mirrors useCreatePermit's handleSubmit / submitPermit.
+  const handleSubmitTransfer = async () => {
+    if (!createdTransfer) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await submitTransfer(createdTransfer.id);
+      onSuccess?.();
+      handleClose();
+    } catch (err: unknown) {
+      console.error('Transfer submission failed:', err);
+      const message = err instanceof Error ? err.message : 'Failed to submit transfer';
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(detail ?? message);
+    } finally { setSubmitting(false); }
   };
 
   return (
-    <Overlay open={open} onClose={handleClose} title="Create Transfer" subtitle="Move materials or tools from your site to another" icon={<ArrowLeftRight size={18} />}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <Field label="Destination Site" required>
-          <DarkSelect value={destinationSiteId} onChange={e => setDestinationSiteId(e.target.value)}>
-            <option value="">Select destination site…</option>
-            {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </DarkSelect>
-        </Field>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-[color:var(--muted-foreground)] uppercase tracking-wider">Materials</label>
-            <button type="button" onClick={addItem} className="flex items-center gap-1 text-xs font-medium text-[color:var(--primary)] hover:opacity-80 cursor-pointer"><Plus size={12} /> Add material</button>
-          </div>
-          {materialsLoading ? (
-            <div className={`${inputCls} flex items-center gap-2 text-[color:var(--muted-foreground)]`}><Loader2 size={14} className="animate-spin" /> Loading materials…</div>
-          ) : items.map((row, idx) => (
-            <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl border border-[color:var(--border)]">
-              <DarkSelect value={row.material_id} onChange={e => updateItem(idx, { material_id: e.target.value })}>
-                <option value="">Select material…</option>
-                {materials.map(m => <option key={m.id} value={m.id}>{m.name}{m.unit?.symbol ? ` (${m.unit.symbol})` : ''}</option>)}
-              </DarkSelect>
-              <input type="number" min="0" step="any" placeholder="Qty" value={row.quantity} onChange={e => updateItem(idx, { quantity: e.target.value })} className={numberInputCls} />
-            </div>
-          ))}
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-[color:var(--muted-foreground)] uppercase tracking-wider">Tools</label>
-            <button type="button" onClick={addToolItem} className="flex items-center gap-1 text-xs font-medium text-[color:var(--primary)] hover:opacity-80 cursor-pointer"><Plus size={12} /> Add tool</button>
-          </div>
-          <p className="text-xs text-[color:var(--muted-foreground)]">Add at least one material or tool.</p>
-          {toolsLoading && toolItems.length > 0 ? (
-            <div className={`${inputCls} flex items-center gap-2 text-[color:var(--muted-foreground)]`}><Loader2 size={14} className="animate-spin" /> Loading tools…</div>
-          ) : toolItems.map((row, idx) => (
-            <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl border border-[color:var(--border)]">
-              <DarkSelect value={row.tool_id} onChange={e => updateToolItem(idx, { tool_id: e.target.value })}>
-                <option value="">Select tool…</option>
-                {tools.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </DarkSelect>
-              <input type="number" min="0" step="1" placeholder="Qty" value={row.quantity} onChange={e => updateToolItem(idx, { quantity: e.target.value })} className={numberInputCls} />
-            </div>
-          ))}
-        </div>
-
-        <ApproverSelect users={users} selected={selectedApprovers} onToggle={toggleApprover} loading={usersLoading} />
-
-        <Field label="Transport">
-          {transportLoading ? (
-            <div className={`${inputCls} flex items-center gap-2 text-[color:var(--muted-foreground)]`}><Loader2 size={14} className="animate-spin" /> Loading transport…</div>
-          ) : (
-            <DarkSelect value={transportId} onChange={e => setTransportId(e.target.value)}>
-              <option value="">No transport assigned</option>
-              {transportOptions.map(t => <option key={t.id} value={t.id}>{t.name} ({t.number_plate})</option>)}
+    <Overlay
+      open={open}
+      onClose={handleClose}
+      title={step === 'form' ? 'Create Transfer' : 'Confirm & Submit'}
+      subtitle={step === 'form' ? 'Move materials or tools from your site to another' : 'Review before sending to approvers'}
+      icon={<ArrowLeftRight size={18} />}
+    >
+      {step === 'form' && (
+        <form onSubmit={handleCreate} className="flex flex-col gap-5">
+          <Field label="Pickup Point" required>
+            <DarkSelect value={sourceSiteId} onChange={e => setSourceSiteId(e.target.value)}>
+              <option value="">Select pickup site…</option>
+              {sites.filter(s => String(s.id) !== destinationSiteId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </DarkSelect>
-          )}
-        </Field>
+          </Field>
 
-        <Field label="Notes"><Textarea placeholder="Optional notes about this transfer…" value={notes} onChange={e => setNotes(e.target.value)} /></Field>
+          <Field label="Destination Site" required>
+            <DarkSelect value={destinationSiteId} onChange={e => setDestinationSiteId(e.target.value)}>
+              <option value="">Select destination site…</option>
+              {sites.filter(s => String(s.id) !== sourceSiteId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </DarkSelect>
+          </Field>
 
-        {error && <p className="text-xs text-[color:var(--destructive)] bg-[color:var(--destructive)]/10 px-3 py-2 rounded-lg">{error}</p>}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-[color:var(--muted-foreground)] uppercase tracking-wider">Materials</label>
+              <button type="button" onClick={addItem} className="flex items-center gap-1 text-xs font-medium text-[color:var(--primary)] hover:opacity-80 cursor-pointer"><Plus size={12} /> Add material</button>
+            </div>
+            {materialsLoading ? (
+              <div className={`${inputCls} flex items-center gap-2 text-[color:var(--muted-foreground)]`}><Loader2 size={14} className="animate-spin" /> Loading materials…</div>
+            ) : items.map((row, idx) => (
+              <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl border border-[color:var(--border)]">
+                <DarkSelect value={row.material_id} onChange={e => updateItem(idx, { material_id: e.target.value })}>
+                  <option value="">Select material…</option>
+                  {materials.map(m => <option key={m.id} value={m.id}>{m.name}{m.unit?.symbol ? ` (${m.unit.symbol})` : ''}</option>)}
+                </DarkSelect>
+                <input type="number" min="0" step="any" placeholder="Qty" value={row.quantity} onChange={e => updateItem(idx, { quantity: e.target.value })} className={numberInputCls} />
+              </div>
+            ))}
+          </div>
 
-        <div className="flex flex-col gap-2 pt-2">
-          <SubmitBtn loading={loading} label="Create Transfer" />
-          <button type="button" onClick={handleClose} className="w-full py-2 text-sm text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] transition-colors cursor-pointer">Cancel</button>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-[color:var(--muted-foreground)] uppercase tracking-wider">Tools</label>
+              <button type="button" onClick={addToolItem} className="flex items-center gap-1 text-xs font-medium text-[color:var(--primary)] hover:opacity-80 cursor-pointer"><Plus size={12} /> Add tool</button>
+            </div>
+            <p className="text-xs text-[color:var(--muted-foreground)]">Add at least one material or tool.</p>
+            {toolsLoading && toolItems.length > 0 ? (
+              <div className={`${inputCls} flex items-center gap-2 text-[color:var(--muted-foreground)]`}><Loader2 size={14} className="animate-spin" /> Loading tools…</div>
+            ) : toolItems.map((row, idx) => (
+              <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl border border-[color:var(--border)]">
+                <DarkSelect value={row.tool_id} onChange={e => updateToolItem(idx, { tool_id: e.target.value })}>
+                  <option value="">Select tool…</option>
+                  {tools.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </DarkSelect>
+                <input type="number" min="0" step="1" placeholder="Qty" value={row.quantity} onChange={e => updateToolItem(idx, { quantity: e.target.value })} className={numberInputCls} />
+              </div>
+            ))}
+          </div>
+
+          <ApproverSelect users={users} selected={selectedApprovers} onToggle={toggleApprover} loading={usersLoading} />
+
+          <Field label="Transport">
+            {transportLoading ? (
+              <div className={`${inputCls} flex items-center gap-2 text-[color:var(--muted-foreground)]`}><Loader2 size={14} className="animate-spin" /> Loading transport…</div>
+            ) : (
+              <DarkSelect value={transportId} onChange={e => setTransportId(e.target.value)}>
+                <option value="">No transport assigned</option>
+                {transportOptions.map(t => <option key={t.id} value={t.id}>{t.name} ({t.number_plate})</option>)}
+              </DarkSelect>
+            )}
+          </Field>
+
+          <Field label="Notes"><Textarea placeholder="Optional notes about this transfer…" value={notes} onChange={e => setNotes(e.target.value)} /></Field>
+
+          {error && <p className="text-xs text-[color:var(--destructive)] bg-[color:var(--destructive)]/10 px-3 py-2 rounded-lg">{error}</p>}
+
+          <div className="flex flex-col gap-2 pt-2">
+            <SubmitBtn loading={creating} label="Continue to Review" />
+            <button type="button" onClick={handleClose} className="w-full py-2 text-sm text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] transition-colors cursor-pointer">Cancel</button>
+          </div>
+        </form>
+      )}
+
+      {step === 'confirm' && createdTransfer && (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 p-4 rounded-xl border border-[color:var(--border)]">
+            <p className="gv-label">Pickup Point</p>
+            <p className="text-sm text-[color:var(--foreground)]">{createdTransfer.pickUpPoint}</p>
+            <p className="gv-label">Destination</p>
+            <p className="text-sm text-[color:var(--foreground)]">{createdTransfer.dropOffPoint}</p>
+            <p className="gv-label">Status</p>
+            <p className="text-sm text-[color:var(--gv-text-warn)]">Draft — will become Pending after you submit</p>
+          </div>
+
+          <div className="rounded-xl px-4 py-3 text-xs text-[color:var(--gv-text-warn)] bg-[color:var(--gv-border-warn)]/10 border border-[color:var(--gv-border-warn)]">
+            Once submitted, this transfer is sent to the approval chain and can no longer be edited.
+          </div>
+
+          {error && <p className="text-xs text-[color:var(--destructive)] bg-[color:var(--destructive)]/10 px-3 py-2 rounded-lg">{error}</p>}
+
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={() => setStep('form')} className="flex-1 py-2.5 rounded-lg text-sm font-medium gv-glass-bg gv-glass-border text-[color:var(--foreground)] hover:bg-[color:var(--muted)] cursor-pointer">
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmitTransfer}
+              disabled={submitting}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:opacity-90 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {submitting && <Loader2 size={15} className="animate-spin" />}
+              {submitting ? 'Submitting…' : 'Submit for Approval'}
+            </button>
+          </div>
         </div>
-      </form>
+      )}
     </Overlay>
   );
 }
