@@ -1,11 +1,11 @@
 'use client';
 
-import { MotorVehicleDeliveryRow } from '@/hooks/logistics/useExternalWorks';
+import { MotorVehicleDelivery } from '@/types/external-work';
 import EmptyState from '@/components/ui/emptystate';
 import { Bone, ShimmerStyle } from '@/components/shared/Shimmer';
 
 interface MotorVehiclesTableProps {
-  deliveries: MotorVehicleDeliveryRow[];
+  deliveries: MotorVehicleDelivery[];
   isLoading?: boolean;
 }
 
@@ -26,7 +26,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 8;
 
 export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehiclesTableProps) {
   return (
@@ -41,8 +41,7 @@ export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehic
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Pickup Point</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Destination</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Amount</span></th>
-            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Client Name</span></th>
-            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Client Phone No.</span></th>
+            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Client</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Status</span></th>
           </tr>
         </thead>
@@ -52,7 +51,7 @@ export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehic
               <tr key={i} className="border-b border-[color:var(--border)] last:border-0">
                 {Array.from({ length: COLUMN_COUNT }).map((__, j) => (
                   <td key={j} className="px-4 py-3">
-                    <Bone w={j === 0 ? '7rem' : '5rem'} />
+                    <Bone w={j === 0 ? '7rem' : j === 1 ? '10rem' : '5rem'} />
                   </td>
                 ))}
               </tr>
@@ -70,17 +69,24 @@ export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehic
           ) : (
             deliveries.map((d) => (
               <tr key={d.id} className="border-b border-[color:var(--border)] last:border-0 hover:bg-[color:var(--muted)] transition-colors">
-                <td className="px-4 py-3">
-                  <p className="font-medium text-[color:var(--foreground)]">{d.vehicleName}</p>
-                  <p className="text-xs text-[color:var(--muted-foreground)]">{d.numberPlate}</p>
+                <td className="px-4 py-3 font-medium text-[color:var(--foreground)] whitespace-nowrap">{d.numberPlate}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] max-w-xs">
+                  {d.materials.map((m, idx) => (
+                    <p key={idx} className="whitespace-nowrap">{m.name}</p>
+                  ))}
                 </td>
-                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.material}</td>
-                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.quantity}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">
+                  {d.materials.map((m, idx) => (
+                    <p key={idx}>{m.quantity}</p>
+                  ))}
+                </td>
                 <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.pickupPoint}</td>
                 <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.destination}</td>
-                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.amount}</td>
-                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.clientName}</td>
-                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.clientPhone}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">{d.amount}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)]">
+                  <p>{d.clientName}</p>
+                  <p className="text-xs">{d.clientPhone}</p>
+                </td>
                 <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
               </tr>
             ))

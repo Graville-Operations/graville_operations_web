@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { X, Truck, Loader2 } from 'lucide-react';
-import { AddHeavyMachineryForm, emptyHeavyMachineryForm } from '@/types/external-work';
-import { modesOfTransportService } from '@/lib/api/transport-service';
+import { DarkSelect } from '@/components/shared/DarkSelect';
+import { AddHeavyMachineryForm, emptyHeavyMachineryForm, BILLING_METHOD_OPTIONS, BillingMethod } from '@/types/external-work';
 import { ModeOfTransport } from '@/types/transport';
 
 interface AddHeavyMachineryOverlayProps {
   open: boolean;
+  transports: ModeOfTransport[]; // pre-filtered to heavy-machinery vehicles by the page
   onClose: () => void;
   onSubmit: (form: AddHeavyMachineryForm) => Promise<void>;
 }
@@ -25,24 +26,16 @@ function Field({ label, required, children }: { label: string; required?: boolea
   );
 }
 
-export default function AddHeavyMachineryOverlay({ open, onClose, onSubmit }: AddHeavyMachineryOverlayProps) {
+export default function AddHeavyMachineryOverlay({ open, transports, onClose, onSubmit }: AddHeavyMachineryOverlayProps) {
   const [form, setForm] = useState<AddHeavyMachineryForm>(emptyHeavyMachineryForm());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const [vehicles, setVehicles] = useState<ModeOfTransport[]>([]);
-  const [vehiclesLoading, setVehiclesLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm(emptyHeavyMachineryForm());
       setError(null);
-      setVehiclesLoading(true);
-      modesOfTransportService.list()
-        .then((list) => setVehicles(list.filter((v) => v.is_active)))
-        .catch(() => setVehicles([]))
-        .finally(() => setVehiclesLoading(false));
     }
   }, [open]);
 
@@ -53,11 +46,16 @@ export default function AddHeavyMachineryOverlay({ open, onClose, onSubmit }: Ad
     return () => window.removeEventListener('keydown', h);
   }, [open, onClose]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.transportId) return setError('Vehicle is required.');
+    if (!form.location.trim()) return setError('Location is required.');
     if (!form.service.trim()) return setError('Service is required.');
+    if (!form.billingMethod) return setError('Billing method is required.');
+    if (!form.duration.trim()) return setError('Duration is required.');
+    if (!form.unitAmount.trim()) return setError('Unit amount is required.');
     if (!form.clientName.trim()) return setError('Client name is required.');
+    if (!form.clientPhone.trim()) return setError('Client phone is required.');
 
     setSubmitting(true);
     setError(null);
@@ -100,24 +98,19 @@ export default function AddHeavyMachineryOverlay({ open, onClose, onSubmit }: Ad
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
             <Field label="Vehicle" required>
-              <select
-                className={inputCls}
-                value={form.transportId}
-                disabled={vehiclesLoading}
-                onChange={(e) => setForm((p) => ({ ...p, transportId: e.target.value }))}
-              >
-                <option value="">{vehiclesLoading ? 'Loading vehicles…' : 'Select a vehicle…'}</option>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name} — {v.number_plate}</option>
+              <DarkSelect value={form.transportId} onChange={(e) => setForm((p) => ({ ...p, transportId: e.target.value }))}>
+                <option value="">Select vehicle…</option>
+                {transports.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name} — {t.number_plate}</option>
                 ))}
-              </select>
-              {!vehiclesLoading && vehicles.length === 0 && (
-                <p className="text-xs text-[color:var(--muted-foreground)]">
-                  No active vehicles found. Add one under Logistics · Transport first.
+              </DarkSelect>
+              {transports.length === 0 && (
+                <p className="text-xs" style={{ color: 'var(--gv-text-muted)' }}>
+                  No heavy machinery vehicles found. Mark one as heavy machinery under Transport first.
                 </p>
               )}
             </Field>
-            <Field label="Location">
+            <Field label="Location" required>
               <input className={inputCls} placeholder="e.g. Athi River Site" value={form.location}
                 onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
             </Field>
@@ -125,15 +118,31 @@ export default function AddHeavyMachineryOverlay({ open, onClose, onSubmit }: Ad
               <input className={inputCls} placeholder="e.g. Foundation excavation" value={form.service}
                 onChange={(e) => setForm((p) => ({ ...p, service: e.target.value }))} />
             </Field>
-            <Field label="Amount">
-              <input className={inputCls} placeholder="e.g. KES 120,000" value={form.amount}
-                onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))} />
+            <Field label="Billing Method" required>
+              <DarkSelect value={form.billingMethod} onChange={(e) => setForm((p) => ({ ...p, billingMethod: e.target.value as BillingMethod }))}>
+                <option value="">Select billing method…</option>
+                {BILLING_METHOD_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </DarkSelect>
+            </Field>
+            <Field label="Duration" required>
+              <input type="number" min="0" step="any" className={inputCls} placeholder="e.g. 8" value={form.duration}
+                onChange={(e) => setForm((p) => ({ ...p, duration: e.target.value }))} />
+            </Field>
+            <Field label="Unit Amount" required>
+              <input className={inputCls} placeholder="e.g. KES 5,000" value={form.unitAmount}
+                onChange={(e) => setForm((p) => ({ ...p, unitAmount: e.target.value }))} />
+            </Field>
+            <Field label="Total Amount">
+              <input className={inputCls} placeholder="Auto-calculated if left blank" value={form.totalAmount}
+                onChange={(e) => setForm((p) => ({ ...p, totalAmount: e.target.value }))} />
             </Field>
             <Field label="Client Name" required>
               <input className={inputCls} placeholder="Client full name" value={form.clientName}
                 onChange={(e) => setForm((p) => ({ ...p, clientName: e.target.value }))} />
             </Field>
-            <Field label="Client Phone No.">
+            <Field label="Client Phone No." required>
               <input className={inputCls} placeholder="e.g. 0712 345 678" value={form.clientPhone}
                 onChange={(e) => setForm((p) => ({ ...p, clientPhone: e.target.value }))} />
             </Field>

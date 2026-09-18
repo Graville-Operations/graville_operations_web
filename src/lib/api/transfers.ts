@@ -52,3 +52,11 @@ export async function submitTransfer(id: number): Promise<TransferDetail> {
   const { data } = await api.post(API.transfers.submit(id), {});
   return normaliseTransferDetail(unwrapObject<TransferDetailDTO>(data));
 }
+
+export async function assignTransferTransport(
+  id: number,
+  transportId: number,
+): Promise<TransferDetail> {
+  const { data } = await api.patch(API.transfers.assignTransport(id), { transport_id: transportId });
+  return normaliseTransferDetail(unwrapObject<TransferDetailDTO>(data));
+}

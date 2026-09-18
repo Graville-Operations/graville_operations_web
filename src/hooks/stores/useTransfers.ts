@@ -10,26 +10,16 @@ import {
   actionTransfer,
 } from '@/lib/api/transfers';
 import { resolveCanApprove } from '@/lib/utils/transfer-approval';
+import { formatVehicleLabel } from '@/lib/utils/transfer-format';
+import { setTransferRows } from '@/lib/transfers-cache';
 import {
   TransferStatus,
   TransferApprovalStatus,
+  TransferListItem,
   TransferRow,
   TransferDetail,
   TransferLine,
-  TransportBrief,
 } from '@/types/transfer';
-
-/** "Isuzu · KDQ 564M", collapsing the duplicate when the vehicle was saved
- *  with its plate as the name. */
-function formatVehicle(transport: TransportBrief | null | undefined): string {
-  if (!transport) return '';
-  const name = (transport.name ?? '').trim();
-  const plate = (transport.numberPlate ?? '').trim();
-  if (name && plate && name.toLowerCase() !== plate.toLowerCase()) {
-    return `${name} · ${plate}`;
-  }
-  return name || plate;
-}
 
 function flattenLines(detail: TransferDetail | undefined): TransferLine[] {
   if (!detail) return [];
@@ -67,36 +57,37 @@ export function useTransfers() {
     setLoadError(null);
     try {
       const { items } = await fetchTransfers();
-
-      // MaterialTransferListResponse carries only counts and a transport_id —
-      // no item names, no transport name, no approvals. The table now shows
-      // Item / Quantity / Vehicle per row, so every row needs its detail.
-      // allSettled so one bad id can't blank the whole table.
+      const visible: TransferListItem[] = items.filter(
+        (t) => t.status !== TransferStatus.DRAFT || t.requestedBy === userId,
+      );
       const details = await Promise.allSettled(
-        items.map((t) => fetchTransferDetail(t.id)),
+        visible.map((t) => fetchTransferDetail(t.id)),
       );
 
       const detailById = new Map<number, TransferDetail>();
       details.forEach((res, idx) => {
-        if (res.status === 'fulfilled') detailById.set(items[idx].id, res.value);
+        if (res.status === 'fulfilled') {
+          detailById.set(visible[idx].id, res.value);
+        } else {
+          console.warn(`Failed to load detail for transfer ${visible[idx].id}:`, res.reason);
+        }
       });
 
-      setRows(
-        items.map((t) => {
-          const detail = detailById.get(t.id);
-          const approvals = detail?.approvals ?? [];
-          return {
-            ...t,
-            approvals,
-            lineItems: flattenLines(detail),
-            vehicleLabel: formatVehicle(detail?.transport),
-            canApprove: resolveCanApprove(approvals, t.currentStep, userId),
-          };
-        }),
-      );
+      const built = visible.map((t) => {
+        const detail = detailById.get(t.id);
+        const approvals = detail?.approvals ?? [];
+        return {
+          ...t,
+          approvals,
+          lineItems: flattenLines(detail),
+          vehicleLabel: formatVehicleLabel(detail?.transport),
+          canApprove: resolveCanApprove(approvals, t.currentStep, userId, t.status),
+        };
+      });
+
+      setTransferRows(built);
+      setRows(built);
     } catch (err) {
-      // Keep whatever is already on screen — a failed refresh should never
-      // blank out previously loaded transfers.
       setLoadError(getApiErrorMessage(err, 'Failed to load transfers.'));
     } finally {
       if (!opts?.silent) setIsLoading(false);
@@ -149,8 +140,6 @@ export function useTransfers() {
       setActioningId(id);
       try {
         await actionTransfer(id, { status, comment: comment || null });
-        // Status + current_step + approvals all shift server-side, so pull
-        // fresh rather than patching locally.
         await load({ silent: true });
       } catch (err) {
         const message = getApiErrorMessage(err, 'Failed to action transfer.');

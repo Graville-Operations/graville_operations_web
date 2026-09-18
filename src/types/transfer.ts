@@ -28,6 +28,7 @@ export const ACTIONABLE_STATUSES: TransferStatus[] = [
   TransferStatus.PENDING,
   TransferStatus.IN_REVIEW,
 ];
+
 export interface TransferListItem {
   id: number;
   status: TransferStatus;
@@ -81,6 +82,7 @@ export interface TransferApprovalDTO {
   actioned_at?: string | null;
   created_at?: string;
 }
+
 export interface SiteBrief {
   id: number;
   name: string;
@@ -190,6 +192,7 @@ export interface TransferDetailDTO {
   tool_items?: TransferToolItemDTO[];
   approvals?: TransferApprovalDTO[];
 }
+
 export type TransferLineKind = 'MATERIAL' | 'TOOL';
 
 export interface TransferLine {
