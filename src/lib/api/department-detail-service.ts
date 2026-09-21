@@ -2,6 +2,7 @@ import api from '@/lib/api';
 import { API } from '@/lib/endpoints';
 import { parseMenus, parseUsers } from '@/lib/utils/parse-entities';
 import { DeptDetail, Menu, User } from '@/types/department-detail';
+import { ENTITY_CACHE_KEYS, fetchWithCache, clearEntityCache } from '@/lib/api/cache';
 
 export const departmentDetailService = {
   async getDepartment(id: number): Promise<DeptDetail> {
@@ -34,23 +35,41 @@ export const departmentDetailService = {
   },
 
   async listAllMenus(): Promise<Menu[]> {
-    const { data } = await api.get(API.menus.list);
-    return parseMenus(data);
+    return fetchWithCache(ENTITY_CACHE_KEYS.menus, async () => {
+      const { data } = await api.get(API.menus.list);
+      return parseMenus(data);
+    });
   },
 
   async assignMenus(deptId: number, menuIds: number[]) {
-    return api.post(API.departments.menus(deptId), { menu_ids: menuIds });
+    const res = await api.post(API.departments.menus(deptId), { menu_ids: menuIds });
+    // Assigning menus changes this department's menusCount in the cached list.
+    clearEntityCache(ENTITY_CACHE_KEYS.departments);
+    clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
+    return res;
   },
 
   async removeMenu(deptId: number, menuId: number) {
-    return api.delete(API.departments.menus(deptId), { data: { menu_ids: [menuId] } });
+    const res = await api.delete(API.departments.menus(deptId), { data: { menu_ids: [menuId] } });
+    clearEntityCache(ENTITY_CACHE_KEYS.departments);
+    clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
+    return res;
   },
 
   async assignUsers(deptId: number, userIds: number[]) {
-    return api.post(API.departments.assignUsers(deptId), { user_ids: userIds });
+    const res = await api.post(API.departments.assignUsers(deptId), { user_ids: userIds });
+    // Assigning users changes this department's usersCount in the cached list.
+    clearEntityCache(ENTITY_CACHE_KEYS.departments);
+    clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
+    clearEntityCache(ENTITY_CACHE_KEYS.users);
+    return res;
   },
 
   async removeUser(deptId: number, userId: number) {
-    return api.delete(API.departments.users(deptId), { data: { user_ids: [userId] } });
+    const res = await api.delete(API.departments.users(deptId), { data: { user_ids: [userId] } });
+    clearEntityCache(ENTITY_CACHE_KEYS.departments);
+    clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
+    clearEntityCache(ENTITY_CACHE_KEYS.users);
+    return res;
   },
 };

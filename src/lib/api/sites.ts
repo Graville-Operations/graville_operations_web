@@ -19,10 +19,13 @@ import {
   SiteAnalytics, SiteAnalyticsDTO, FieldOperator, UpdateSitePayload,
 } from '@/types/site';
 import { DashboardMetrics, DashboardMetricsDTO } from '@/types/dashboard';
+import { ENTITY_CACHE_KEYS, fetchWithCache, clearEntityCache } from '@/lib/api/cache';
 
 export async function fetchSites(): Promise<Site[]> {
-  const { data } = await api.get(API.sites.list);
-  return normaliseSiteListItems(unwrapArray<SiteListItemDTO>(data));
+  return fetchWithCache(ENTITY_CACHE_KEYS.sites, async () => {
+    const { data } = await api.get(API.sites.list);
+    return normaliseSiteListItems(unwrapArray<SiteListItemDTO>(data));
+  });
 }
 
 export async function fetchSiteById(siteId: number): Promise<SiteDetail> {
@@ -32,11 +35,13 @@ export async function fetchSiteById(siteId: number): Promise<SiteDetail> {
 
 export async function updateSite(siteId: number, payload: UpdateSitePayload): Promise<SiteDetail> {
   const { data } = await api.patch(API.sites.update(siteId), payload);
+  clearEntityCache(ENTITY_CACHE_KEYS.sites);
   return normaliseSiteDetail(unwrapObject<SiteDetailDTO>(data));
 }
 
 export async function createSite(payload: CreateSitePayload): Promise<Site> {
   const { data } = await api.post(API.sites.create, payload);
+  clearEntityCache(ENTITY_CACHE_KEYS.sites);
   return normaliseSiteListItems([unwrapObject<SiteListItemDTO>(data)])[0];
 }
 

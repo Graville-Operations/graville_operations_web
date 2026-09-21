@@ -1,20 +1,42 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { departmentDetailService } from '@/lib/api/department-detail-service';
 import { getApiErrorMessage } from '@/lib/api/api-error';
-import { useCachedLookup } from '@/hooks/useCachedLookup';
-import { API } from '@/lib/endpoints';
-import { parseMenus } from '@/lib/utils/parse-entities';
+import { ENTITY_CACHE_KEYS, readEntityCache } from '@/lib/api/cache';
 import { AssignResult, Menu } from '@/types/department-detail';
 
 export function useAssignMenus(deptId: number, currentMenuIds: Set<number>) {
-  const { data, loading, error } = useCachedLookup<unknown>(API.menus.list);
-
-  const allMenus = useMemo<Menu[]>(
-    () => (data ? parseMenus(data) : []),
-    [data],
+  const [allMenus, setAllMenus] = useState<Menu[]>(
+    () => readEntityCache<Menu[]>(ENTITY_CACHE_KEYS.menus) ?? [],
   );
+  const [loading, setLoading] = useState<boolean>(
+    () => readEntityCache<Menu[]>(ENTITY_CACHE_KEYS.menus) === null,
+  );
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    // departmentDetailService.listAllMenus() is cache-first against the same
+    // ENTITY_CACHE_KEYS.menus entry the Sections > Menus page fills — so if
+    // that page (or any other menu fetch) already ran, this resolves
+    // instantly from the local db instead of hitting the network again.
+    departmentDetailService.listAllMenus()
+      .then((menus) => {
+        if (cancelled) return;
+        setAllMenus(menus);
+      })
+      .catch((err) => {
+        console.error('[useAssignMenus] load failed:', err);
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   const errMsg = error
     ? 'Failed to load menus'

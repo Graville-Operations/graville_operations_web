@@ -5,10 +5,13 @@ import { Department, Role, NewUserFormState } from '@/types/users';
 import { RoleFormState } from '@/types/users';
 import { clearCachedLookup } from '@/hooks/useCachedLookup';
 import { unwrapObject as unwrap, unwrapArray as unwrapList } from '@/lib/api-response';
+import { ENTITY_CACHE_KEYS, fetchWithCache, readEntityCache, clearEntityCache } from '@/lib/api/cache';
 
 export async function fetchUsers(): Promise<ApiUser[]> {
-  const { data } = await api.get(API.users.list);
-  return unwrapList<ApiUser>(data);
+  return fetchWithCache(ENTITY_CACHE_KEYS.users, async () => {
+    const { data } = await api.get(API.users.list);
+    return unwrapList<ApiUser>(data);
+  });
 }
 
 export async function fetchUser(id: number): Promise<ApiUser> {
@@ -21,26 +24,22 @@ export async function fetchUserDepartments(id: number): Promise<Department[]> {
   return unwrapList<Department>(data);
 }
 
-const ROLES_CACHE_KEY = 'gv:roles';
 export function getCachedRoles(): Role[] | null {
-  return cacheGet<Role[]>(ROLES_CACHE_KEY);
+  return readEntityCache<Role[]>(ENTITY_CACHE_KEYS.roles);
 }
 
-export async function fetchRoles(forceRefresh = false): Promise<Role[]> {
-  if (!forceRefresh) {
-    const cached = cacheGet<Role[]>(ROLES_CACHE_KEY);
-    if (cached) return cached;
-  }
-
-  const { data } = await api.get(API.roles.list);
-  const roles = unwrapList<Role>(data);
-  cacheSet(ROLES_CACHE_KEY, roles);
-  return roles;
+export async function fetchRoles(): Promise<Role[]> {
+  return fetchWithCache(ENTITY_CACHE_KEYS.roles, async () => {
+    const { data } = await api.get(API.roles.list);
+    return unwrapList<Role>(data);
+  });
 }
 
 export async function fetchDepartments(): Promise<Department[]> {
-  const { data } = await api.get(API.departments.list, { params: { skip: 0, limit: 100 } });
-  return unwrapList<Department>(data);
+  return fetchWithCache(ENTITY_CACHE_KEYS.departmentsBrief, async () => {
+    const { data } = await api.get(API.departments.list, { params: { skip: 0, limit: 100 } });
+    return unwrapList<Department>(data);
+  });
 }
 
 export async function createUser(form: NewUserFormState): Promise<{ id: number }> {
@@ -57,6 +56,7 @@ export async function createUser(form: NewUserFormState): Promise<{ id: number }
   const id: number = created?.data?.id ?? created?.id ?? created?.user?.id;
 
   clearCachedLookup(API.users.list);
+  clearEntityCache(ENTITY_CACHE_KEYS.users);
 
   return { id };
 }
@@ -67,59 +67,31 @@ export async function assignUserToDepartment(
 ): Promise<void> {
   await api.post(API.departments.assignUsers(departmentId as number), { user_ids: userIds });
   clearCachedLookup(API.users.list);
+  clearEntityCache(ENTITY_CACHE_KEYS.users);
+  clearEntityCache(ENTITY_CACHE_KEYS.departments);
+  clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
 }
 
 export async function createRole(payload: RoleFormState): Promise<void> {
   await api.post(API.roles.create, payload);
   clearCachedLookup(API.roles.list);
-  cacheBust(ROLES_CACHE_KEY);
+  clearEntityCache(ENTITY_CACHE_KEYS.roles);
 }
 
 export async function updateRole(id: number, payload: RoleFormState): Promise<void> {
   await api.patch(API.roles.update(id), payload);
   clearCachedLookup(API.roles.list);
-  cacheBust(ROLES_CACHE_KEY);
+  clearEntityCache(ENTITY_CACHE_KEYS.roles);
 }
 
 export async function deleteRole(id: number): Promise<void> {
   await api.delete(API.roles.delete(id));
   clearCachedLookup(API.roles.list);
-  cacheBust(ROLES_CACHE_KEY);
+  clearEntityCache(ENTITY_CACHE_KEYS.roles);
 }
 
 export function assignRoleToUser(roleId: number, userId: number) {
   clearCachedLookup(API.users.list); // a user's role changed — user list view may show it
+  clearEntityCache(ENTITY_CACHE_KEYS.users);
   return api.post(API.roles.assign(roleId, userId));
-}
-
-interface CacheEntry<T> {
-  data: T;
-}
-
-export function cacheGet<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const entry: CacheEntry<T> = JSON.parse(raw);
-    return entry.data;
-  } catch {
-    return null;
-  }
-}
-
-export function cacheSet<T>(key: string, data: T): void {
-  try {
-    const entry: CacheEntry<T> = { data };
-    localStorage.setItem(key, JSON.stringify(entry));
-  } catch {
-
-  }
-}
-
-export function cacheBust(prefix: string): void {
-  try {
-    Object.keys(localStorage)
-      .filter((k) => k.startsWith(prefix))
-      .forEach((k) => localStorage.removeItem(k));
-  } catch {}
 }
