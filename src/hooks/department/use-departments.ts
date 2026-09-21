@@ -26,9 +26,9 @@ export function useDepartments() {
       throw new Error('Department name is required.');
     }
     try {
-      await departmentsService.create(payload);
+      await departmentsService.create(payload); // busts the ENTITY_CACHE_KEYS.departments cache itself
       showToast('Department created successfully!', 'success');
-      bustDeptCache();
+      bustDeptCache(); // also clear the separate list cache the detail page reads
       refresh({ force: true }); // not awaited — modal closes immediately, list refetches in the background
     } catch (err) {
       throw new Error(getApiErrorMessage(err, 'Failed to create department.'));

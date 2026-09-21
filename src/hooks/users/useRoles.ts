@@ -27,7 +27,7 @@ export function useRoles() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const data = await fetchRoles(force);
+      const data = await fetchRoles();
       setRoles(data);
     } catch (err) {
       setLoadError(getApiErrorMessage(err, 'Failed to load roles.'));
