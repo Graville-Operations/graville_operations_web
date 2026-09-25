@@ -12,12 +12,14 @@ interface TransportFormState {
   category_id: string;
   number_plate: string;
   driver_user_id: string;
+  is_heavy_machinery: boolean;
 }
 
 const emptyForm: TransportFormState = {
   category_id: '',
   number_plate: '',
   driver_user_id: '',
+  is_heavy_machinery: false,
 };
 
 export function TransportFormModal({
@@ -51,6 +53,7 @@ export function TransportFormModal({
         category_id: Number(form.category_id),
         number_plate: form.number_plate.trim(),
         driver_id: form.driver_user_id ? Number(form.driver_user_id) : undefined,
+        is_heavy_machinery: form.is_heavy_machinery,
       });
       onClose();
     } catch (err) {
@@ -104,6 +107,38 @@ export function TransportFormModal({
               value={form.number_plate}
               onChange={e => update('number_plate', e.target.value)}
             />
+          </div>
+
+          <div
+            className="flex items-center justify-between gap-4 rounded-xl px-4 py-3"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gv-glass-border)' }}
+          >
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
+                Heavy Machinery
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+                Turn on if this vehicle is heavy machinery (e.g. excavator, loader).
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.is_heavy_machinery}
+              aria-label="Heavy machinery"
+              onClick={() => update('is_heavy_machinery', !form.is_heavy_machinery)}
+              disabled={saving}
+              className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 disabled:opacity-50"
+              style={{
+                background: form.is_heavy_machinery ? '#33907c' : 'var(--gv-glass-bg)',
+                border: '1px solid var(--gv-glass-border)',
+              }}
+            >
+              <span
+                className="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"
+                style={{ transform: form.is_heavy_machinery ? 'translateX(17px)' : 'translateX(2px)' }}
+              />
+            </button>
           </div>
 
           <div className="h-px" style={{ background: 'var(--gv-glass-border)' }} />

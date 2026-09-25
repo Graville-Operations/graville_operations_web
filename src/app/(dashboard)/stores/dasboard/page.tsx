@@ -15,8 +15,9 @@ import { fetchStoreTotals } from '@/lib/api/store';
 import { submitTransfer } from '@/lib/api/transfers';
 import type {
   StoreTotals, LowStockSite, MaterialCatalogItem, ToolCatalogItem,
-  TransportOption, CreateTransferPayload,
+  CreateTransferPayload,
 } from '@/types/store';
+import type { ModeOfTransport } from '@/types/transport';
 import { ApproverSelect } from '@/components/permits/ApproverSelect';
 import { SelectedApprover, toggleApproverIn } from '@/lib/utils/approvers';
 
@@ -376,7 +377,7 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
   const toolsLoading = toolsApi.loading;
 
   const transportApi = useApi(API.transport.modesOfTransport, { enabled: open });
-  const transportOptions = (extractList(transportApi.data) as TransportOption[]).filter(t => t.is_active !== false);
+  const transportOptions = (extractList(transportApi.data) as ModeOfTransport[]).filter(t => t.is_active !== false);
   const transportLoading = transportApi.loading;
 
   const [step, setStep] = useState<'form' | 'confirm'>('form');
@@ -420,9 +421,6 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
     setToolItems(prev => prev.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
   };
   const addToolItem = () => setToolItems(prev => [...prev, { tool_id: '', quantity: '' }]);
-
-  // Step 1: create the transfer as a DRAFT, then move to the review step —
-  // mirrors useCreatePermit's handleCreate.
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -472,9 +470,6 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
       setError(detail ?? message);
     } finally { setCreating(false); }
   };
-
-  // Step 2: submit the DRAFT so it flips to PENDING and enters the approval
-  // chain — mirrors useCreatePermit's handleSubmit / submitPermit.
   const handleSubmitTransfer = async () => {
     if (!createdTransfer) return;
     setError(null);
@@ -490,6 +485,20 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
       setError(detail ?? message);
     } finally { setSubmitting(false); }
   };
+  const reviewMaterials = items
+    .filter(r => r.material_id && Number(r.quantity) > 0)
+    .map(r => {
+      const m = materials.find(m => String(m.id) === r.material_id);
+      return { name: m?.name ?? `Material #${r.material_id}`, quantity: Number(r.quantity), unit: m?.unit?.symbol };
+    });
+  const reviewTools = toolItems
+    .filter(r => r.tool_id && Number(r.quantity) > 0)
+    .map(r => {
+      const t = tools.find(t => String(t.id) === r.tool_id);
+      return { name: t?.name ?? `Tool #${r.tool_id}`, quantity: Number(r.quantity) };
+    });
+  const reviewTransport = transportId ? transportOptions.find(t => String(t.id) === transportId) : null;
+  const reviewApprovers = selectedApprovers.slice().sort((a, b) => a.stepOrder - b.stepOrder);
 
   return (
     <Overlay
@@ -578,14 +587,77 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
 
       {step === 'confirm' && createdTransfer && (
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 p-4 rounded-xl border border-[color:var(--border)]">
-            <p className="gv-label">Pickup Point</p>
-            <p className="text-sm text-[color:var(--foreground)]">{createdTransfer.pickUpPoint}</p>
-            <p className="gv-label">Destination</p>
-            <p className="text-sm text-[color:var(--foreground)]">{createdTransfer.dropOffPoint}</p>
-            <p className="gv-label">Status</p>
-            <p className="text-sm text-[color:var(--gv-text-warn)]">Draft — will become Pending after you submit</p>
+          <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-[color:var(--border)]">
+            <div>
+              <p className="gv-label">Pickup Point</p>
+              <p className="text-sm text-[color:var(--foreground)]">{createdTransfer.pickUpPoint}</p>
+            </div>
+            <div>
+              <p className="gv-label">Destination</p>
+              <p className="text-sm text-[color:var(--foreground)]">{createdTransfer.dropOffPoint}</p>
+            </div>
+            <div>
+              <p className="gv-label">Status</p>
+              <p className="text-sm text-[color:var(--gv-text-warn)]">Draft — becomes Pending after you submit</p>
+            </div>
+            <div>
+              <p className="gv-label">Transport</p>
+              <p className="text-sm text-[color:var(--foreground)]">
+                {reviewTransport ? reviewTransport.name : 'Not assigned'}
+              </p>
+            </div>
+            <div>
+              <p className="gv-label">Driver</p>
+              <p className="text-sm text-[color:var(--foreground)]">
+                {reviewTransport?.driver
+                  ? `${reviewTransport.driver.first_name} ${reviewTransport.driver.last_name}`.trim()
+                  : 'Not assigned'}
+              </p>
+            </div>
           </div>
+
+          {reviewMaterials.length > 0 && (
+            <div className="flex flex-col gap-2 p-4 rounded-xl border border-[color:var(--border)]">
+              <p className="gv-label">Materials</p>
+              {reviewMaterials.map((m, i) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span className="text-[color:var(--foreground)]">{m.name}</span>
+                  <span className="text-[color:var(--muted-foreground)] tabular-nums">{m.quantity}{m.unit ? ` ${m.unit}` : ''}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {reviewTools.length > 0 && (
+            <div className="flex flex-col gap-2 p-4 rounded-xl border border-[color:var(--border)]">
+              <p className="gv-label">Tools</p>
+              {reviewTools.map((t, i) => (
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <span className="text-[color:var(--foreground)]">{t.name}</span>
+                  <span className="text-[color:var(--muted-foreground)] tabular-nums">{t.quantity}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {reviewApprovers.length > 0 && (
+            <div className="flex flex-col gap-2 p-4 rounded-xl border border-[color:var(--border)]">
+              <p className="gv-label">Approvers</p>
+              {reviewApprovers.map((a) => (
+                <div key={a.userId} className="flex items-center justify-between text-sm">
+                  <span className="text-[color:var(--foreground)]">{a.name}</span>
+                  <span className="text-[color:var(--muted-foreground)]">Step {a.stepOrder}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {notes.trim() && (
+            <div className="flex flex-col gap-1 p-4 rounded-xl border border-[color:var(--border)]">
+              <p className="gv-label">Notes</p>
+              <p className="text-sm text-[color:var(--foreground)]">{notes.trim()}</p>
+            </div>
+          )}
 
           <div className="rounded-xl px-4 py-3 text-xs text-[color:var(--gv-text-warn)] bg-[color:var(--gv-border-warn)]/10 border border-[color:var(--gv-border-warn)]">
             Once submitted, this transfer is sent to the approval chain and can no longer be edited.
@@ -595,7 +667,7 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
 
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={() => setStep('form')} className="flex-1 py-2.5 rounded-lg text-sm font-medium gv-glass-bg gv-glass-border text-[color:var(--foreground)] hover:bg-[color:var(--muted)] cursor-pointer">
-              Back
+              Edit
             </button>
             <button
               type="button"

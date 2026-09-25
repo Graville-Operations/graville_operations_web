@@ -13,9 +13,9 @@ export function TransferDetailField({
       >
         {label}
       </p>
-      <p className="text-sm" style={{ color: 'var(--gv-text-primary)' }}>
+      <div className="text-sm" style={{ color: 'var(--gv-text-primary)' }}>
         {value ?? '—'}
-      </p>
+      </div>
     </div>
   );
 }

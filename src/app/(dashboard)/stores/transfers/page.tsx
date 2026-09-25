@@ -24,7 +24,8 @@ function StatusPill({ status }: { status: TransferRow['status'] }) {
   );
 }
 
-function ItemNames({ row }: { row: TransferRow }) {
+function ItemNames({ row, loaded }: { row: TransferRow; loaded: boolean }) {
+  if (!loaded) return <Bone w="7rem" />;
   if (row.lineItems.length === 0) {
     return <span className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>—</span>;
   }
@@ -43,7 +44,8 @@ function ItemNames({ row }: { row: TransferRow }) {
   );
 }
 
-function ItemQuantities({ row }: { row: TransferRow }) {
+function ItemQuantities({ row, loaded }: { row: TransferRow; loaded: boolean }) {
+  if (!loaded) return <Bone w="3rem" />;
   if (row.lineItems.length === 0) {
     return <span className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>—</span>;
   }
@@ -66,6 +68,7 @@ export default function TransfersPage() {
   const router = useRouter();
   const {
     rows,
+    detailLoadedIds,
     isLoading,
     search,
     setSearch,
@@ -154,7 +157,9 @@ export default function TransfersPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((t, idx) => (
+              {rows.map((t, idx) => {
+                const loaded = detailLoadedIds.has(t.id);
+                return (
                 <tr
                   key={t.id}
                   onClick={() => openDetail(t.id)}
@@ -167,20 +172,29 @@ export default function TransfersPage() {
                   onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'inset 3px 0 0 0 transparent'; }}
                 >
                   <td className="px-4 py-3">
-                    <span className="text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
-                      {t.pickUpPoint || siteName(t.sourceSiteId) || '—'}
-                    </span>
+                    {loaded ? (
+                      <span className="text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
+                        {t.pickUpPoint || siteName(t.sourceSiteId) || '—'}
+                      </span>
+                    ) : (
+                      <Bone w="9rem" />
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
-                      {t.dropOffPoint || siteName(t.destinationSiteId) || '—'}
-                    </span>
+                    {loaded ? (
+                      <span className="text-sm whitespace-nowrap" style={{ color: 'var(--gv-text-primary)' }}>
+                        {t.dropOffPoint || siteName(t.destinationSiteId) || '—'}
+                      </span>
+                    ) : (
+                      <Bone w="9rem" />
+                    )}
                   </td>
-                  <td className="px-4 py-3"><ItemNames row={t} /></td>
-                  <td className="px-4 py-3"><ItemQuantities row={t} /></td>
-                  <td className="px-4 py-3"><StatusPill status={t.status} /></td>
+                  <td className="px-4 py-3"><ItemNames row={t} loaded={loaded} /></td>
+                  <td className="px-4 py-3"><ItemQuantities row={t} loaded={loaded} /></td>
+                  <td className="px-4 py-3">{loaded ? <StatusPill status={t.status} /> : <Bone w="4.5rem" />}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
