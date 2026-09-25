@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useMenuStore } from '@/store/menu-store';
-import { menusService, getApiErrorMessage } from '@/lib/api/menus-service';
-import { clearCachedLookup } from '@/hooks/useCachedLookup';
-import { API } from '@/lib/endpoints';
+import { menusService, getApiErrorMessage } from '@/lib/api/menus';
 import { Menu, ModalType, MenuFormData, MenuPayload } from '@/types/menu';
 
 const emptyForm: MenuFormData = { name: '', title: '', link: '', order: '0' };
@@ -59,10 +57,10 @@ export function useMenus() {
 
   const invalidateAndRefresh = async () => {
     clearMenus();
-    // The "Assign Menu" modal (department detail page) reads menus from its
-    // own cached-lookup of this same endpoint — bust it too so it doesn't
-    // keep showing stale titles/links/order after an edit.
-    clearCachedLookup(API.menus.list);
+    // Every menusService mutation (createMenu/updateMenu/deleteMenu/...)
+    // already clears ENTITY_CACHE_KEYS.menus itself, and every other menu
+    // reader — the Assign Menu modal included — shares that same cache
+    // entry, so this refetch is enough to pick up the change everywhere.
     await fetchMenus();
   };
 

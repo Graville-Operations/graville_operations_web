@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useMenuStore } from '@/store/menu-store';
 import { ROUTES } from '@/lib/routes';
 import { MenuItem, SubMenu, SubSubMenu } from '@/types/menu';
-import { fetchSidebarMenus } from '@/lib/api/menu';
+import { fetchSidebarMenus } from '@/lib/api/menus';
 
 function linkMatches(pathname: string, href?: string | null): boolean {
   if (!href || href === '#') return false;

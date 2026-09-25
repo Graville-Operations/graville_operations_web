@@ -17,6 +17,7 @@ import {
   PaymentHistory,
 } from '@/types/client-invoice';
 import type { PaymentHistoryDTO } from '@/types/company_invoices';
+import { ENTITY_CACHE_KEYS, fetchWithCache, clearEntityCache } from '@/lib/api/cache';
 
 export async function fetchClientInvoices(
   siteId?: number,
@@ -30,6 +31,13 @@ export async function fetchClientInvoices(
   const inner = unwrapObject<{ total?: number }>(data);
   const total = inner?.total ?? items.length;
   return { items, total };
+}
+
+export async function fetchRecentClientInvoices(): Promise<ClientInvoiceListItem[]> {
+  return fetchWithCache(ENTITY_CACHE_KEYS.recentClientInvoices, async () => {
+    const { data } = await api.get(API.clientInvoices.all, { params: { limit: 5 } });
+    return normaliseClientInvoiceListItems(unwrapArray<ClientInvoiceListItemDTO>(data));
+  });
 }
 
 export async function fetchClientInvoiceDetail(id: string | number): Promise<ClientInvoiceDetail> {
@@ -53,6 +61,7 @@ export async function createClientInvoice(
       unit_price: parseFloat(item.unit_price),
     })),
   });
+  clearEntityCache(ENTITY_CACHE_KEYS.recentClientInvoices);
 }
 
 export interface UpdateInvoiceStatusResponse {
@@ -66,6 +75,7 @@ export async function updateClientInvoiceStatus(
   status: InvoicePaymentStatus
 ): Promise<UpdateInvoiceStatusResponse> {
   const { data } = await api.patch(API.invoiceActions.updateStatus('client', id), { status });
+  clearEntityCache(ENTITY_CACHE_KEYS.recentClientInvoices);
   return unwrapObject<UpdateInvoiceStatusResponse>(data);
 }
 
@@ -88,6 +98,7 @@ export async function recordClientInvoicePayment(
   payload: RecordPaymentPayload
 ): Promise<RecordPaymentResponse> {
   const { data } = await api.post(API.invoiceActions.recordPayment('client', id), payload);
+  clearEntityCache(ENTITY_CACHE_KEYS.recentClientInvoices);
   return unwrapObject<RecordPaymentResponse>(data);
 }
 
