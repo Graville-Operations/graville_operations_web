@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUserStore } from '@/store/user-store';
 import { ROUTES } from '@/lib/routes';
 import { useDepartmentOptions } from '@/hooks/department/use-department-options';
 import { Role, NewUserFormState } from '@/types/users';
@@ -21,7 +20,6 @@ const initialForm: NewUserFormState = {
 
 export function useCreateUser() {
   const router = useRouter();
-  const { clearUsers } = useUserStore();
   const [roles, setRoles] = useState<Role[]>(() => getCachedRoles() ?? []);
   const [rolesLoading, setRolesLoading] = useState<boolean>(() => getCachedRoles() === null);
   const [rolesError, setRolesError] = useState<string | null>(null);
@@ -62,7 +60,7 @@ export function useCreateUser() {
         await assignUserToDepartment(form.department_id, [newUserId]);
       }
 
-      clearUsers();
+      // createUser() already clears ENTITY_CACHE_KEYS.users itself
       router.push(ROUTES.users.dashboard);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; detail?: string } } };
