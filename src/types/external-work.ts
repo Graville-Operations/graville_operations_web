@@ -10,6 +10,12 @@ export const BILLING_METHOD_OPTIONS: { value: BillingMethod; label: string }[] =
   { value: 'monthly', label: 'Monthly' },
 ];
 
+export const VEHICLE_BILLING_METHOD_OPTIONS: { value: BillingMethod; label: string }[] = [
+  { value: 'per_trip', label: 'Per Trip' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+];
+
 const BILLING_METHOD_LABELS: Record<BillingMethod, string> = {
   per_trip: 'Per Trip',
   hourly: 'Hourly',
@@ -52,7 +58,6 @@ export interface ExternalWorkApiResponse {
   client_name: string | null;
   client_contact: string | null;
   description: string | null;
-  amount_charged: number | null;
   notes: string | null;
   started_at: string | null;
   completed_at: string | null;
@@ -78,7 +83,6 @@ export interface CreateExternalWorkPayload {
   client_name?: string;
   client_contact?: string;
   description?: string;
-  amount_charged?: number;
   notes?: string;
 }
 
@@ -94,7 +98,10 @@ export interface MotorVehicleDelivery {
   materials: MaterialLine[];
   pickupPoint: string;
   destination: string;
-  amount: string;
+  billingMethodLabel: string;
+  duration: string;
+  unitAmount: string;
+  totalAmount: string;
   clientName: string;
   clientPhone: string;
   status: string;
@@ -131,7 +138,10 @@ export interface AddMotorVehicleForm {
   materials: MaterialFormRow[];
   pickupPoint: string;
   destination: string;
-  amount: string;
+  billingMethod: BillingMethod | '';
+  duration: string;
+  unitAmount: string;
+  totalAmount: string;
   clientName: string;
   clientPhone: string;
 }
@@ -142,7 +152,10 @@ export function emptyMotorVehicleForm(): AddMotorVehicleForm {
     materials: [emptyMaterialRow()],
     pickupPoint: '',
     destination: '',
-    amount: '',
+    billingMethod: '',
+    duration: '',
+    unitAmount: '',
+    totalAmount: '',
     clientName: '',
     clientPhone: '',
   };
@@ -183,10 +196,11 @@ function parseAmount(input: string): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
-function formatAmount(n: number | null): string {
+function formatAmount(n: number | null | undefined): string {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
   return `KES ${n.toLocaleString('en-KE', { minimumFractionDigits: 0 })}`;
 }
+
 export function toCreateMotorVehiclePayload(form: AddMotorVehicleForm): CreateExternalWorkPayload {
   const materials = form.materials
     .filter((row) => row.materialId && row.quantity)
@@ -197,9 +211,12 @@ export function toCreateMotorVehiclePayload(form: AddMotorVehicleForm): CreateEx
     pickup_location: form.pickupPoint.trim() || undefined,
     destination: form.destination.trim(),
     materials,
+    billing_method: (form.billingMethod || undefined) as BillingMethod | undefined,
+    duration: parseAmount(form.duration),
+    unit_amount: parseAmount(form.unitAmount),
+    total_amount: form.totalAmount.trim() ? parseAmount(form.totalAmount) : undefined,
     client_name: form.clientName.trim() || undefined,
     client_contact: form.clientPhone.trim() || undefined,
-    amount_charged: parseAmount(form.amount),
   };
 }
 
@@ -222,6 +239,8 @@ export function toMotorVehicleDelivery(r: ExternalWorkApiResponse): MotorVehicle
     ? r.materials.map((m) => ({ name: m.material.name, quantity: `${m.quantity} ${m.material.unit.name}` }))
     : [{ name: '—', quantity: '—' }];
 
+  const unitLabel = r.billing_method ? DURATION_UNIT_LABELS[r.billing_method] : '';
+
   return {
     id: r.id,
     transportId: r.transport_id,
@@ -229,7 +248,10 @@ export function toMotorVehicleDelivery(r: ExternalWorkApiResponse): MotorVehicle
     materials,
     pickupPoint: r.pickup_location || '—',
     destination: r.destination || '—',
-    amount: formatAmount(r.amount_charged),
+    billingMethodLabel: r.billing_method ? BILLING_METHOD_LABELS[r.billing_method] : '—',
+    duration: r.duration !== null && r.duration !== undefined ? `${r.duration} ${unitLabel}` : '—',
+    unitAmount: formatAmount(r.unit_amount),
+    totalAmount: formatAmount(r.total_amount),
     clientName: r.client_name || '—',
     clientPhone: r.client_contact || '—',
     status: r.status,
@@ -248,7 +270,7 @@ export function toHeavyMachineryService(r: ExternalWorkApiResponse): HeavyMachin
     billingMethodLabel: r.billing_method ? BILLING_METHOD_LABELS[r.billing_method] : '—',
     duration: r.duration !== null && r.duration !== undefined ? `${r.duration} ${unitLabel}` : '—',
     unitAmount: formatAmount(r.unit_amount),
-    totalAmount: formatAmount(r.total_amount ?? r.amount_charged),
+    totalAmount: formatAmount(r.total_amount),
     clientName: r.client_name || '—',
     clientPhone: r.client_contact || '—',
     status: r.status,

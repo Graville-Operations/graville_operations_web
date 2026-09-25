@@ -26,7 +26,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 11;
 
 export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehiclesTableProps) {
   return (
@@ -40,7 +40,10 @@ export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehic
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Quantity</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Pickup Point</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Destination</span></th>
-            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Amount</span></th>
+            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Billing</span></th>
+            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Duration</span></th>
+            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Unit Amount</span></th>
+            <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Total</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Client</span></th>
             <th className="px-4 py-3 text-left align-middle whitespace-nowrap"><span className="gv-label">Status</span></th>
           </tr>
@@ -82,7 +85,10 @@ export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehic
                 </td>
                 <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.pickupPoint}</td>
                 <td className="px-4 py-3 text-[color:var(--muted-foreground)]">{d.destination}</td>
-                <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">{d.amount}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">{d.billingMethodLabel}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">{d.duration}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">{d.unitAmount}</td>
+                <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap font-medium">{d.totalAmount}</td>
                 <td className="px-4 py-3 text-[color:var(--muted-foreground)]">
                   <p>{d.clientName}</p>
                   <p className="text-xs">{d.clientPhone}</p>

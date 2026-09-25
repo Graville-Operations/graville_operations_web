@@ -9,6 +9,8 @@ import {
   emptyMotorVehicleForm,
   emptyMaterialRow,
   MaterialFormRow,
+  VEHICLE_BILLING_METHOD_OPTIONS,
+  BillingMethod,
 } from '@/types/external-work';
 import { ModeOfTransport } from '@/types/transport';
 
@@ -68,6 +70,9 @@ export default function AddMotorVehicleOverlay({ open, transports, onClose, onSu
     if (!form.destination.trim()) return setError('Destination is required.');
     const validMaterials = form.materials.filter((r) => r.materialId && r.quantity);
     if (validMaterials.length === 0) return setError('At least one material with a quantity is required.');
+    if (!form.billingMethod) return setError('Billing method is required.');
+    if (!form.duration.trim()) return setError('Duration is required.');
+    if (!form.unitAmount.trim()) return setError('Unit amount is required.');
 
     setSubmitting(true);
     setError(null);
@@ -172,9 +177,25 @@ export default function AddMotorVehicleOverlay({ open, transports, onClose, onSu
               <input className={inputCls} placeholder="e.g. Athi River Site" value={form.destination}
                 onChange={(e) => setForm((p) => ({ ...p, destination: e.target.value }))} />
             </Field>
-            <Field label="Amount">
-              <input className={inputCls} placeholder="e.g. KES 45,000" value={form.amount}
-                onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))} />
+            <Field label="Billing Method" required>
+              <DarkSelect value={form.billingMethod} onChange={(e) => setForm((p) => ({ ...p, billingMethod: e.target.value as BillingMethod }))}>
+                <option value="">Select billing method…</option>
+                {VEHICLE_BILLING_METHOD_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </DarkSelect>
+            </Field>
+            <Field label="Duration" required>
+              <input type="number" min="0" step="any" className={inputCls} placeholder="e.g. 2" value={form.duration}
+                onChange={(e) => setForm((p) => ({ ...p, duration: e.target.value }))} />
+            </Field>
+            <Field label="Unit Amount" required>
+              <input className={inputCls} placeholder="e.g. KES 15,000" value={form.unitAmount}
+                onChange={(e) => setForm((p) => ({ ...p, unitAmount: e.target.value }))} />
+            </Field>
+            <Field label="Total Amount">
+              <input className={inputCls} placeholder="Auto-calculated if left blank" value={form.totalAmount}
+                onChange={(e) => setForm((p) => ({ ...p, totalAmount: e.target.value }))} />
             </Field>
             <Field label="Client Name">
               <input className={inputCls} placeholder="Client full name" value={form.clientName}
