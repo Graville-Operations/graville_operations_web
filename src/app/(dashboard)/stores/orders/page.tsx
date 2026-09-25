@@ -1,6 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, ArrowLeftRight } from 'lucide-react';
 import { useStoreActivity } from '@/hooks/stores/useStoreActivity';
 import { ActivitySiteFilter } from '@/components/stores/ActivitySiteFilter';
 import { ActivityDateRangeFilter } from '@/components/stores/ActivityDateRangeFilter';
@@ -29,6 +29,14 @@ export default function StoreActivityPage() {
             Daily usage reports across all sites
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => router.push(ROUTES.stores.transfers.list)}
+          className="flex items-center gap-2 py-2.5 px-5 rounded-full text-sm font-semibold gv-btn-brand shrink-0"
+        >
+          <ArrowLeftRight size={15} />
+          Transfers
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 flex-wrap">

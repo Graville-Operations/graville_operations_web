@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { useSiteStore } from '@/store/site-store';
 import { getApiErrorMessage } from '@/lib/api/api-error';
@@ -45,6 +45,7 @@ export function useTransfers() {
   const [rows, setRows] = useState<TransferRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [detailLoadedIds, setDetailLoadedIds] = useState<Set<number>>(new Set());
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TransferStatus | null>(null);
@@ -52,47 +53,77 @@ export function useTransfers() {
   const [actioningId, setActioningId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const loadSeq = useRef(0);
+
+  const buildRow = useCallback(
+    (t: TransferListItem, detail?: TransferDetail): TransferRow => {
+      const approvals = detail?.approvals ?? [];
+      return {
+        ...t,
+        approvals,
+        lineItems: flattenLines(detail),
+        vehicleLabel: formatVehicleLabel(detail?.transport),
+        canApprove: resolveCanApprove(approvals, t.currentStep, userId, t.status),
+      };
+    },
+    [userId],
+  );
+
   const load = useCallback(async (opts?: { silent?: boolean }) => {
-    if (!opts?.silent) setIsLoading(true);
+    const silent = !!opts?.silent;
+    const seq = ++loadSeq.current;
+    if (!silent) setIsLoading(true);
     setLoadError(null);
     try {
       const { items } = await fetchTransfers();
       const visible: TransferListItem[] = items.filter(
         (t) => t.status !== TransferStatus.DRAFT || t.requestedBy === userId,
       );
-      const details = await Promise.allSettled(
-        visible.map((t) => fetchTransferDetail(t.id)),
+
+      if (silent) {
+        const details = await Promise.allSettled(
+          visible.map((t) => fetchTransferDetail(t.id)),
+        );
+        if (seq !== loadSeq.current) return;
+        const built = visible.map((t, idx) => {
+          const res = details[idx];
+          if (res.status === 'rejected') {
+            console.warn(`Failed to load detail for transfer ${t.id}:`, res.reason);
+          }
+          return buildRow(t, res.status === 'fulfilled' ? res.value : undefined);
+        });
+        setTransferRows(built);
+        setRows(built);
+        setDetailLoadedIds(new Set(visible.map((t) => t.id)));
+        return;
+      }
+
+      setRows(visible.map((t) => buildRow(t)));
+      setDetailLoadedIds(new Set());
+      setIsLoading(false);
+
+      await Promise.allSettled(
+        visible.map(async (t) => {
+          let detail: TransferDetail | undefined;
+          try {
+            detail = await fetchTransferDetail(t.id);
+          } catch (err) {
+            console.warn(`Failed to load detail for transfer ${t.id}:`, err);
+          }
+          if (seq !== loadSeq.current) return;
+
+          const row = buildRow(t, detail);
+          if (detail) setTransferRows([row]);
+          setRows((prev) => prev.map((r) => (r.id === t.id ? row : r)));
+          setDetailLoadedIds((prev) => new Set(prev).add(t.id));
+        }),
       );
-
-      const detailById = new Map<number, TransferDetail>();
-      details.forEach((res, idx) => {
-        if (res.status === 'fulfilled') {
-          detailById.set(visible[idx].id, res.value);
-        } else {
-          console.warn(`Failed to load detail for transfer ${visible[idx].id}:`, res.reason);
-        }
-      });
-
-      const built = visible.map((t) => {
-        const detail = detailById.get(t.id);
-        const approvals = detail?.approvals ?? [];
-        return {
-          ...t,
-          approvals,
-          lineItems: flattenLines(detail),
-          vehicleLabel: formatVehicleLabel(detail?.transport),
-          canApprove: resolveCanApprove(approvals, t.currentStep, userId, t.status),
-        };
-      });
-
-      setTransferRows(built);
-      setRows(built);
     } catch (err) {
       setLoadError(getApiErrorMessage(err, 'Failed to load transfers.'));
     } finally {
-      if (!opts?.silent) setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, buildRow]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -156,6 +187,7 @@ export function useTransfers() {
 
   return {
     rows: filtered,
+    detailLoadedIds,
     totalCount: rows.length,
     pendingMyApprovalCount,
     isLoading,
