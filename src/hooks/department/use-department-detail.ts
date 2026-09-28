@@ -3,11 +3,47 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { departmentDetailService } from '@/lib/api/departments';
 import {
-  getCachedDepartment, setCachedDepartment,
-  getCachedMenus, setCachedMenus,
-  getCachedUsers, setCachedUsers,
-} from '@/lib/departments-cache';
+  ENTITY_CACHE_KEYS,
+  ENTITY_ITEM_CACHE_KEYS,
+  readEntityCache,
+  readEntityCacheItem,
+  writeEntityCache,
+} from '@/lib/api/cache';
+import { mapDepartment } from '@/hooks/department/use-department-options';
+import type { Department, RawDepartment } from '@/types/department';
 import { DeptDetail, Menu, User, ToastState } from '@/types/department-detail';
+
+// Thin readers/writers over the shared cache (lib/api/cache.ts). A miss is
+// always `null`.
+
+function getCachedDepartment(id: number): Department | null {
+  const cached = readEntityCache<Department>(ENTITY_ITEM_CACHE_KEYS.department(id));
+  if (cached) return cached;
+
+  // Fall back to this department's row in the cached list.
+  const fromList = readEntityCacheItem<RawDepartment>(ENTITY_CACHE_KEYS.departments, id);
+  return fromList ? mapDepartment(fromList) : null;
+}
+
+function setCachedDepartment(dept: Department): void {
+  writeEntityCache(ENTITY_ITEM_CACHE_KEYS.department(dept.id), dept);
+}
+
+function getCachedMenus(deptId: number): Menu[] | null {
+  return readEntityCache<Menu[]>(ENTITY_ITEM_CACHE_KEYS.departmentMenus(deptId));
+}
+
+function setCachedMenus(deptId: number, menus: Menu[]): void {
+  writeEntityCache(ENTITY_ITEM_CACHE_KEYS.departmentMenus(deptId), menus);
+}
+
+function getCachedUsers(deptId: number): User[] | null {
+  return readEntityCache<User[]>(ENTITY_ITEM_CACHE_KEYS.departmentUsers(deptId));
+}
+
+function setCachedUsers(deptId: number, users: User[]): void {
+  writeEntityCache(ENTITY_ITEM_CACHE_KEYS.departmentUsers(deptId), users);
+}
 
 export function useDepartmentDetail(deptId: number) {
   const [dept, setDept] = useState<DeptDetail | null>(() => {

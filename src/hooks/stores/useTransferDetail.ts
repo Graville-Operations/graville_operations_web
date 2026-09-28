@@ -13,7 +13,7 @@ import {
 import { modesOfTransportService } from '@/lib/api/transport-service';
 import { resolveCanApprove } from '@/lib/utils/transfer-approval';
 import { formatVehicleLabel } from '@/lib/utils/transfer-format';
-import { getTransferRow, patchTransferRow } from '@/lib/transfers-cache';
+import { ENTITY_ITEM_CACHE_KEYS, patchEntityCache, readEntityCache } from '@/lib/api/cache';
 import { TransferDetail, TransferApprovalStatus, TransferStatus, TransferRow } from '@/types/transfer';
 import type { ModeOfTransport } from '@/types/transport';
 
@@ -21,7 +21,10 @@ export function useTransferDetail(id: number) {
   const user = useAuthStore((s) => s.user);
   const userId = user?.id;
   const { users } = useUsers();
-  const preview: TransferRow | undefined = useMemo(() => getTransferRow(id), [id]);
+  const preview: TransferRow | undefined = useMemo(
+    () => readEntityCache<TransferRow>(ENTITY_ITEM_CACHE_KEYS.transferRow(id)) ?? undefined,
+    [id],
+  );
 
   const [transfer, setTransfer] = useState<TransferDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,7 +77,10 @@ export function useTransferDetail(id: number) {
       try {
         const updated = await actionTransfer(id, { status, comment: comment || null });
         setTransfer(updated);
-        patchTransferRow(id, { status: updated.status, currentStep: updated.currentStep });
+        patchEntityCache<TransferRow>(ENTITY_ITEM_CACHE_KEYS.transferRow(id), {
+          status: updated.status,
+          currentStep: updated.currentStep,
+        });
       } catch (err) {
         const message = getApiErrorMessage(err, 'Failed to action transfer.');
         setActionError(message);
@@ -117,7 +123,9 @@ export function useTransferDetail(id: number) {
       try {
         const updated = await assignTransferTransport(id, transportId);
         setTransfer(updated);
-        patchTransferRow(id, { vehicleLabel: formatVehicleLabel(updated.transport) });
+        patchEntityCache<TransferRow>(ENTITY_ITEM_CACHE_KEYS.transferRow(id), {
+          vehicleLabel: formatVehicleLabel(updated.transport),
+        });
       } catch (err) {
         const message = getApiErrorMessage(err, 'Failed to assign vehicle.');
         setEditError(message);
@@ -135,7 +143,7 @@ export function useTransferDetail(id: number) {
     try {
       const updated = await submitTransfer(id);
       setTransfer(updated);
-      patchTransferRow(id, { status: updated.status });
+      patchEntityCache<TransferRow>(ENTITY_ITEM_CACHE_KEYS.transferRow(id), { status: updated.status });
     } catch (err) {
       const message = getApiErrorMessage(err, 'Failed to submit transfer.');
       setEditError(message);

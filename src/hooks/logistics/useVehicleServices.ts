@@ -68,7 +68,7 @@ export function useVehicleServices() {
   const createServiceRequest = useCallback(async (form: ServiceRequestForm) => {
     const payload: CreateServiceRequestPayload = {
       transport_id: Number(form.transportId),
-      requested_service_type: form.requestedServiceType,
+      requested_service_type: form.requestedServiceType as VehicleServiceType,
       mileage: Number(form.mileage),
       requested_cost: Number(form.requestedCost),
     };

@@ -1,7 +1,8 @@
 'use client';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useApi } from '@/hooks/useApi';
-import { useCachedLookup } from '@/hooks/useCachedLookup';
+import { fetchSites } from '@/lib/api/sites';
+import { ENTITY_CACHE_KEYS, readEntityCache } from '@/lib/api/cache';
 import { API } from '@/lib/endpoints';
 import { unwrapArray } from '@/lib/api-response';
 import type { Site, StoreMaterial, StoreTool, StoreSummary } from '@/types/store';
@@ -12,8 +13,22 @@ export function useStockRegisters() {
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
 
-  const { data: sitesRaw, loading: isSitesLoading } = useCachedLookup<unknown>(API.sites.list);
-  const sites = useMemo(() => unwrapArray<Site>(sitesRaw), [sitesRaw]);
+  // fetchSites() is cache-first against the shared ENTITY_CACHE_KEYS.sites
+  // entry — the same one the Sites dashboard and every other site fetch use.
+  const [sites, setSites] = useState<Site[]>(
+    () => readEntityCache<Site[]>(ENTITY_CACHE_KEYS.sites) ?? [],
+  );
+  const [isSitesLoading, setIsSitesLoading] = useState<boolean>(
+    () => readEntityCache<Site[]>(ENTITY_CACHE_KEYS.sites) === null,
+  );
+  useEffect(() => {
+    let cancelled = false;
+    fetchSites()
+      .then((data) => { if (!cancelled) setSites(data); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setIsSitesLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
   const resolvedSiteId = selectedSiteId ?? sites[0]?.id ?? null;
   const siteEnabled = resolvedSiteId !== null;
 

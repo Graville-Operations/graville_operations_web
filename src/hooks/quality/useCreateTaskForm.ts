@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { cacheBust } from '@/lib/persistent-cache';
-import { getSite, type Site } from '@/lib/sites-cache';
+import { ENTITY_CACHE_KEYS, readEntityCacheItem } from '@/lib/api/cache';
+import type { SiteBrief } from '@/types/site';
 import { createTask } from '@/lib/api/quality';
 import { extractErrorMessage } from '@/lib/utils/extract-error-message';
 import { ROUTES } from '@/lib/routes';
@@ -23,13 +23,13 @@ export function useCreateTaskForm() {
   const siteId = Number(params.siteId);
 
   const [form, setForm]             = useState<TaskFormState>(emptyForm());
-  const [site, setSite]             = useState<Site | null>(null);
+  const [site, setSite]             = useState<SiteBrief | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
 
   useEffect(() => {
     if (!siteId) return;
-    const cached = getSite(siteId);
+    const cached = readEntityCacheItem<SiteBrief>(ENTITY_CACHE_KEYS.sites, siteId);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (cached) setSite(cached);
   }, [siteId]);
@@ -63,7 +63,6 @@ export function useCreateTaskForm() {
         start_date:  form.start_date,
         end_date:    form.end_date,
       });
-      cacheBust(`tasks:${siteId}`);
       router.push(ROUTES.quality.siteDetail(siteId));
     } catch (err) {
       setError(extractErrorMessage(err, 'Failed to create task'));

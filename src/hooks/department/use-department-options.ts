@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { departmentsService } from '@/lib/api/departments';
 import { getApiErrorMessage } from '@/lib/api/api-error';
-import { getDeptCache, setDeptCache } from '@/lib/departments-cache';
+import { ENTITY_CACHE_KEYS, readEntityCache } from '@/lib/api/cache';
 import { Department, RawDepartment } from '@/types/department';
 
-function mapDepartment(d: RawDepartment): Department {
+export function mapDepartment(d: RawDepartment): Department {
   return {
     id: d.id,
     name: d.name,
@@ -14,6 +14,17 @@ function mapDepartment(d: RawDepartment): Department {
     menusCount: typeof d.menus === 'number' ? d.menus : 0,
     usersCount: typeof d.users === 'number' ? d.users : 0,
   };
+}
+
+/**
+ * The cached department list, in the mapped `Department` shape. It's read
+ * straight from the shared ENTITY_CACHE_KEYS.departments entry that
+ * departmentsService.list() fills — there's no second copy of the list.
+ * `null` on a miss.
+ */
+function getDeptCache(): Department[] | null {
+  const raw = readEntityCache<RawDepartment[]>(ENTITY_CACHE_KEYS.departments);
+  return raw ? raw.map(mapDepartment) : null;
 }
 
 export function useDepartmentOptions(onError?: (message: string) => void) {
@@ -46,11 +57,9 @@ export function useDepartmentOptions(onError?: (message: string) => void) {
     setIsLoading(true);
     try {
       // departmentsService.list() is cache-first internally (local db, then
-      // the API), via the shared ENTITY_CACHE_KEYS.departments cache.
-      // setDeptCache() below is a *separate* cache — it's what the
-      // department detail page (use-department-detail.ts) reads to
-      // instant-paint itself before its own fetch resolves, so it has to
-      // stay populated here too, not just the service-level one.
+      // the API), via the shared ENTITY_CACHE_KEYS.departments cache — the
+      // same entry the department detail page (use-department-detail.ts)
+      // reads to instant-paint itself, so there's nothing more to save here.
       const raw = await departmentsService.list();
 
       if (raw.length === 0) {
@@ -59,7 +68,6 @@ export function useDepartmentOptions(onError?: (message: string) => void) {
 
       const mapped = raw.map(mapDepartment);
       setDepartments(mapped);
-      setDeptCache(mapped);
     } catch (err) {
       console.error('[useDepartmentOptions] fetch failed:', err);
       onErrorRef.current?.(getApiErrorMessage(err, 'Failed to load departments'));

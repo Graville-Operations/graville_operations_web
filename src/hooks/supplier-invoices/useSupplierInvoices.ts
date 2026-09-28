@@ -27,7 +27,7 @@ export function useSupplierInvoices() {
   }, [siteId, startDate, endDate, statusFilter]);
 
   useEffect(() => {
-    fetchSitesAction(); // idempotent — no-op if already cached from login
+    fetchSitesAction(); // idempotent — no-op while the shared sites cache (lib/api/cache.ts) already holds the list
   }, [fetchSitesAction]);
 
   const loadInvoices = useCallback(

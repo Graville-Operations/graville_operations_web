@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { fetchSites as fetchSitesApi } from '@/lib/api/sites';
+import { ENTITY_CACHE_KEYS, readEntityCache } from '@/lib/api/cache';
 import { withRetry } from '@/lib/retry';
 import type { Site } from '@/types/site';
 
@@ -15,6 +16,12 @@ interface SiteStoreState {
   clear: () => void;
 }
 
+function indexById(list: Site[]): Record<number, Site> {
+  const byId: Record<number, Site> = {};
+  list.forEach((s) => { byId[s.id] = s; });
+  return byId;
+}
+
 export const useSiteStore = create<SiteStoreState>((set, get) => ({
   sites: [],
   sitesById: {},
@@ -25,7 +32,27 @@ export const useSiteStore = create<SiteStoreState>((set, get) => ({
 
   fetchSites: async (force = false, onRetry) => {
     const { hasFetched, isLoading, sites } = get();
-    if ((hasFetched && !force) || isLoading) return;
+    if (isLoading) return;
+
+    // The shared cache (lib/api/cache.ts) is the only cache. While it still
+    // holds the list there's no need to fetch — just make sure this store
+    // is populated from it. Once a create/update clears that entry, the next
+    // call goes back to the API.
+    if (!force) {
+      const cached = readEntityCache<Site[]>(ENTITY_CACHE_KEYS.sites);
+      if (cached !== null) {
+        if (!hasFetched) {
+          set({
+            sites: cached,
+            sitesById: indexById(cached),
+            hasFetched: true,
+            isOffline: false,
+            error: null,
+          });
+        }
+        return;
+      }
+    }
 
     set({ isLoading: true, error: null });
     try {
@@ -34,11 +61,9 @@ export const useSiteStore = create<SiteStoreState>((set, get) => ({
         delayMs: 5000,
         onRetry,
       });
-      const sitesById: Record<number, Site> = {};
-      data.forEach((s) => { sitesById[s.id] = s; });
       set({
         sites: data,
-        sitesById,
+        sitesById: indexById(data),
         isLoading: false,
         hasFetched: true,
         isOffline: false,
