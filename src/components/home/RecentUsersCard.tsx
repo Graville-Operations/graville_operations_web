@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Users, ArrowRight, Loader2, UserCircle, BarChart2, Briefcase } from 'lucide-react';
-import { ApiUser } from '@/store/user-store';
+import { ApiUser } from '@/types/users';
 import { ROUTES } from '@/lib/routes';
 import { formatRole } from '@/lib/utils/format-role';
 

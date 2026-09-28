@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { departmentDetailService } from '@/lib/api/department-detail-service';
+import { departmentDetailService } from '@/lib/api/departments';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 import { ENTITY_CACHE_KEYS, readEntityCache } from '@/lib/api/cache';
 import { AssignResult, Menu } from '@/types/department-detail';

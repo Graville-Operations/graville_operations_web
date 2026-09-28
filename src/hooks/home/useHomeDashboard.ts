@@ -1,37 +1,37 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUserStore } from '@/store/user-store';
-import { useInvoiceStore } from '@/store/invoice-store';
-import api from '@/lib/api';
+import { fetchUsers } from '@/lib/api/users';
+import { fetchRecentClientInvoices } from '@/lib/api/client-invoices';
 import { fetchOverviewKPIs } from '@/lib/api/sites';
 import { fetchInvoiceSummary } from '@/lib/api/invoices';
-import { unwrapArray } from '@/lib/api-response';
+import { ENTITY_CACHE_KEYS, readEntityCache } from '@/lib/api/cache';
+import { ApiUser } from '@/types/users';
+import { ClientInvoiceListItem } from '@/types/client-invoice';
 import { OverviewKPIs } from '@/types/site';
 import { InvoiceSummaryItem } from '@/types/invoice-summary';
-import { API } from '@/lib/endpoints';
 
 export function useHomeDashboard() {
-  const { users, isLoaded: usersLoaded, setUsers } = useUserStore();
-  const [usersLoading, setUsersLoading] = useState(!usersLoaded);
+  const [users, setUsers] = useState<ApiUser[]>(
+    () => readEntityCache<ApiUser[]>(ENTITY_CACHE_KEYS.users) ?? [],
+  );
+  const [usersLoading, setUsersLoading] = useState<boolean>(
+    () => readEntityCache<ApiUser[]>(ENTITY_CACHE_KEYS.users) === null,
+  );
   const recentUsers = users.slice(0, 5);
 
-  const { invoices, isLoaded: invoicesLoaded, startPolling } = useInvoiceStore();
-  const [invoicesLoading, setInvoicesLoading] = useState(!invoicesLoaded);
-  const recentInvoices = invoices.slice(0, 5);
+  const [recentInvoices, setRecentInvoices] = useState<ClientInvoiceListItem[]>(
+    () => readEntityCache<ClientInvoiceListItem[]>(ENTITY_CACHE_KEYS.recentClientInvoices) ?? [],
+  );
+  const [invoicesLoading, setInvoicesLoading] = useState<boolean>(
+    () => readEntityCache<ClientInvoiceListItem[]>(ENTITY_CACHE_KEYS.recentClientInvoices) === null,
+  );
 
   const [kpis, setKpis] = useState<OverviewKPIs | null>(null);
   const [kpisLoading, setKpisLoading] = useState(true);
 
   const [invoiceSummary, setInvoiceSummary] = useState<InvoiceSummaryItem[]>([]);
   const [invoiceSummaryLoading, setInvoiceSummaryLoading] = useState(true);
-
-  useEffect(() => {
-    const stopPolling = startPolling();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setInvoicesLoading(false);
-    return () => stopPolling();
-  }, [startPolling]);
 
   useEffect(() => {
     fetchOverviewKPIs()
@@ -44,15 +44,16 @@ export function useHomeDashboard() {
       .catch(() => setInvoiceSummary([]))
       .finally(() => setInvoiceSummaryLoading(false));
 
-    if (!usersLoaded) {
-      api.get(API.users.list)
-        .then(({ data }) => {
-          setUsers(unwrapArray(data));
-        })
-        .catch(console.error)
-        .finally(() => setUsersLoading(false));
-    }
-  }, [setUsers, usersLoaded]);
+    fetchUsers()
+      .then(setUsers)
+      .catch(console.error)
+      .finally(() => setUsersLoading(false));
+
+    fetchRecentClientInvoices()
+      .then(setRecentInvoices)
+      .catch(console.error)
+      .finally(() => setInvoicesLoading(false));
+  }, []);
 
   return {
     recentUsers, usersLoading,

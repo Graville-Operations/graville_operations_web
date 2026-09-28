@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { departmentDetailService } from '@/lib/api/department-detail-service';
+import { departmentDetailService } from '@/lib/api/departments';
 import { fetchUsers } from '@/lib/api/users';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 import { ENTITY_CACHE_KEYS, readEntityCache, clearEntityCache } from '@/lib/api/cache';

@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { Receipt, ArrowRight, Loader2 } from 'lucide-react';
-import { InvoiceItem } from '@/store/invoice-store';
+import { ClientInvoiceListItem } from '@/types/client-invoice';
 import { ROUTES } from '@/lib/routes';
 
 interface RecentInvoicesCardProps {
-  invoices: InvoiceItem[];
+  invoices: ClientInvoiceListItem[];
   loading: boolean;
 }
 

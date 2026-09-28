@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { departmentDetailService } from '@/lib/api/department-detail-service';
+import { departmentDetailService } from '@/lib/api/departments';
 import {
   getCachedDepartment, setCachedDepartment,
   getCachedMenus, setCachedMenus,

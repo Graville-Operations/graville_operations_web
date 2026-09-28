@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { departmentsService } from '@/lib/api/departments-service';
+import { departmentsService } from '@/lib/api/departments';
 import { getApiErrorMessage } from '@/lib/api/api-error';
 import { getDeptCache, setDeptCache } from '@/lib/departments-cache';
 import { Department, RawDepartment } from '@/types/department';

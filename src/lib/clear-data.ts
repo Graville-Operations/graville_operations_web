@@ -4,8 +4,6 @@ import { clearSiteCache } from '@/lib/sites-cache';
 import { clearAllDeptCaches } from '@/lib/departments-cache';
 import { useSiteStore } from '@/store/site-store';
 import { useMenuStore } from '@/store/menu-store';
-import { useUserStore } from '@/store/user-store';
-import { useInvoiceStore } from '@/store/invoice-store';
 import { useProfileStore } from '@/store/profile-store';
 
 export function clearData(): void {
@@ -13,8 +11,6 @@ export function clearData(): void {
 
   useSiteStore.getState().clear();
   useMenuStore.getState().clearMenus();
-  useUserStore.getState().clearUsers();
-  useInvoiceStore.getState().clearInvoices();
   useProfileStore.getState().clearProfile();
 
   clearSiteCache();

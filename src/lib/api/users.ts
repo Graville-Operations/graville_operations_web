@@ -3,7 +3,6 @@ import { API } from '@/lib/endpoints';
 import { ApiUser } from '@/types/users';
 import { Department, Role, NewUserFormState } from '@/types/users';
 import { RoleFormState } from '@/types/users';
-import { clearCachedLookup } from '@/hooks/useCachedLookup';
 import { unwrapObject as unwrap, unwrapArray as unwrapList } from '@/lib/api-response';
 import { ENTITY_CACHE_KEYS, fetchWithCache, readEntityCache, clearEntityCache } from '@/lib/api/cache';
 
@@ -55,7 +54,6 @@ export async function createUser(form: NewUserFormState): Promise<{ id: number }
 
   const id: number = created?.data?.id ?? created?.id ?? created?.user?.id;
 
-  clearCachedLookup(API.users.list);
   clearEntityCache(ENTITY_CACHE_KEYS.users);
 
   return { id };
@@ -66,7 +64,6 @@ export async function assignUserToDepartment(
   userIds: number[]
 ): Promise<void> {
   await api.post(API.departments.assignUsers(departmentId as number), { user_ids: userIds });
-  clearCachedLookup(API.users.list);
   clearEntityCache(ENTITY_CACHE_KEYS.users);
   clearEntityCache(ENTITY_CACHE_KEYS.departments);
   clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
@@ -74,24 +71,20 @@ export async function assignUserToDepartment(
 
 export async function createRole(payload: RoleFormState): Promise<void> {
   await api.post(API.roles.create, payload);
-  clearCachedLookup(API.roles.list);
   clearEntityCache(ENTITY_CACHE_KEYS.roles);
 }
 
 export async function updateRole(id: number, payload: RoleFormState): Promise<void> {
   await api.patch(API.roles.update(id), payload);
-  clearCachedLookup(API.roles.list);
   clearEntityCache(ENTITY_CACHE_KEYS.roles);
 }
 
 export async function deleteRole(id: number): Promise<void> {
   await api.delete(API.roles.delete(id));
-  clearCachedLookup(API.roles.list);
   clearEntityCache(ENTITY_CACHE_KEYS.roles);
 }
 
 export function assignRoleToUser(roleId: number, userId: number) {
-  clearCachedLookup(API.users.list); // a user's role changed — user list view may show it
-  clearEntityCache(ENTITY_CACHE_KEYS.users);
+  clearEntityCache(ENTITY_CACHE_KEYS.users); // a user's role changed — user list view may show it
   return api.post(API.roles.assign(roleId, userId));
 }

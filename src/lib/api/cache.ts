@@ -53,6 +53,11 @@ export const ENTITY_CACHE_KEYS = {
   /** GET /departments/list — the lightweight { id, name } variant some
    *  callers use, kept separate since it's a different shape than `departments`. */
   departmentsBrief: `${PREFIX}departments-brief`,
+  /** GET /client-invoices?limit=5 — the homepage's "recent invoices" widget
+   *  only. Kept separate from the full, filterable Client Invoices section
+   *  page (which uses different params per filter and is intentionally left
+   *  uncached — see client-invoices.ts). */
+  recentClientInvoices: `${PREFIX}recent-client-invoices`,
 } as const;
 
 export type EntityCacheKey = (typeof ENTITY_CACHE_KEYS)[keyof typeof ENTITY_CACHE_KEYS];
