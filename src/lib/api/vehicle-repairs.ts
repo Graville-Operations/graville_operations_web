@@ -15,6 +15,7 @@ export interface RepairListParams {
   search?: string;
   start_date?: string; 
   end_date?: string;   
+  skip?: number;
   limit?: number;
 }
 

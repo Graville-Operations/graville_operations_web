@@ -1,8 +1,9 @@
 'use client';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useApi } from '@/hooks/useApi';
-import { useCachedLookup } from '@/hooks/useCachedLookup';
+import { fetchSites } from '@/lib/api/sites';
+import { ENTITY_CACHE_KEYS, readEntityCache } from '@/lib/api/cache';
 import { API } from '@/lib/endpoints';
 import { fetchToolsPage } from '@/lib/api/store';
 import { extractPagedList } from '@/lib/api-response';
@@ -42,11 +43,16 @@ export function useToolsDetail(siteId: number) {
   const [extraItems, setExtraItems]   = useState<Partial<Record<ToolTab, ToolItem[]>>>({});
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const { data: sitesRaw } = useCachedLookup<Site[] | { items: Site[] }>(API.sites.list);
-  const sites: Site[] = useMemo(
-    () => (sitesRaw ? (Array.isArray(sitesRaw) ? sitesRaw : (sitesRaw.items ?? [])) : []),
-    [sitesRaw],
+  // fetchSites() is cache-first against the shared ENTITY_CACHE_KEYS.sites
+  // entry — the same one the Sites dashboard and every other site fetch use.
+  const [sites, setSites] = useState<Site[]>(
+    () => readEntityCache<Site[]>(ENTITY_CACHE_KEYS.sites) ?? [],
   );
+  useEffect(() => {
+    let cancelled = false;
+    fetchSites().then((data) => { if (!cancelled) setSites(data); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const siteName = sites.find((s) => s.id === siteId)?.name ?? 'Site';
 
   const { data, loading, error } = useApi<PagedResponse<ToolItem> | ToolItem[]>(

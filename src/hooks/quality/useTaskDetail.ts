@@ -2,10 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { cacheGet, cacheSet } from '@/lib/persistent-cache';
+import {
+  ENTITY_CACHE_KEYS,
+  ENTITY_ITEM_CACHE_KEYS,
+  readEntityCache,
+  readEntityCacheItem,
+  writeEntityCache,
+} from '@/lib/api/cache';
 import { getTaskHandoff } from '@/lib/task-handoff';
-import { getSite } from '@/lib/sites-cache';
 import type { Task, SubTask } from '@/lib/types';
+import type { SiteBrief } from '@/types/site';
 import { fetchSubtasks } from '@/lib/api/quality';
 import { ROUTES } from '@/lib/routes';
 
@@ -35,9 +41,9 @@ export function useTaskDetail() {
   }, [taskId]);
 
   const loadSubtasks = useCallback(async () => {
-    const cacheKey = `subtasks:${taskId}`;
+    const cacheKey = ENTITY_ITEM_CACHE_KEYS.subtasks(taskId);
 
-    const cached = cacheGet<SubTask[]>(cacheKey);
+    const cached = readEntityCache<SubTask[]>(cacheKey);
     if (cached) {
       setSubtasks(cached);
       setLoadingSubs(false);
@@ -48,7 +54,7 @@ export function useTaskDetail() {
 
     try {
       const list = await fetchSubtasks(taskId, (attempt, max) => setRetryInfo({ attempt, max }));
-      cacheSet(cacheKey, list);
+      writeEntityCache(cacheKey, list);
       setSubtasks(list);
       setOffline(false);
     } catch {
@@ -70,7 +76,10 @@ export function useTaskDetail() {
   }, [taskId, loadSubtasks]);
 
   const resolvedSiteId = Number.isFinite(siteIdParam) ? siteIdParam : task?.site_id;
-  const site = resolvedSiteId !== undefined ? getSite(resolvedSiteId) : undefined;
+  const site =
+    resolvedSiteId !== undefined
+      ? readEntityCacheItem<SiteBrief>(ENTITY_CACHE_KEYS.sites, resolvedSiteId)
+      : undefined;
 
   const goToCreateSubtask = useCallback(() => {
     if (resolvedSiteId === undefined) return;

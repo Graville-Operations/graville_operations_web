@@ -11,7 +11,7 @@ import {
 } from '@/lib/api/transfers';
 import { resolveCanApprove } from '@/lib/utils/transfer-approval';
 import { formatVehicleLabel } from '@/lib/utils/transfer-format';
-import { setTransferRows } from '@/lib/transfers-cache';
+import { ENTITY_ITEM_CACHE_KEYS, writeEntityCache } from '@/lib/api/cache';
 import {
   TransferStatus,
   TransferApprovalStatus,
@@ -20,6 +20,11 @@ import {
   TransferDetail,
   TransferLine,
 } from '@/types/transfer';
+
+/** Saves list rows so the detail page can paint them instantly on navigation. */
+function cacheTransferRows(rows: TransferRow[]): void {
+  rows.forEach((r) => writeEntityCache(ENTITY_ITEM_CACHE_KEYS.transferRow(r.id), r));
+}
 
 function flattenLines(detail: TransferDetail | undefined): TransferLine[] {
   if (!detail) return [];
@@ -92,7 +97,7 @@ export function useTransfers() {
           }
           return buildRow(t, res.status === 'fulfilled' ? res.value : undefined);
         });
-        setTransferRows(built);
+        cacheTransferRows(built);
         setRows(built);
         setDetailLoadedIds(new Set(visible.map((t) => t.id)));
         return;
@@ -113,7 +118,7 @@ export function useTransfers() {
           if (seq !== loadSeq.current) return;
 
           const row = buildRow(t, detail);
-          if (detail) setTransferRows([row]);
+          if (detail) cacheTransferRows([row]);
           setRows((prev) => prev.map((r) => (r.id === t.id ? row : r)));
           setDetailLoadedIds((prev) => new Set(prev).add(t.id));
         }),

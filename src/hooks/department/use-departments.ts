@@ -3,7 +3,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { departmentsService } from '@/lib/api/departments';
 import { getApiErrorMessage } from '@/lib/api/api-error';
-import { bustDeptCache } from '@/lib/departments-cache';
 import { useDepartmentOptions } from '@/hooks/department/use-department-options';
 import { CreateDepartmentPayload, ToastState } from '@/types/department';
 
@@ -28,7 +27,6 @@ export function useDepartments() {
     try {
       await departmentsService.create(payload); // busts the ENTITY_CACHE_KEYS.departments cache itself
       showToast('Department created successfully!', 'success');
-      bustDeptCache(); // also clear the separate list cache the detail page reads
       refresh({ force: true }); // not awaited — modal closes immediately, list refetches in the background
     } catch (err) {
       throw new Error(getApiErrorMessage(err, 'Failed to create department.'));

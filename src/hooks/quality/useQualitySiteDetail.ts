@@ -3,16 +3,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { setTaskHandoff } from '@/lib/task-handoff';
-import { getSite } from '@/lib/sites-cache';
+import { ENTITY_CACHE_KEYS, readEntityCacheItem } from '@/lib/api/cache';
 import { ROUTES } from '@/lib/routes';
 import type { Task } from '@/lib/types';
+import type { SiteBrief } from '@/types/site';
 import { fetchSiteDetail, fetchSiteTasks, updateSiteEstimatedValue, SiteDetail } from '@/lib/api/quality';
 
 export function useQualitySiteDetail() {
   const router = useRouter();
   const params = useParams();
   const siteId = Number(params.siteId);
-  const cachedSite = getSite(siteId);
+  const cachedSite = readEntityCacheItem<SiteBrief>(ENTITY_CACHE_KEYS.sites, siteId);
 
   const [site, setSite]             = useState<SiteDetail | null>(null);
   const [tasks, setTasks]           = useState<Task[]>([]);

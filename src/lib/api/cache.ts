@@ -17,6 +17,12 @@
  *   - a CACHE_VERSION bump (see below), for when the backend response shape
  *     itself changes.
  *
+ * THIS IS THE ONLY PLACE THE APP CACHES DATA. Nothing else in the project
+ * should read or write localStorage/sessionStorage for caching, keep its own
+ * module-level Map/TTL, or use a store `persist` middleware for data that
+ * comes from the API. Add a key below and go through the helpers in this
+ * file instead.
+ *
  * SCHEMA CHANGES: because there's no TTL, a cached entry from before a
  * backend response shape changed (e.g. a new field was added) would
  * otherwise sit there forever — no mutation runs on the client to bust it,
@@ -33,8 +39,18 @@ const PREFIX = 'gv:cache:';
  * backend (new/renamed/removed field, etc.) so old cached copies are
  * invalidated on next load instead of silently going stale.
  */
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const VERSION_KEY = `${PREFIX}version`;
+
+/**
+ * Storage keys written by the old, now-removed caching code (persistent-cache,
+ * departments-cache and the zustand `persist` stores). They're orphaned now
+ * and would otherwise sit in users' browsers forever — `graville_profile`
+ * even holds an email/phone number — so the version bump above also sweeps
+ * them out, once.
+ */
+const LEGACY_KEYS = ['graville_menus', 'graville_profile', 'gv:departments:list'];
+const LEGACY_KEY_PREFIXES = ['subtasks:', 'tasks:'];
 
 export const ENTITY_CACHE_KEYS = {
   /** GET /users/list */
@@ -58,6 +74,26 @@ export const ENTITY_CACHE_KEYS = {
    *  page (which uses different params per filter and is intentionally left
    *  uncached — see client-invoices.ts). */
   recentClientInvoices: `${PREFIX}recent-client-invoices`,
+  /** GET /auth/me — the logged-in user's profile shown on the Account page. */
+  profile: `${PREFIX}profile`,
+} as const;
+
+/**
+ * Keys for entities cached one-per-id (a department's detail, a task's
+ * subtasks, a transfer row, ...). Same rules as ENTITY_CACHE_KEYS — they all
+ * live under PREFIX so the version wipe and `clearAllEntityCache` cover them.
+ */
+export const ENTITY_ITEM_CACHE_KEYS = {
+  /** One department in the list shape ({ id, name, description, menusCount, usersCount }). */
+  department: (id: number) => `${PREFIX}department:${id}`,
+  /** The menus assigned to one department. */
+  departmentMenus: (id: number) => `${PREFIX}department-menus:${id}`,
+  /** The users in one department. */
+  departmentUsers: (id: number) => `${PREFIX}department-users:${id}`,
+  /** GET subtasks for one task. */
+  subtasks: (taskId: number) => `${PREFIX}subtasks:${taskId}`,
+  /** One row of the transfers list, kept so the detail page can paint instantly. */
+  transferRow: (id: number) => `${PREFIX}transfer-row:${id}`,
 } as const;
 
 export type EntityCacheKey = (typeof ENTITY_CACHE_KEYS)[keyof typeof ENTITY_CACHE_KEYS];
@@ -79,7 +115,12 @@ function ensureCacheVersion(): void {
     if (stored === String(CACHE_VERSION)) return;
 
     Object.keys(window.localStorage)
-      .filter((k) => k.startsWith(PREFIX) && k !== VERSION_KEY)
+      .filter(
+        (k) =>
+          (k.startsWith(PREFIX) && k !== VERSION_KEY) ||
+          LEGACY_KEYS.includes(k) ||
+          LEGACY_KEY_PREFIXES.some((p) => k.startsWith(p)),
+      )
       .forEach((k) => window.localStorage.removeItem(k));
 
     window.localStorage.setItem(VERSION_KEY, String(CACHE_VERSION));
@@ -104,6 +145,10 @@ export function readEntityCache<T>(key: string): T | null {
 /** Saves an entity list into the local (offline) cache. */
 export function writeEntityCache<T>(key: string, data: T): void {
   if (!isBrowser()) return;
+  // Writes must reconcile the version too: otherwise, on a browser that has
+  // no version marker yet, the first *read* after this write would see a
+  // "version mismatch" and wipe the entry we just saved.
+  ensureCacheVersion();
   try {
     window.localStorage.setItem(key, JSON.stringify(data));
   } catch {
@@ -135,4 +180,35 @@ export async function fetchWithCache<T>(
   const data = await fetcher();
   writeEntityCache(key, data);
   return data;
+}
+
+/** Reads one item out of a cached list by `id`. `undefined` on a miss. */
+export function readEntityCacheItem<T extends { id: number }>(
+  key: string,
+  id: number,
+): T | undefined {
+  const list = readEntityCache<T[]>(key);
+  return Array.isArray(list) ? list.find((item) => item.id === id) : undefined;
+}
+
+/**
+ * Shallow-merges `patch` into an already-cached entry. Does nothing on a
+ * miss — there's nothing to patch, and a partial object must never be stored
+ * as if it were the whole entity.
+ */
+export function patchEntityCache<T extends object>(key: string, patch: Partial<T>): void {
+  const existing = readEntityCache<T>(key);
+  if (existing !== null) writeEntityCache(key, { ...existing, ...patch });
+}
+
+/** Wipes every entry this file owns. Call on logout / when the session is cleared. */
+export function clearAllEntityCache(): void {
+  if (!isBrowser()) return;
+  try {
+    Object.keys(window.localStorage)
+      .filter((k) => k.startsWith(PREFIX) && k !== VERSION_KEY)
+      .forEach((k) => window.localStorage.removeItem(k));
+  } catch {
+    // no-op
+  }
 }

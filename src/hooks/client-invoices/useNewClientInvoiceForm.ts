@@ -35,7 +35,7 @@ export function useNewClientInvoiceForm() {
   const [items, setItems] = useState<ClientInvoiceItemDraft[]>([emptyItem()]);
 
   useEffect(() => {
-    fetchSitesAction(); // idempotent — no-op if already cached from login
+    fetchSitesAction(); // idempotent — no-op while the shared sites cache (lib/api/cache.ts) already holds the list
   }, [fetchSitesAction]);
 
   useEffect(() => {
