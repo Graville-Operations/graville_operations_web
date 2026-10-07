@@ -4,6 +4,7 @@ import { parseList } from '@/lib/utils/parse-list';
 import { parseMenus, parseUsers } from '@/lib/utils/parse-entities';
 import { CreateDepartmentPayload, RawDepartment } from '@/types/department';
 import { DeptDetail, Menu, User } from '@/types/department-detail';
+import { fetchUsers } from '@/lib/api/users';
 import { ENTITY_CACHE_KEYS, fetchWithCache, clearEntityCache } from '@/lib/api/cache';
 
 export const departmentsService = {
@@ -23,6 +24,20 @@ export const departmentsService = {
     clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
     return res;
   },
+
+  async update(id: number, payload: CreateDepartmentPayload) {
+    const res = await api.patch(API.departments.detail(id), {
+      name: payload.name.trim(),
+      description: payload.description.trim(),
+    });
+    clearEntityCache(ENTITY_CACHE_KEYS.departments);
+    clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
+    return res;
+  },
+
+  async requestDeletion(id: number, reason: string) {
+    return api.post(API.departments.deletionRequests(id), { reason: reason.trim() });
+  },
 };
 
 export const departmentDetailService = {
@@ -38,12 +53,11 @@ export const departmentDetailService = {
   },
 
   async getMembers(id: number): Promise<User[]> {
-    const [{ data: membersData }, { data: usersData }] = await Promise.all([
+    const [{ data: membersData }, allUsers] = await Promise.all([
       api.get(API.departments.members(id)),
-      api.get(API.users.list),
+      fetchUsers(),
     ]);
     const members = parseUsers(membersData, '/members');
-    const allUsers = parseUsers(usersData, '/users/list');
 
     const idByEmail = new Map(
       allUsers.filter((u) => u.email).map((u) => [u.email.toLowerCase(), u.id]),
@@ -64,7 +78,6 @@ export const departmentDetailService = {
 
   async assignMenus(deptId: number, menuIds: number[]) {
     const res = await api.post(API.departments.menus(deptId), { menu_ids: menuIds });
-    // Assigning menus changes this department's menusCount in the cached list.
     clearEntityCache(ENTITY_CACHE_KEYS.departments);
     clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
     return res;
@@ -79,7 +92,6 @@ export const departmentDetailService = {
 
   async assignUsers(deptId: number, userIds: number[]) {
     const res = await api.post(API.departments.assignUsers(deptId), { user_ids: userIds });
-    // Assigning users changes this department's usersCount in the cached list.
     clearEntityCache(ENTITY_CACHE_KEYS.departments);
     clearEntityCache(ENTITY_CACHE_KEYS.departmentsBrief);
     clearEntityCache(ENTITY_CACHE_KEYS.users);

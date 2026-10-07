@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Plus, UserCog } from 'lucide-react';
 import { useRoles } from '@/hooks/users/useRoles';
 import { RolesGrid } from '@/components/users/RolesGrid';
+import { ConfirmDeleteRoleModal } from '@/components/users/ConfirmDeleteRoleModal';
 import { RoleFormModal } from '@/components/users/RoleFormModal';
 import { ShimmerStyle } from '@/components/shared/Shimmer';
 import { ROUTES } from '@/lib/routes';
@@ -11,7 +12,8 @@ import { ROUTES } from '@/lib/routes';
 export default function RolesPage() {
   const {
     roles, isLoading, loadError, showCreate, editingRole, formData, saving, error,
-    openCreate, openEdit, closeModal, updateField, handleSave, handleDelete,
+    openCreate, openEdit, closeModal, updateField, handleSave,
+    deleteTarget, deleting, deleteError, requestDelete, cancelDelete, confirmDelete,
   } = useRoles();
 
   return (
@@ -44,7 +46,7 @@ export default function RolesPage() {
           </div>
         </div>
 
-        <RolesGrid roles={roles} isLoading={isLoading} loadError={loadError} onEdit={openEdit} onDelete={handleDelete} />
+        <RolesGrid roles={roles} isLoading={isLoading} loadError={loadError} onEdit={openEdit} onDelete={requestDelete} />
 
         <RoleFormModal
           open={showCreate}
@@ -55,6 +57,14 @@ export default function RolesPage() {
           onChange={updateField}
           onSave={handleSave}
           onClose={closeModal}
+        />
+
+        <ConfirmDeleteRoleModal
+          role={deleteTarget}
+          deleting={deleting}
+          error={deleteError}
+          onCancel={cancelDelete}
+          onConfirm={confirmDelete}
         />
       </div>
     </>

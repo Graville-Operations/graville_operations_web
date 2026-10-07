@@ -20,4 +20,4 @@ export interface DeptDetail {
   description?: string;
 }
 
-export type AssignResult = { ok: true } | { ok: false; message: string };
+export type AssignResult = { ok: true; users?: User[] } | { ok: false; message: string };

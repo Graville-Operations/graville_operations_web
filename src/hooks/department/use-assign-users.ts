@@ -29,9 +29,6 @@ export function useAssignUsers(deptId: number, currentUserEmails: Set<string>) {
 
   const load = useCallback(() => {
     setError(false);
-    // fetchUsers() is cache-first against the same ENTITY_CACHE_KEYS.users
-    // entry the Users dashboard fills — so if that page already ran, this
-    // resolves instantly from the local db instead of refetching.
     return fetchUsers()
       .then((users) => {
         setAllUsers(users.map(toUser));
@@ -93,8 +90,9 @@ export function useAssignUsers(deptId: number, currentUserEmails: Set<string>) {
     if (selected.size === 0) return { ok: false, message: 'No users selected' };
     setSaving(true);
     try {
+      const picked = allUsers.filter((u) => selected.has(u.id));
       await departmentDetailService.assignUsers(deptId, [...selected]);
-      return { ok: true };
+      return { ok: true, users: picked };
     } catch (err) {
       console.error('[useAssignUsers] assign failed:', err);
       return { ok: false, message: getApiErrorMessage(err, 'Failed to assign users') };

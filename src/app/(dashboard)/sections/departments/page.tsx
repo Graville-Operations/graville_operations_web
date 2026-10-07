@@ -56,6 +56,17 @@ const PlusIcon = () => (
     <path d="M12 5v14M5 12h14" />
   </svg>
 );
+const EditIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+);
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" />
+  </svg>
+);
 const SpinnerIcon = ({ size = 14 }: { size?: number }) => (
   <svg className="animate-spin" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -65,13 +76,17 @@ const SpinnerIcon = ({ size = 14 }: { size?: number }) => (
 function CreateDeptModal({
   onClose,
   onSubmit,
+  initial,
 }: {
   onClose: () => void;
-  /** Delegates the actual creation (and error message extraction) to the hook/service layer. */
+  /** Delegates the actual save (and error message extraction) to the hook/service layer. */
   onSubmit: (payload: CreateDepartmentPayload) => Promise<void>;
+  /** When provided, the modal edits an existing department instead of creating one. */
+  initial?: Department;
 }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const isEdit = !!initial;
+  const [name, setName] = useState(initial?.name ?? '');
+  const [description, setDescription] = useState(initial?.description ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,7 +97,7 @@ function CreateDeptModal({
       await onSubmit({ name, description });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create department.');
+      setError(err instanceof Error ? err.message : isEdit ? 'Failed to update department.' : 'Failed to create department.');
     } finally {
       setIsSubmitting(false);
     }
@@ -112,10 +127,10 @@ function CreateDeptModal({
             </div>
             <div>
               <Title size="md" as="h2">
-                New Department
+                {isEdit ? 'Edit Department' : 'New Department'}
               </Title>
               <Body size="sm" muted className="mt-0.5">
-                Fill in the details below to get started
+                {isEdit ? 'Update the details below' : 'Fill in the details below to get started'}
               </Body>
             </div>
           </div>
@@ -179,8 +194,8 @@ function CreateDeptModal({
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all disabled:opacity-40 text-label-sm tracking-[0.15em] uppercase font-mono font-medium"
             style={{ background: 'var(--gv-brand)', color: '#fff' }}
           >
-            {isSubmitting ? <SpinnerIcon /> : <PlusIcon />}
-            {isSubmitting ? 'Creating…' : 'Create Department'}
+            {isSubmitting ? <SpinnerIcon /> : isEdit ? <EditIcon /> : <PlusIcon />}
+            {isSubmitting ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save Changes' : 'Create Department')}
           </button>
         </div>
       </div>
@@ -194,7 +209,85 @@ function CreateDeptModal({
   );
 }
 
-function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => void }) {
+function DeleteDeptModal({
+  dept,
+  onClose,
+  onSubmit,
+}: {
+  dept: Department;
+  onClose: () => void;
+  onSubmit: (id: number, reason: string) => Promise<void>;
+}) {
+  const [reason, setReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await onSubmit(dept.id, reason);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit deletion request.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={e => { if (e.target === e.currentTarget && !isSubmitting) onClose(); }}
+    >
+      <div className="w-full max-w-md bg-[#0d1528] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
+          <Title size="sm" as="h2">Delete department?</Title>
+          <button type="button" onClick={onClose} disabled={isSubmitting}
+            className="text-white/30 hover:text-white transition-colors p-1 -mt-1 -mr-1 disabled:opacity-40">
+            <CloseIcon />
+          </button>
+        </div>
+        <div className="px-6 pb-5 space-y-3">
+          <Body size="sm" muted>
+            This submits a deletion request for{' '}
+            <span className="font-semibold text-white/80">{dept.name}</span>. It is removed once the request is approved.
+          </Body>
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="Reason for deletion (at least 10 characters)"
+            rows={3}
+            className="w-full gv-input px-4 py-3 outline-none resize-none text-white text-body-sm"
+          />
+          {error && (
+            <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/25">
+              <Body size="sm" as="p" className="text-red-400">{error}</Body>
+            </div>
+          )}
+        </div>
+        <div className="px-6 py-4 border-t border-white/10 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} disabled={isSubmitting}
+            className="gv-btn-outline px-4 py-1.5 text-sm disabled:opacity-50">
+            Cancel
+          </button>
+          <button type="button" onClick={handleSubmit} disabled={isSubmitting || reason.trim().length < 10}
+            className="flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+            style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#f87171' }}>
+            {isSubmitting && <SpinnerIcon size={12} />}
+            {isSubmitting ? 'Submitting…' : 'Request Deletion'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DepartmentCard({
+  dept, onClick, onEdit, onDelete,
+}: {
+  dept: Department; onClick: () => void; onEdit: () => void; onDelete: () => void;
+}) {
   return (
     <div
       role="button"
@@ -227,6 +320,16 @@ function DepartmentCard({ dept, onClick }: { dept: Department; onClick: () => vo
             <Body size="sm" muted as="p" className="line-clamp-2 mt-1">
               {dept.description || 'No description provided.'}
             </Body>
+          </div>
+          <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+            <button type="button" title="Edit department" aria-label={`Edit ${dept.name}`} onClick={onEdit}
+              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+              <EditIcon />
+            </button>
+            <button type="button" title="Delete department" aria-label={`Delete ${dept.name}`} onClick={onDelete}
+              className="p-1.5 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+              <TrashIcon />
+            </button>
           </div>
         </div>
       </div>
@@ -290,9 +393,11 @@ function SkeletonCard() {
 export default function DepartmentsPage() {
   const router = useRouter();
 
-  const { filtered, isLoading, search, setSearch, toast, createDepartment } = useDepartments();
+  const { filtered, isLoading, search, setSearch, toast, createDepartment, updateDepartment, requestDeleteDepartment } = useDepartments();
 
   const [showCreate, setShowCreate] = useState(false);
+  const [editTarget, setEditTarget] = useState<Department | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
 
   const handleCardClick = (dept: Department) => {
     router.push(ROUTES.sections.departments.detail(String(dept.id)));
@@ -372,6 +477,8 @@ export default function DepartmentsPage() {
               key={dept.id}
               dept={dept}
               onClick={() => handleCardClick(dept)}
+              onEdit={() => setEditTarget(dept)}
+              onDelete={() => setDeleteTarget(dept)}
             />
           ))}
         </div>
@@ -383,6 +490,22 @@ export default function DepartmentsPage() {
         <CreateDeptModal
           onClose={() => setShowCreate(false)}
           onSubmit={createDepartment}
+        />
+      )}
+
+      {editTarget && (
+        <CreateDeptModal
+          initial={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSubmit={(payload) => updateDepartment(editTarget.id, payload)}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteDeptModal
+          dept={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onSubmit={requestDeleteDepartment}
         />
       )}
     </div>

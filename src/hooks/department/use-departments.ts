@@ -33,6 +33,31 @@ export function useDepartments() {
     }
   }, [refresh, showToast]);
 
+  const updateDepartment = useCallback(async (id: number, payload: CreateDepartmentPayload) => {
+    if (!payload.name.trim()) {
+      throw new Error('Department name is required.');
+    }
+    try {
+      await departmentsService.update(id, payload);
+      showToast('Department updated successfully!', 'success');
+      refresh({ force: true });
+    } catch (err) {
+      throw new Error(getApiErrorMessage(err, 'Failed to update department.'));
+    }
+  }, [refresh, showToast]);
+
+  const requestDeleteDepartment = useCallback(async (id: number, reason: string) => {
+    if (reason.trim().length < 10) {
+      throw new Error('Please give a reason of at least 10 characters.');
+    }
+    try {
+      await departmentsService.requestDeletion(id, reason);
+      showToast('Deletion request submitted for approval.', 'success');
+    } catch (err) {
+      throw new Error(getApiErrorMessage(err, 'Failed to submit deletion request.'));
+    }
+  }, [showToast]);
+
   const filtered = useMemo(
     () => departments.filter((d) =>
       d.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,6 +74,8 @@ export function useDepartments() {
     setSearch,
     toast,
     createDepartment,
+    updateDepartment,
+    requestDeleteDepartment,
     refresh: () => refresh({ force: true }),
   };
 }

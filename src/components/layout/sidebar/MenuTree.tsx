@@ -5,8 +5,8 @@ import { SubmenuList } from './SubmenuList';
 
 interface MenuTreeProps {
   menus: MenuItem[];
-  openMenus: Set<number>;
-  onToggle: (id: number) => void;
+  openMenus: Set<string>;
+  onToggle: (key: string) => void;
   getMenuHref: (menu: MenuItem) => string;
   isMenuActive: (menu: MenuItem) => boolean;
   isSubActive: (sub: SubMenu) => boolean;
@@ -21,7 +21,7 @@ export function MenuTree({ menus, openMenus, onToggle, getMenuHref, isMenuActive
           {menu.submenus && menu.submenus.length > 0 ? (
             <>
               <button
-                onClick={() => onToggle(menu.id)}
+                onClick={() => onToggle(`menu-${menu.id}`)}
                 className={`group flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
                   isMenuActive(menu)
                     ? 'bg-[#33907C]/20 text-[#33907C]'
@@ -32,12 +32,12 @@ export function MenuTree({ menus, openMenus, onToggle, getMenuHref, isMenuActive
                 <ChevronDown
                   size={14}
                   className={`transition-transform duration-200 shrink-0 ${
-                    openMenus.has(menu.id) ? 'rotate-180' : ''
+                    openMenus.has(`menu-${menu.id}`) ? 'rotate-180' : ''
                   } ${isMenuActive(menu) ? 'text-[#33907C]' : 'text-white/40 group-hover:text-white/60'}`}
                 />
               </button>
 
-              {openMenus.has(menu.id) && (
+              {openMenus.has(`menu-${menu.id}`) && (
                 <SubmenuList
                   items={menu.submenus}
                   openMenus={openMenus}

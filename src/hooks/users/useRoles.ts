@@ -92,20 +92,42 @@ export function useRoles() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this role?')) return;
+  const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  // Opens the in-app confirm modal instead of the browser's native confirm().
+  const requestDelete = (id: number) => {
+    const role = roles.find((r) => r.id === id) ?? null;
+    setDeleteError('');
+    setDeleteTarget(role);
+  };
+
+  const cancelDelete = () => {
+    if (deleting) return;
+    setDeleteTarget(null);
+    setDeleteError('');
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError('');
     try {
-      await deleteRole(id);
+      await deleteRole(deleteTarget.id);
       await load({ force: true });
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      alert(e.response?.data?.message ?? 'Failed to delete role');
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, 'Failed to delete role'));
+    } finally {
+      setDeleting(false);
     }
   };
 
   return {
     roles, isLoading, loadError, showCreate, editingRole, formData, saving, error,
-    openCreate, openEdit, closeModal, updateField, handleSave, handleDelete,
+    openCreate, openEdit, closeModal, updateField, handleSave,
+    deleteTarget, deleting, deleteError, requestDelete, cancelDelete, confirmDelete,
     refetch: () => load({ force: true }),
   };
 }
