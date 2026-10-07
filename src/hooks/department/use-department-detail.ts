@@ -13,14 +13,9 @@ import { mapDepartment } from '@/hooks/department/use-department-options';
 import type { Department, RawDepartment } from '@/types/department';
 import { DeptDetail, Menu, User, ToastState } from '@/types/department-detail';
 
-// Thin readers/writers over the shared cache (lib/api/cache.ts). A miss is
-// always `null`.
-
 function getCachedDepartment(id: number): Department | null {
   const cached = readEntityCache<Department>(ENTITY_ITEM_CACHE_KEYS.department(id));
   if (cached) return cached;
-
-  // Fall back to this department's row in the cached list.
   const fromList = readEntityCacheItem<RawDepartment>(ENTITY_CACHE_KEYS.departments, id);
   return fromList ? mapDepartment(fromList) : null;
 }
@@ -134,7 +129,6 @@ export function useDepartmentDetail(deptId: number) {
     setRemovingMenuId(menu.id);
     try {
       await departmentDetailService.removeMenu(deptId, menu.id);
-      // Optimistic update — remove locally right away instead of waiting on a refetch
       setMenus((prev) => {
         const next = prev.filter((m) => m.id !== menu.id);
         setCachedMenus(deptId, next);
@@ -145,7 +139,6 @@ export function useDepartmentDetail(deptId: number) {
     } finally {
       setRemovingMenuId(null);
     }
-    // Sync with server in the background, without blocking the UI on it
     loadMenus();
   }, [deptId, loadMenus]);
 
@@ -153,7 +146,6 @@ export function useDepartmentDetail(deptId: number) {
     setRemovingUserEmail(user.email);
     try {
       await departmentDetailService.removeUser(deptId, user.id);
-      // Optimistic update — remove locally right away instead of waiting on a refetch
       setUsers((prev) => {
         const next = prev.filter((u) => u.email !== user.email);
         setCachedUsers(deptId, next);
@@ -164,7 +156,16 @@ export function useDepartmentDetail(deptId: number) {
     } finally {
       setRemovingUserEmail(null);
     }
-    // Sync with server in the background, without blocking the UI on it
+    loadUsers();
+  }, [deptId, loadUsers]);
+
+  const addUsers = useCallback((added: User[]) => {
+    setUsers((prev) => {
+      const have = new Set(prev.map((u) => u.email.toLowerCase()));
+      const next = [...prev, ...added.filter((u) => !have.has(u.email.toLowerCase()))];
+      setCachedUsers(deptId, next);
+      return next;
+    });
     loadUsers();
   }, [deptId, loadUsers]);
 
@@ -180,7 +181,7 @@ export function useDepartmentDetail(deptId: number) {
     removingMenuId, removingUserEmail,
     toast, showToast,
     load, loadMenus, loadUsers,
-    removeMenu, removeUser,
+    removeMenu, removeUser, addUsers,
     assignedMenuIds, assignedUserEmails,
   };
 }

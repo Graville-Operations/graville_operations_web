@@ -18,11 +18,6 @@ type BestMatch =
   | { level: 'sub'; menuId: number; subId: number; subsubId: null; href: string }
   | { level: 'subsub'; menuId: number; subId: number; subsubId: number; href: string };
 
-/**
- * Finds the single most specific (longest-link) match for the current pathname
- * across the whole menu tree, so only one item is ever highlighted as active —
- * even if a shorter sibling link happens to be a prefix of a deeper route.
- */
 function findBestMatch(menus: MenuItem[], pathname: string): BestMatch | null {
   let best: BestMatch | null = null;
 
@@ -52,7 +47,7 @@ function findBestMatch(menus: MenuItem[], pathname: string): BestMatch | null {
 export function useSidebarMenus() {
   const { menus, isLoaded, setMenus, clearMenus } = useMenuStore();
   const [isLoading, setIsLoading] = useState(!isLoaded);
-  const [openMenus, setOpenMenus] = useState<Set<number>>(new Set());
+  const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
   const pathname = usePathname();
   const router = useRouter();
   const { user, role, logout } = useAuthStore();
@@ -82,20 +77,20 @@ export function useSidebarMenus() {
     if (!bestMatch) return;
     setOpenMenus((prev) => {
       const next = new Set(prev);
-      next.add(bestMatch.menuId);
-      if (bestMatch.subId != null) next.add(bestMatch.subId);
+      next.add(`menu-${bestMatch.menuId}`);
+      if (bestMatch.subId != null) next.add(`sub-${bestMatch.subId}`);
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bestMatch]);
 
-  const toggleMenu = (id: number) => {
+  const toggleMenu = (key: string) => {
     setOpenMenus((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(id);
+        next.add(key);
       }
       return next;
     });

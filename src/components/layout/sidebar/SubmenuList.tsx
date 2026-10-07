@@ -5,8 +5,8 @@ import { SubSubmenuList } from './SubSubmenuList';
 
 interface SubmenuListProps {
   items: SubMenu[];
-  openMenus: Set<number>;
-  onToggle: (id: number) => void;
+  openMenus: Set<string>;
+  onToggle: (key: string) => void;
   isSubActive: (sub: SubMenu) => boolean;
   isSubSubActive: (subsub: SubSubMenu) => boolean;
 }
@@ -19,7 +19,7 @@ export function SubmenuList({ items, openMenus, onToggle, isSubActive, isSubSubA
           {sub.subsubmenus && sub.subsubmenus.length > 0 ? (
             <div>
               <button
-                onClick={() => onToggle(sub.id)}
+                onClick={() => onToggle(`sub-${sub.id}`)}
                 className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition-colors duration-150 ${
                   isSubActive(sub)
                     ? 'bg-[#33907C]/20 text-[#33907C] font-medium'
@@ -31,12 +31,12 @@ export function SubmenuList({ items, openMenus, onToggle, isSubActive, isSubSubA
                 <ChevronDown
                     size={12}
                     className={`transition-transform duration-200 opacity-50 shrink-0 ${
-                      openMenus.has(sub.id) ? 'rotate-180' : ''
+                      openMenus.has(`sub-${sub.id}`) ? 'rotate-180' : ''
                     }`}
                 />
               </button>
 
-              {openMenus.has(sub.id) && (
+              {openMenus.has(`sub-${sub.id}`) && (
                 <SubSubmenuList items={sub.subsubmenus} isActive={isSubSubActive} />
               )}
             </div>

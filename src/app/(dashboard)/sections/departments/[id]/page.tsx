@@ -299,7 +299,7 @@ function AssignMenuModal({ deptId, currentMenuIds, onClose, onAssigned, showToas
 
 function AssignUserModal({ deptId, currentUserEmails, onClose, onAssigned, showToast }: {
   deptId: number; currentUserEmails: Set<string>;
-  onClose: () => void; onAssigned: () => void;
+  onClose: () => void; onAssigned: (users: User[]) => void;
   showToast: (msg: string, type: 'success' | 'error') => void;
 }) {
   const { available, alreadyAssignedCount, loading, errMsg, search, setSearch, selected, toggle, selectAll, deselectAll, saving, assign } =
@@ -309,7 +309,7 @@ function AssignUserModal({ deptId, currentUserEmails, onClose, onAssigned, showT
     const result = await assign();
     if (result.ok) {
       showToast(`${selected.size} user${selected.size > 1 ? 's' : ''} assigned`, 'success');
-      onAssigned();
+      onAssigned(result.users ?? []);
       onClose();
     } else {
       showToast(result.message, 'error');
@@ -394,7 +394,7 @@ export default function DepartmentDetailPage() {
     removingMenuId, removingUserEmail,
     toast, showToast,
     load, loadMenus, loadUsers,
-    removeMenu, removeUser,
+    removeMenu, removeUser, addUsers,
     assignedMenuIds, assignedUserEmails,
   } = useDepartmentDetail(deptId);
 
@@ -594,7 +594,7 @@ export default function DepartmentDetailPage() {
           deptId={deptId}
           currentUserEmails={assignedUserEmails}
           onClose={() => setShowAssignUser(false)}
-          onAssigned={loadUsers}
+          onAssigned={addUsers}
           showToast={showToast}
         />
       )}
