@@ -3,27 +3,11 @@
 import { MotorVehicleDelivery } from '@/types/external-work';
 import EmptyState from '@/components/ui/emptystate';
 import { Bone, ShimmerStyle } from '@/components/shared/Shimmer';
+import ExternalWorkStatusBadge from './ExternalWorkStatusBadge';
 
 interface MotorVehiclesTableProps {
   deliveries: MotorVehicleDelivery[];
   isLoading?: boolean;
-}
-
-const statusStyles: Record<string, string> = {
-  pending: 'bg-amber-500/10 text-amber-400',
-  in_progress: 'bg-sky-500/10 text-sky-400',
-  completed: 'bg-emerald-500/10 text-emerald-400',
-  cancelled: 'bg-red-500/10 text-red-400',
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const cls = statusStyles[status] ?? 'bg-white/10 text-[color:var(--muted-foreground)]';
-  const label = status.replace('_', ' ');
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium capitalize ${cls}`}>
-      {label}
-    </span>
-  );
 }
 
 const COLUMN_COUNT = 11;
@@ -93,7 +77,7 @@ export default function MotorVehiclesTable({ deliveries, isLoading }: MotorVehic
                   <p>{d.clientName}</p>
                   <p className="text-xs">{d.clientPhone}</p>
                 </td>
-                <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
+                <td className="px-4 py-3"><ExternalWorkStatusBadge status={d.status} /></td>
               </tr>
             ))
           )}

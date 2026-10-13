@@ -6,12 +6,7 @@ import { getApiErrorMessage } from '@/lib/api/api-error';
 import {
   MotorVehicleDelivery,
   HeavyMachineryService,
-  AddMotorVehicleForm,
-  AddHeavyMachineryForm,
   EXTERNAL_WORKS_SECTION_LIMIT,
-  splitExternalWork,
-  toCreateMotorVehiclePayload,
-  toCreateHeavyMachineryPayload,
   toMotorVehicleDelivery,
   toHeavyMachineryService,
 } from '@/types/external-work';
@@ -19,6 +14,8 @@ import {
 export function useExternalWorks() {
   const [motorVehicles, setMotorVehicles] = useState<MotorVehicleDelivery[]>([]);
   const [heavyMachinery, setHeavyMachinery] = useState<HeavyMachineryService[]>([]);
+  const [motorVehicleTotal, setMotorVehicleTotal] = useState(0);
+  const [heavyMachineryTotal, setHeavyMachineryTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
@@ -28,11 +25,15 @@ export function useExternalWorks() {
     if (!opts?.silent) setIsLoading(true);
     setLoadError(null);
     try {
-      const items = await externalWorkService.list();
+      const [vehicles, machinery] = await Promise.all([
+        externalWorkService.listByType('vehicle', { limit: EXTERNAL_WORKS_SECTION_LIMIT }),
+        externalWorkService.listByType('heavy_machinery', { limit: EXTERNAL_WORKS_SECTION_LIMIT }),
+      ]);
       if (requestId !== requestIdRef.current) return;
-      const { motorVehicles: mv, heavyMachinery: hm } = splitExternalWork(items);
-      setMotorVehicles(mv);
-      setHeavyMachinery(hm);
+      setMotorVehicles(vehicles.items.map(toMotorVehicleDelivery));
+      setMotorVehicleTotal(vehicles.total);
+      setHeavyMachinery(machinery.items.map(toHeavyMachineryService));
+      setHeavyMachineryTotal(machinery.total);
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       setLoadError(getApiErrorMessage(err, 'Failed to load external works.'));
@@ -46,32 +47,16 @@ export function useExternalWorks() {
     fetchAll();
   }, [fetchAll]);
 
-  const addMotorVehicleDelivery = useCallback(async (form: AddMotorVehicleForm) => {
-    try {
-      const created = await externalWorkService.create(toCreateMotorVehiclePayload(form));
-      setMotorVehicles((prev) => [toMotorVehicleDelivery(created), ...prev]);
-    } catch (err) {
-      throw new Error(getApiErrorMessage(err, 'Failed to add motor vehicle delivery.'));
-    }
-  }, []);
-
-  const addHeavyMachineryService = useCallback(async (form: AddHeavyMachineryForm) => {
-    try {
-      const created = await externalWorkService.create(toCreateHeavyMachineryPayload(form));
-      setHeavyMachinery((prev) => [toHeavyMachineryService(created), ...prev]);
-    } catch (err) {
-      throw new Error(getApiErrorMessage(err, 'Failed to add heavy machinery service.'));
-    }
-  }, []);
-
   return {
     motorVehicles,
     heavyMachinery,
+    motorVehicleTotal,
+    heavyMachineryTotal,
+    hasMoreMotorVehicles: motorVehicleTotal > EXTERNAL_WORKS_SECTION_LIMIT,
+    hasMoreHeavyMachinery: heavyMachineryTotal > EXTERNAL_WORKS_SECTION_LIMIT,
     isLoading,
     loadError,
     sectionLimit: EXTERNAL_WORKS_SECTION_LIMIT,
     refresh: fetchAll,
-    addMotorVehicleDelivery,
-    addHeavyMachineryService,
   };
 }

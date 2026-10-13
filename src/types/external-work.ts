@@ -79,7 +79,6 @@ export interface CreateExternalWorkPayload {
   billing_method?: BillingMethod;
   duration?: number;
   unit_amount?: number;
-  total_amount?: number;
   client_name?: string;
   client_contact?: string;
   description?: string;
@@ -141,7 +140,6 @@ export interface AddMotorVehicleForm {
   billingMethod: BillingMethod | '';
   duration: string;
   unitAmount: string;
-  totalAmount: string;
   clientName: string;
   clientPhone: string;
 }
@@ -155,7 +153,6 @@ export function emptyMotorVehicleForm(): AddMotorVehicleForm {
     billingMethod: '',
     duration: '',
     unitAmount: '',
-    totalAmount: '',
     clientName: '',
     clientPhone: '',
   };
@@ -168,7 +165,6 @@ export interface AddHeavyMachineryForm {
   billingMethod: BillingMethod | '';
   duration: string;
   unitAmount: string;
-  totalAmount: string;
   clientName: string;
   clientPhone: string;
 }
@@ -181,7 +177,6 @@ export function emptyHeavyMachineryForm(): AddHeavyMachineryForm {
     billingMethod: '',
     duration: '',
     unitAmount: '',
-    totalAmount: '',
     clientName: '',
     clientPhone: '',
   };
@@ -208,13 +203,12 @@ export function toCreateMotorVehiclePayload(form: AddMotorVehicleForm): CreateEx
 
   return {
     transport_id: Number(form.transportId),
-    pickup_location: form.pickupPoint.trim() || undefined,
+    pickup_location: form.pickupPoint.trim(),
     destination: form.destination.trim(),
     materials,
     billing_method: (form.billingMethod || undefined) as BillingMethod | undefined,
     duration: parseAmount(form.duration),
     unit_amount: parseAmount(form.unitAmount),
-    total_amount: form.totalAmount.trim() ? parseAmount(form.totalAmount) : undefined,
     client_name: form.clientName.trim() || undefined,
     client_contact: form.clientPhone.trim() || undefined,
   };
@@ -228,7 +222,6 @@ export function toCreateHeavyMachineryPayload(form: AddHeavyMachineryForm): Crea
     billing_method: (form.billingMethod || undefined) as BillingMethod | undefined,
     duration: parseAmount(form.duration),
     unit_amount: parseAmount(form.unitAmount),
-    total_amount: form.totalAmount.trim() ? parseAmount(form.totalAmount) : undefined,
     client_name: form.clientName.trim(),
     client_contact: form.clientPhone.trim(),
   };
