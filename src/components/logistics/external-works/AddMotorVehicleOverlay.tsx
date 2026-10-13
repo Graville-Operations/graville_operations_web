@@ -1,24 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, Truck, Loader2, Plus, Trash2 } from 'lucide-react';
+import { X, Truck, Loader2 } from 'lucide-react';
 import { DarkSelect } from '@/components/shared/DarkSelect';
-import { useMaterials } from '@/hooks/logistics/useMaterials';
-import {
-  AddMotorVehicleForm,
-  emptyMotorVehicleForm,
-  emptyMaterialRow,
-  MaterialFormRow,
-  VEHICLE_BILLING_METHOD_OPTIONS,
-  BillingMethod,
-} from '@/types/external-work';
+import { AddHeavyMachineryForm, emptyHeavyMachineryForm, BILLING_METHOD_OPTIONS, BillingMethod } from '@/types/external-work';
 import { ModeOfTransport } from '@/types/transport';
+import { EXTERNAL_WORK_ERROR_STYLE } from './ExternalWorkStatusBadge';
 
-interface AddMotorVehicleOverlayProps {
+interface AddHeavyMachineryOverlayProps {
   open: boolean;
-  transports: ModeOfTransport[]; // pre-filtered to non-heavy-machinery vehicles by the page
+  transports: ModeOfTransport[]; // pre-filtered to heavy-machinery vehicles by the page
   onClose: () => void;
-  onSubmit: (form: AddMotorVehicleForm) => Promise<void>;
+  onSubmit: (form: AddHeavyMachineryForm) => Promise<void>;
 }
 
 const inputCls = 'w-full px-3 py-2 rounded-lg text-sm bg-[color:var(--muted)] border border-[color:var(--border)] text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] transition-colors';
@@ -27,23 +20,22 @@ function Field({ label, required, children }: { label: string; required?: boolea
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-medium text-[color:var(--muted-foreground)] uppercase tracking-wider">
-        {label}{required && <span className="text-[color:var(--destructive)] ml-0.5">*</span>}
+        {label}{required && <span className="ml-0.5" style={{ color: EXTERNAL_WORK_ERROR_STYLE.color }}>*</span>}
       </label>
       {children}
     </div>
   );
 }
 
-export default function AddMotorVehicleOverlay({ open, transports, onClose, onSubmit }: AddMotorVehicleOverlayProps) {
-  const { materials } = useMaterials();
-  const [form, setForm] = useState<AddMotorVehicleForm>(emptyMotorVehicleForm());
+export default function AddHeavyMachineryOverlay({ open, transports, onClose, onSubmit }: AddHeavyMachineryOverlayProps) {
+  const [form, setForm] = useState<AddHeavyMachineryForm>(emptyHeavyMachineryForm());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setForm(emptyMotorVehicleForm());
+      setForm(emptyHeavyMachineryForm());
       setError(null);
     }
   }, [open]);
@@ -55,24 +47,15 @@ export default function AddMotorVehicleOverlay({ open, transports, onClose, onSu
     return () => window.removeEventListener('keydown', h);
   }, [open, onClose]);
 
-  const updateRow = (rowId: string, patch: Partial<MaterialFormRow>) => {
-    setForm((p) => ({ ...p, materials: p.materials.map((r) => (r.rowId === rowId ? { ...r, ...patch } : r)) }));
-  };
-
-  const addRow = () => setForm((p) => ({ ...p, materials: [...p.materials, emptyMaterialRow()] }));
-
-  const removeRow = (rowId: string) =>
-    setForm((p) => ({ ...p, materials: p.materials.length > 1 ? p.materials.filter((r) => r.rowId !== rowId) : p.materials }));
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.transportId) return setError('Vehicle is required.');
-    if (!form.destination.trim()) return setError('Destination is required.');
-    const validMaterials = form.materials.filter((r) => r.materialId && r.quantity);
-    if (validMaterials.length === 0) return setError('At least one material with a quantity is required.');
+    if (!form.location.trim()) return setError('Location is required.');
+    if (!form.service.trim()) return setError('Service is required.');
     if (!form.billingMethod) return setError('Billing method is required.');
-    if (!form.duration.trim()) return setError('Duration is required.');
     if (!form.unitAmount.trim()) return setError('Unit amount is required.');
+    if (!form.clientName.trim()) return setError('Client name is required.');
+    if (!form.clientPhone.trim()) return setError('Client phone is required.');
 
     setSubmitting(true);
     setError(null);
@@ -80,7 +63,7 @@ export default function AddMotorVehicleOverlay({ open, transports, onClose, onSu
       await onSubmit(form);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add delivery.');
+      setError(err instanceof Error ? err.message : 'Failed to add service.');
     } finally {
       setSubmitting(false);
     }
@@ -98,14 +81,14 @@ export default function AddMotorVehicleOverlay({ open, transports, onClose, onSu
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`flex flex-col w-full max-w-lg max-h-[85vh] rounded-2xl gv-glass-bg border border-[color:var(--border)] shadow-2xl transition-all duration-300 ease-out ${open ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-3 scale-95 opacity-0'}`}
+          className={`flex flex-col w-full max-w-md max-h-[85vh] rounded-2xl gv-glass-bg border border-[color:var(--border)] shadow-2xl transition-all duration-300 ease-out ${open ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-3 scale-95 opacity-0'}`}
         >
           <div className="flex items-start justify-between p-6 border-b border-[color:var(--border)]">
             <div className="flex items-center gap-3">
               <div className="gv-icon-box"><Truck size={18} className="text-[color:var(--primary)]" /></div>
               <div>
-                <h2 className="text-base font-semibold text-[color:var(--foreground)]">Add Motor Vehicle Delivery</h2>
-                <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">Log an external delivery for a client</p>
+                <h2 className="text-base font-semibold text-[color:var(--foreground)]">Add Heavy Machinery Service</h2>
+                <p className="text-xs text-[color:var(--muted-foreground)] mt-0.5">Log an external machinery service for a client</p>
               </div>
             </div>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[color:var(--muted)] text-[color:var(--muted-foreground)] transition-colors cursor-pointer">
@@ -122,91 +105,45 @@ export default function AddMotorVehicleOverlay({ open, transports, onClose, onSu
                 ))}
               </DarkSelect>
               {transports.length === 0 && (
-                <p className="text-xs" style={{ color: 'var(--gv-text-muted)' }}>
-                  No vehicles found. Add one under Transport first.
+                <p className="text-xs text-[color:var(--muted-foreground)]">
+                  No heavy machinery vehicles found. Mark one as heavy machinery under Transport first.
                 </p>
               )}
             </Field>
-
-            <Field label="Materials" required>
-              <div className="flex flex-col gap-2">
-                {form.materials.map((row) => (
-                  <div key={row.rowId} className="flex items-center gap-2">
-                    <div className="flex-1">
-                      <DarkSelect value={row.materialId} onChange={(e) => updateRow(row.rowId, { materialId: e.target.value })}>
-                        <option value="">Select material…</option>
-                        {materials.map((m) => (
-                          <option key={m.id} value={m.id}>{m.name}{m.unit ? ` (${m.unit.symbol})` : ''}</option>
-                        ))}
-                      </DarkSelect>
-                    </div>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      className={`${inputCls} w-24 shrink-0`}
-                      placeholder="Qty"
-                      value={row.quantity}
-                      onChange={(e) => updateRow(row.rowId, { quantity: e.target.value })}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeRow(row.rowId)}
-                      disabled={form.materials.length === 1}
-                      className="p-2 rounded-lg text-[color:var(--muted-foreground)] hover:text-[color:var(--destructive)] hover:bg-[color:var(--muted)] transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addRow}
-                  className="flex items-center gap-1.5 text-xs font-medium text-[color:var(--primary)] hover:opacity-80 transition-opacity cursor-pointer self-start mt-1"
-                >
-                  <Plus size={13} /> Add another material
-                </button>
-              </div>
+            <Field label="Location" required>
+              <input className={inputCls} placeholder="e.g. Athi River Site" value={form.location}
+                onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
             </Field>
-
-            <Field label="Pickup Point">
-              <input className={inputCls} placeholder="e.g. Machakos Quarry" value={form.pickupPoint}
-                onChange={(e) => setForm((p) => ({ ...p, pickupPoint: e.target.value }))} />
-            </Field>
-            <Field label="Destination" required>
-              <input className={inputCls} placeholder="e.g. Athi River Site" value={form.destination}
-                onChange={(e) => setForm((p) => ({ ...p, destination: e.target.value }))} />
+            <Field label="Service" required>
+              <input className={inputCls} placeholder="e.g. Foundation excavation" value={form.service}
+                onChange={(e) => setForm((p) => ({ ...p, service: e.target.value }))} />
             </Field>
             <Field label="Billing Method" required>
               <DarkSelect value={form.billingMethod} onChange={(e) => setForm((p) => ({ ...p, billingMethod: e.target.value as BillingMethod }))}>
                 <option value="">Select billing method…</option>
-                {VEHICLE_BILLING_METHOD_OPTIONS.map((o) => (
+                {BILLING_METHOD_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </DarkSelect>
             </Field>
-            <Field label="Duration" required>
-              <input type="number" min="0" step="any" className={inputCls} placeholder="e.g. 2" value={form.duration}
+            <Field label="Duration">
+              <input type="number" min="0" step="any" className={inputCls} placeholder="Optional — can be added later" value={form.duration}
                 onChange={(e) => setForm((p) => ({ ...p, duration: e.target.value }))} />
             </Field>
             <Field label="Unit Amount" required>
-              <input className={inputCls} placeholder="e.g. KES 15,000" value={form.unitAmount}
+              <input className={inputCls} placeholder="e.g. KES 5,000" value={form.unitAmount}
                 onChange={(e) => setForm((p) => ({ ...p, unitAmount: e.target.value }))} />
             </Field>
-            <Field label="Total Amount">
-              <input className={inputCls} placeholder="Auto-calculated if left blank" value={form.totalAmount}
-                onChange={(e) => setForm((p) => ({ ...p, totalAmount: e.target.value }))} />
-            </Field>
-            <Field label="Client Name">
+            <Field label="Client Name" required>
               <input className={inputCls} placeholder="Client full name" value={form.clientName}
                 onChange={(e) => setForm((p) => ({ ...p, clientName: e.target.value }))} />
             </Field>
-            <Field label="Client Phone No.">
+            <Field label="Client Phone No." required>
               <input className={inputCls} placeholder="e.g. 0712 345 678" value={form.clientPhone}
                 onChange={(e) => setForm((p) => ({ ...p, clientPhone: e.target.value }))} />
             </Field>
 
-            {error && <p className="text-xs text-[color:var(--destructive)] bg-[color:var(--destructive)]/10 px-3 py-2 rounded-lg">{error}</p>}
+            {error && <p className="text-xs px-3 py-2 rounded-lg" style={EXTERNAL_WORK_ERROR_STYLE}>{error}</p>}
 
             <div className="flex flex-col gap-2 pt-2">
               <button
@@ -215,7 +152,7 @@ export default function AddMotorVehicleOverlay({ open, transports, onClose, onSu
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:opacity-90 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {submitting && <Loader2 size={15} className="animate-spin" />}
-                {submitting ? 'Saving…' : 'Add Delivery'}
+                {submitting ? 'Saving…' : 'Add Service'}
               </button>
               <button type="button" onClick={onClose} className="w-full py-2 text-sm text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] transition-colors cursor-pointer">
                 Cancel

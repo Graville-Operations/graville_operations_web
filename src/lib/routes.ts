@@ -79,6 +79,8 @@ export const ROUTES = {
     deliveries: {
       internals: '/logistics/deliveries/internals',
       externals: '/logistics/deliveries/externals',
+      externalsMotorVehicles: '/logistics/deliveries/externals/motor-vehicles',
+      externalsHeavyMachinery: '/logistics/deliveries/externals/heavy-machinery',
     },
   },
   sections: {
