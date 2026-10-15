@@ -1,0 +1,144 @@
+name: Operations-Frontend-pipeline
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE_NAME: operations-frontend
+
+
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute image tag
+        id: tag
+        run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+  deploy:
+    name: Deploy to VPS
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag != '' && inputs.image_tag || needs.build.outputs.image_tag }}
+      VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            docker-compose.yml
+          sparse-checkout-cone-mode: false
+
+      - name: Assemble runtime .env
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: |
+          umask 077
+          {
+            for k in DOCKERHUB_USERNAME IMAGE_TAG API_BASE_URL ; do
+              v="${!k}"
+              case "$v" in *"'"*) echo "::error::$k must not contain a single quote"; exit 1;; esac
+              printf "%s='%s'\n" "$k" "$v"
+            done
+            cat <<'FIXED'
+          NODE_ENV=production
+          FIXED
+          } > .env
+
+      - name: Set up SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ vars.VPS_PORT || 22 }}
+        run: |
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          cat > ~/.ssh/config <<CFG
+          Host vps
+            HostName ${VPS_HOST}
+            Port ${VPS_PORT}
+            User ${VPS_USER}
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+          CFG
+
+      - name: Copy compose file and .env
+        run: |
+          ssh vps "mkdir -p '$VPS_APP_DIR'"
+          scp docker-compose.yml .env "vps:$VPS_APP_DIR/"
+          ssh vps "chmod 600 '$VPS_APP_DIR/.env'"
+
+      - name: Log in to Docker Hub on the VPS
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          printf '%s' "$DOCKERHUB_TOKEN" \
+            | ssh vps "docker login -u '$DOCKERHUB_USERNAME' --password-stdin"
+
+      - name: Pull and restart
+        run: |
+          ssh vps "VPS_APP_DIR='$VPS_APP_DIR' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "${VPS_APP_DIR}"
+          docker compose pull --quiet
+          docker compose up -d --remove-orphans
+
+          for i in $(seq 1 24); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' operations-frontend 2>/dev/null || echo starting)
+            if [ "$status" = "healthy" ]; then
+              echo "lokimove-frontend is healthy"
+              docker image prune -f >/dev/null
+              exit 0
+            fi
+            echo "[$i/24] status=$status"
+            sleep 5
+          done
+
+          echo "::error::operations-frontend did not become healthy"
+          docker compose logs --tail 200 operations-frontend
+          exit 1
+          REMOTE
+
+      - name: Log out of Docker Hub on the VPS
+        if: always()
+        run: ssh vps "docker logout >/dev/null 2>&1 || true"

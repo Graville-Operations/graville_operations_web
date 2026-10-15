@@ -1,0 +1,35 @@
+services:
+  operations-frontend:
+    image: ${DOCKERHUB_USERNAME}/operations-frontend:${IMAGE_TAG}
+    container_name: operations-frontend
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - proxy
+    ports:
+      - "3050:3050"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3050/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+          cpus: "1"
+          pids: 512
+        reservations:
+          memory: 384m
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    external: true
