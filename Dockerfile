@@ -32,6 +32,7 @@ WORKDIR /usr/src/app
 
 ENV NODE_ENV=production
 ENV PORT=3050
+ENV HOSTNAME=0.0.0.0
 
 # Run the application as a non-root user.
 USER node
