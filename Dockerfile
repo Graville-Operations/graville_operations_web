@@ -42,6 +42,6 @@ COPY --from=builder --chown=node:node /usr/src/app/public ./public
 COPY --from=builder --chown=node:node /usr/src/app/.next/standalone ./
 COPY --from=builder --chown=node:node /usr/src/app/.next/static ./.next/static
 
-EXPOSE 3000
+EXPOSE 3050
 
 CMD ["node", "server.js"]
