@@ -65,11 +65,11 @@ jobs:
       - name: Assemble runtime .env
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_BASE_URL }}
         run: |
           umask 077
           {
-            for k in DOCKERHUB_USERNAME IMAGE_TAG API_BASE_URL ; do
+            for k in DOCKERHUB_USERNAME IMAGE_TAG NEXT_PUBLIC_API_URL ; do
               v="${!k}"
               case "$v" in *"'"*) echo "::error::$k must not contain a single quote"; exit 1;; esac
               printf "%s='%s'\n" "$k" "$v"
