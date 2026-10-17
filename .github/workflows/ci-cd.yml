@@ -46,7 +46,7 @@ jobs:
           provenance: false
 
   deploy:
-    name: Deploy to VPS
+    name: Deploy to Server
     needs: [build]
     runs-on: ubuntu-latest
     environment: production
