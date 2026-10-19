@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:1
 
 ARG NODE_VERSION=20.20.2
-
-# Stage 1: install all deps (including dev deps, needed for `next build`)
 FROM node:${NODE_VERSION}-alpine AS deps
 WORKDIR /usr/src/app
 
@@ -10,8 +8,6 @@ RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=package-lock.json,target=package-lock.json \
     --mount=type=cache,target=/root/.npm \
     npm ci
-
-# Stage 2: build the Next.js app
 FROM node:${NODE_VERSION}-alpine AS builder
 WORKDIR /usr/src/app
 
@@ -20,10 +16,9 @@ ENV NODE_ENV=production
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
-ARG API_BASE_URL
-ENV API_BASE_URL=${API_BASE_URL}
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Requires `output: 'standalone'` in next.config.js
 RUN npm run build
 
 # Stage 3: minimal production runtime
