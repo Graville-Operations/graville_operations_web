@@ -44,6 +44,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.API_BASE_URL }}
 
   deploy:
     name: Deploy to Server
