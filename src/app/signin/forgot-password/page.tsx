@@ -16,11 +16,11 @@ export default function ForgotPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,#1a3a6e_0%,#0a0f1e_60%,#000000_100%)]">
-      <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+    <div className="relative overflow-hidden min-h-screen w-full flex items-center justify-center px-4 py-8 bg-[radial-gradient(ellipse_at_top,#1a3a6e_0%,#0a0f1e_60%,#000000_100%)]">
+      <div className="absolute top-10 left-0 sm:top-20 sm:left-20 w-48 h-48 sm:w-72 sm:h-72 bg-blue-500/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-10 right-0 sm:bottom-20 sm:right-20 w-64 h-64 sm:w-96 sm:h-96 bg-indigo-500/10 rounded-full blur-3xl" />
 
-      <div className="relative w-full max-w-md rounded-2xl p-8 shadow-2xl bg-white/10 backdrop-blur-md border border-white/20">
+      <div className="relative w-full max-w-md rounded-2xl p-5 sm:p-8 shadow-2xl bg-white/10 backdrop-blur-md border border-white/20">
         <Link
           href={ROUTES.signin}
           className="flex items-center gap-1.5 text-sm text-blue-200/60 hover:text-blue-200 transition-colors mb-6"
@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
           <h1 className="text-2xl font-bold text-white">
             {step === 'email' ? 'Forgot Password' : step === 'reset' ? 'Reset Password' : 'Success'}
           </h1>
-          <p className="text-blue-200/70 mt-1 text-sm">
+          <p className="text-blue-200/70 mt-1 text-sm break-words">
             {step === 'email' && 'Enter your email to receive a reset code'}
             {step === 'reset' && `Enter the code sent to ${email} and choose a new password`}
             {step === 'done' && 'Redirecting you to sign in...'}

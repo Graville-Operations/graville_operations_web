@@ -81,15 +81,13 @@ const footerLinks = [
 export default function HomePage() {
   return (
     <div className="gv-page" style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-
-      {/* HERO */}
-      <section className="min-h-[60vh] flex flex-col items-center justify-center text-center px-8 xl:px-20">
+      <section className="min-h-[60vh] py-8 sm:py-0 flex flex-col items-center justify-center text-center px-4 sm:px-8 xl:px-20">
         <p className="gv-eyebrow mb-6">Construction Operations Platform</p>
-        <h1 className="text-5xl md:text-6xl xl:text-[5.5rem] font-extrabold leading-[1.08] mb-10"
+        <h1 className="text-[1.9rem] sm:text-5xl md:text-6xl xl:text-[5.5rem] font-extrabold leading-[1.12] sm:leading-[1.08] mb-6 sm:mb-10 break-words"
             style={{ color: "var(--gv-text-primary)" }}>
           How Much Are You Losing to Invisible Construction Operations?
         </h1>
-        <div className="gv-card w-full max-w-7xl mb-10 text-center">
+        <div className="gv-card w-full max-w-7xl mb-8 sm:mb-10 text-center p-5 sm:p-6">
           <p className="text-base font-bold mb-2" style={{ color: "var(--gv-text-primary)" }}>
             76% of construction firms report significant losses from untracked site activity.
           </p>
@@ -100,37 +98,35 @@ export default function HomePage() {
             to operational blind spots alone. Graville Operations ends it.
           </p>
         </div>
-        <div className="flex gap-4 flex-wrap justify-center">
+        <div className="flex gap-3 sm:gap-4 flex-wrap justify-center w-full sm:w-auto">
           <Link href={ROUTES.public.demo} className="gv-btn-brand">See How It Works</Link>
           <Link href={ROUTES.public.contact} className="gv-btn-outline">Talk to Us</Link>
         </div>
       </section>
-
-      {/* FEATURES */}
-      <section className="py-10 px-8 xl:px-20">
+      <section className="py-8 md:py-10 px-4 sm:px-8 xl:px-20">
         <p className="gv-eyebrow mb-3 text-center">Platform Features</p>
-        <h2 className="text-3xl md:text-4xl xl:text-5xl font-bold mb-24 text-center"
+        <h2 className="text-3xl md:text-4xl xl:text-5xl font-bold mb-10 md:mb-24 text-center"
             style={{ color: "var(--gv-text-primary)" }}>
           One App. Every Operation.
         </h2>
 
-        <div className="flex flex-col gap-22">
+        <div className="flex flex-col gap-12 md:gap-22">
           {features.map(({ icon: Icon, tag, title, body, stat, detail }, index) => {
             const isReversed = index % 2 !== 0;
             return (
               <div
                 key={title}
-                className={`flex flex-col md:flex-row items-center gap-14
+                className={`flex flex-col md:flex-row items-center gap-6 md:gap-14
                   ${isReversed ? "md:flex-row-reverse" : ""}`}
               >
                 {/* Stat card */}
                 <div className="w-full md:w-1/2">
-                  <div className="gv-card gv-card-hover flex flex-col gap-5 py-10 px-10">
+                  <div className="gv-card gv-card-hover flex flex-col gap-4 md:gap-5 py-6 px-5 sm:py-10 sm:px-10">
                     <div className="gv-icon-box">
                       <Icon className="w-5 h-5" style={{ color: "var(--gv-brand)" }} />
                     </div>
                     <p className="gv-eyebrow">0{index + 1}</p>
-                    <p className="text-2xl xl:text-3xl font-bold"
+                    <p className="text-xl sm:text-2xl xl:text-3xl font-bold"
                        style={{ color: "var(--gv-text-primary)" }}>
                       {stat}
                     </p>
@@ -144,7 +140,7 @@ export default function HomePage() {
                 {/* Text side */}
                 <div className="w-full md:w-1/2">
                   <span className="gv-tag mb-5 inline-block">{tag}</span>
-                  <h3 className="text-2xl xl:text-3xl font-bold mb-5"
+                  <h3 className="text-xl sm:text-2xl xl:text-3xl font-bold mb-5"
                       style={{ color: "var(--gv-text-primary)" }}>
                     {title}
                   </h3>
@@ -158,12 +154,10 @@ export default function HomePage() {
           })}
         </div>
       </section>
-
-      {/* BOTTOM CTA */}
       <div className="gv-divider" />
-      <section className="py-24 px-8 xl:px-20 text-center">
+      <section className="py-14 md:py-24 px-4 sm:px-8 xl:px-20 text-center">
         <p className="gv-eyebrow mb-4">Ready to stop the bleed?</p>
-        <h2 className="text-3xl md:text-4xl font-bold mb-6"
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6"
             style={{ color: "var(--gv-text-primary)" }}>
           Get full visibility over your operations starting today.
         </h2>
@@ -172,21 +166,13 @@ export default function HomePage() {
           <Link href={ROUTES.public.contact} className="gv-btn-outline">Contact Us</Link>
         </div>
       </section>
-
-      {/* FOOTER */}
       <div className="gv-divider" />
-      <footer className="px-8 xl:px-32 py-16" style={{ marginTop: "auto" }}>
+      <footer className="px-5 sm:px-8 xl:px-32 py-10 md:py-16" style={{ marginTop: "auto" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <div
-            className="mb-12"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr",
-              gap: "2.5rem",
-            }}
+            className="mb-10 md:mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10"
           >
-            {/* Brand column */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-1">
               <p className="text-base font-bold" style={{ color: "var(--gv-text-primary)" }}>
                 Graville Operations
               </p>
@@ -194,8 +180,6 @@ export default function HomePage() {
                 The construction operations platform built for African contractors.
               </p>
             </div>
-
-            {/* Link columns */}
             {footerLinks.map(({ heading, items }) => (
               <div key={heading} className="flex flex-col gap-3">
                 <p className="gv-eyebrow mb-1">{heading}</p>

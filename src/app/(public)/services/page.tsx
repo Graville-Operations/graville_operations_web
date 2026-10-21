@@ -64,41 +64,38 @@ const services = [
 export default function ServicesPage() {
   return (
     <div className="gv-page">
-
-      {/* HEADER */}
-      <section className="py-5 px-8 xl:px-20 text-center">
+      <section className="py-5 px-4 sm:px-8 xl:px-20 text-center">
         <p className="gv-eyebrow mb-4">What We Do</p>
-        <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-6"
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold break-words leading-tight mb-4 sm:mb-6"
             style={{ color: "var(--gv-text-primary)" }}>
           Our Services
         </h1>
-        <p className="text-lg leading-relaxed mb-20 mx-auto"
+        <p className="text-base sm:text-lg leading-relaxed mb-10 md:mb-20 mx-auto"
            style={{ color: "var(--gv-text-muted)", maxWidth: "60ch" }}>
           From groundbreaking to handover, Graville Operations gives every layer of your
           team the tools they need, and gives you the visibility to run tighter, leaner sites.
         </p>
       </section>
 
-      {/* ALTERNATING SERVICE ROWS */}
-      <section className="pb-20 px-8 xl:px-20">
-        <div className="flex flex-col gap-22">
+      <section className="pb-20 px-4 sm:px-8 xl:px-20">
+        <div className="flex flex-col gap-12 md:gap-22">
           {services.map(({ id, icon: Icon, tag, title, body, stat, detail }, index) => {
             const isReversed = index % 2 !== 0;
             return (
               <div
                 id={id}
                 key={id}
-                className={`flex flex-col md:flex-row items-center gap-14
+                className={`flex flex-col md:flex-row items-center gap-6 md:gap-14
                   ${isReversed ? "md:flex-row-reverse" : ""}`}
               >
                 {/* Stat card */}
                 <div className="w-full md:w-1/2">
-                  <div className="gv-card gv-card-hover flex flex-col gap-5 py-10 px-10">
+                  <div className="gv-card gv-card-hover flex flex-col gap-4 md:gap-5 py-6 px-5 sm:py-10 sm:px-10">
                     <div className="gv-icon-box">
                       <Icon className="w-5 h-5" style={{ color: "var(--gv-brand)" }} />
                     </div>
                     <p className="gv-eyebrow">0{index + 1}</p>
-                    <p className="text-2xl xl:text-3xl font-bold"
+                    <p className="text-xl sm:text-2xl xl:text-3xl font-bold"
                        style={{ color: "var(--gv-text-primary)" }}>
                       {stat}
                     </p>
@@ -109,10 +106,9 @@ export default function ServicesPage() {
                   </div>
                 </div>
 
-                {/* Text side */}
                 <div className="w-full md:w-1/2">
                   <span className="gv-tag mb-5 inline-block">{tag}</span>
-                  <h3 className="text-2xl xl:text-3xl font-bold mb-5"
+                  <h3 className="text-xl sm:text-2xl xl:text-3xl font-bold mb-5"
                       style={{ color: "var(--gv-text-primary)" }}>
                     {title}
                   </h3>
@@ -126,12 +122,10 @@ export default function ServicesPage() {
           })}
         </div>
       </section>
-
-      {/* BOTTOM CTA */}
       <div className="gv-divider" />
-      <section className="py-24 px-8 xl:px-20 text-center">
+      <section className="py-14 md:py-24 px-4 sm:px-8 xl:px-20 text-center">
         <p className="gv-eyebrow mb-4">See it in action</p>
-        <h2 className="text-3xl md:text-4xl font-bold mb-6"
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6"
             style={{ color: "var(--gv-text-primary)" }}>
           Ready to bring every operation under one roof?
         </h2>

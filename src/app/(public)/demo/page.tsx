@@ -55,20 +55,20 @@ export default function DemoPage() {
       className="gv-page"
       style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
     >
-      <div className="flex-1 px-6 md:px-12 xl:px-24 py-8">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+      <div className="flex-1 px-4 sm:px-6 md:px-12 xl:px-24 py-6 md:py-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
 
           {/* Left — pitch */}
           <div>
             <p className="gv-eyebrow mb-4">Request a Demo</p>
             <h1
-              className="text-4xl xl:text-5xl font-extrabold leading-tight mb-6"
+              className="text-3xl sm:text-4xl xl:text-5xl font-extrabold leading-tight mb-4 sm:mb-6"
               style={{ color: 'var(--gv-text-primary)' }}
             >
               See Graville Operations in action.
             </h1>
             <p
-              className="text-base leading-relaxed mb-10"
+              className="text-base leading-relaxed mb-8 sm:mb-10"
               style={{ color: 'var(--gv-text-muted)' }}
             >
               Book a personalised walkthrough with our team. We&apos;ll show you exactly
@@ -77,7 +77,7 @@ export default function DemoPage() {
             </p>
 
             {/* Benefits list */}
-            <div className="flex flex-col gap-4 mb-10">
+            <div className="flex flex-col gap-4 mb-8 sm:mb-10">
               {benefits.map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-3">
                   <div className="gv-icon-box shrink-0" style={{ width: '2rem', height: '2rem' }}>
@@ -112,7 +112,7 @@ export default function DemoPage() {
             {submitted ? (
               /* Success state */
               <div
-                className="gv-card flex flex-col items-center text-center gap-6 py-16"
+                className="gv-card flex flex-col items-center text-center gap-6 py-10 sm:py-16"
                 style={{ border: '1px solid rgba(51,144,124,0.30)' }}
               >
                 <div
@@ -132,7 +132,7 @@ export default function DemoPage() {
                     Thank you,{' '}
                     <strong style={{ color: 'var(--gv-text-primary)' }}>{form.name}</strong>.
                     Our team will reach out to{' '}
-                    <strong style={{ color: 'var(--gv-text-primary)' }}>{form.email}</strong>{' '}
+                    <strong className="break-all" style={{ color: 'var(--gv-text-primary)' }}>{form.email}</strong>{' '}
                     within one business day to schedule your personalised demo.
                   </p>
                 </div>
@@ -240,7 +240,7 @@ export default function DemoPage() {
 
       {/* Footer strip */}
       <div className="gv-divider" />
-      <div className="px-8 py-6 text-center">
+      <div className="px-4 sm:px-8 py-6 text-center">
         <p className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
           © {new Date().getFullYear()} Graville Enterprises Limited. All rights reserved.
         </p>
