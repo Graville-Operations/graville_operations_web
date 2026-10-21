@@ -14,10 +14,10 @@ export default function LoginPage() {
   } = useLoginForm();
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top,#1a3a6e_0%,#0a0f1e_60%,#000000_100%)]">
+    <div className="relative overflow-hidden min-h-screen w-full flex items-center justify-center px-4 py-8 bg-[radial-gradient(ellipse_at_top,#1a3a6e_0%,#0a0f1e_60%,#000000_100%)]">
       <AuthBackdrop />
 
-      <div className="relative w-full max-w-md rounded-2xl p-8 shadow-2xl bg-white/10 backdrop-blur-md border border-white/20">
+      <div className="relative w-full max-w-md rounded-2xl p-5 sm:p-8 shadow-2xl bg-white/10 backdrop-blur-md border border-white/20">
         <AuthCardHeader title="Graville Operations" subtitle="Sign in to your account" />
 
         <LoginForm

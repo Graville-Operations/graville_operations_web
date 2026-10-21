@@ -40,11 +40,11 @@ export default function AboutPage() {
   return (
     <div className="gv-page">
 
-      <section className="py-5 px-8 xl:px-20 text-center">
+      <section className="py-5 px-4 sm:px-8 xl:px-20 text-center">
 
         <p className="gv-eyebrow mb-4">Our Story</p>
 
-        <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-8"
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold break-words leading-tight mb-6 sm:mb-8"
             style={{ color: "var(--gv-text-primary)" }}>
           Built on Foundations of Operational Truth
         </h1>
@@ -62,14 +62,14 @@ export default function AboutPage() {
           every construction business globaly can run with total transparency.
         </p>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5 mt-6">
           {[
             { v: "10+", l: "Years in operation" },
             { v: "250+", l: "Projects delivered" },
             { v: "70+", l: "Team members"       },
             { v: "12",  l: "Active sites"       },
           ].map(({ v, l }) => (
-            <div key={l} className="gv-card flex flex-col items-center gap-1 py-8">
+            <div key={l} className="gv-card flex flex-col items-center gap-1 py-6 sm:py-8 px-3 text-center">
               <p className="text-3xl font-extrabold"
                 style={{ color: "var(--gv-text-primary)" }}>
                 {v}
@@ -83,16 +83,16 @@ export default function AboutPage() {
 
       <div className="gv-divider" />
 
-      <section className="py-10 px-8 xl:px-20 text-center">
+      <section className="py-10 px-4 sm:px-8 xl:px-20 text-center">
         <p className="gv-eyebrow mb-3">What We Stand For</p>
-        <h2 className="text-3xl md:text-4xl font-bold mb-16"
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-10 md:mb-16"
             style={{ color: "var(--gv-text-primary)" }}>
           Our Core Values
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {values.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="gv-card gv-card-hover flex flex-col gap-4 py-10">
+            <div key={title} className="gv-card gv-card-hover flex flex-col items-center gap-4 py-8 md:py-10">
               <div className="gv-icon-box">
                 <Icon className="w-5 h-5" style={{ color: "var(--gv-brand)" }} />
               </div>
@@ -111,29 +111,29 @@ export default function AboutPage() {
 
       <div className="gv-divider" />
 
-      <section className="py-15 px-8 xl:px-20">
+      <section className="py-10 md:py-15 px-4 sm:px-8 xl:px-20">
         <p className="gv-eyebrow mb-3 text-center">Why Graville</p>
-        <h2 className="text-3xl md:text-4xl font-bold mb-24 text-center"
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-10 md:mb-24 text-center"
             style={{ color: "var(--gv-text-primary)" }}>
           What sets us apart.
         </h2>
 
-        <div className="flex flex-col gap-22">
+        <div className="flex flex-col gap-12 md:gap-22">
           {whyGraville.map(({ icon: Icon, title, desc, stat }, index) => {
             const isReversed = index % 2 !== 0;
             return (
               <div
                 key={title}
-                className={`flex flex-col md:flex-row items-center gap-14
+                className={`flex flex-col md:flex-row items-center gap-6 md:gap-14
                   ${isReversed ? "md:flex-row-reverse" : ""}`}
               >
                 <div className="w-full md:w-1/2">
-                  <div className="gv-card gv-card-hover flex flex-col gap-5 py-10 px-10">
+                  <div className="gv-card gv-card-hover flex flex-col gap-4 md:gap-5 py-6 px-5 sm:py-10 sm:px-10">
                     <div className="gv-icon-box">
                       <Icon className="w-5 h-5" style={{ color: "var(--gv-brand)" }} />
                     </div>
                     <p className="gv-eyebrow">0{index + 1}</p>
-                    <p className="text-2xl xl:text-3xl font-bold"
+                    <p className="text-xl sm:text-2xl xl:text-3xl font-bold"
                        style={{ color: "var(--gv-text-primary)" }}>
                       {stat}
                     </p>
@@ -147,7 +147,7 @@ export default function AboutPage() {
 
                 <div className="w-full md:w-1/2">
                   <p className="gv-eyebrow mb-4">Feature 0{index + 1}</p>
-                  <h3 className="text-2xl xl:text-3xl font-bold mb-5"
+                  <h3 className="text-xl sm:text-2xl xl:text-3xl font-bold mb-5"
                       style={{ color: "var(--gv-text-primary)" }}>
                     {title}
                   </h3>

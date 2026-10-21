@@ -1,5 +1,4 @@
-// src/app/(dashboard)/layout.tsx
-import Sidebar from '@/components/layout/sidebar';
+import DashboardShell from '@/components/layout/dashboard-shell';
 import ProtectedRoute from '@/components/layout/protected-route';
 import SessionWatcher from '@/components/layout/session-watcher';
 
@@ -7,12 +6,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <ProtectedRoute>
       <SessionWatcher /> 
-      <div className="flex h-screen ...">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto p-8 relative">
-          {children}
-        </main>
-      </div>
+      <DashboardShell>{children}</DashboardShell>
     </ProtectedRoute>
   );
 }
