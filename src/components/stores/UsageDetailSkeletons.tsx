@@ -21,7 +21,7 @@ export function UsageHeaderSkeleton() {
 export function UsageTableSkeleton({ cols, rows = 5 }: { cols: number; rows?: number }) {
   return (
     <div className="gv-card p-0 overflow-hidden">
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto"><table className="min-w-[640px] w-full text-sm">
         <tbody>
           {Array.from({ length: rows }).map((_, i) => (
             <tr key={i} className="border-b border-border last:border-0">
@@ -33,7 +33,7 @@ export function UsageTableSkeleton({ cols, rows = 5 }: { cols: number; rows?: nu
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

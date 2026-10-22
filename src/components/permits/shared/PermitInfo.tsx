@@ -54,7 +54,7 @@ export function ApproversTable({ approvals }: { approvals: PermitDetail["approva
     <div>
       <p className="gv-eyebrow text-label-sm mb-2">Approvers</p>
       <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--gv-glass-border)" }}>
-        <table className="w-full text-xs">
+        <div className="overflow-x-auto"><table className="min-w-[480px] w-full text-xs">
           <thead>
             <tr style={{ background: "rgba(51,144,124,0.08)" }}>
               {["Approver", "Status", ...(hasComment ? ["Comment"] : [])].map((h) => (
@@ -82,7 +82,7 @@ export function ApproversTable({ approvals }: { approvals: PermitDetail["approva
               );
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

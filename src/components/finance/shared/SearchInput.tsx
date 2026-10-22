@@ -14,7 +14,7 @@ export default function SearchInput({
   placeholder = 'Search…',
 }: SearchInputProps) {
   return (
-    <div className="relative flex-1">
+    <div className="relative flex-1 min-w-[12rem]">
       <Search
         size={15}
         className="absolute left-3 top-1/2 -translate-y-1/2"

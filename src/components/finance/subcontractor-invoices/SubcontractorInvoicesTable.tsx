@@ -43,7 +43,7 @@ export function SubcontractorInvoicesTable({
   }
 
   return (
-    <table className="w-full">
+    <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
       <thead className="bg-white/5 border-b border-white/10">
         <tr>
           {headers.map((h) => (
@@ -104,6 +104,6 @@ export function SubcontractorInvoicesTable({
           ))
         )}
       </tbody>
-    </table>
+    </table></div>
   );
 }

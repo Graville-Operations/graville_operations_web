@@ -29,13 +29,13 @@ function RowSkeleton({ cols }: { cols: number }) {
 export function TableSkeleton({ cols, rows = 6 }: { cols: number; rows?: number }) {
   return (
     <div className="gv-card p-0 overflow-hidden">
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto"><table className="min-w-[640px] w-full text-sm">
         <tbody>
           {Array.from({ length: rows }).map((_, i) => (
             <RowSkeleton key={i} cols={cols} />
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

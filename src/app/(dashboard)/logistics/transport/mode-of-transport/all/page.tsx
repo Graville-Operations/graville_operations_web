@@ -164,7 +164,7 @@ export default function AllVehiclesPage() {
       </button>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Label size="sm" as="p" className="gv-eyebrow mb-1">Logistics · Transport</Label>
           <Title size="lg" as="h1">Vehicles</Title>

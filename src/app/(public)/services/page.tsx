@@ -64,6 +64,8 @@ const services = [
 export default function ServicesPage() {
   return (
     <div className="gv-page">
+
+      {/* HEADER */}
       <section className="py-5 px-4 sm:px-8 xl:px-20 text-center">
         <p className="gv-eyebrow mb-4">What We Do</p>
         <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold break-words leading-tight mb-4 sm:mb-6"
@@ -77,6 +79,7 @@ export default function ServicesPage() {
         </p>
       </section>
 
+      {/* ALTERNATING SERVICE ROWS */}
       <section className="pb-20 px-4 sm:px-8 xl:px-20">
         <div className="flex flex-col gap-12 md:gap-22">
           {services.map(({ id, icon: Icon, tag, title, body, stat, detail }, index) => {
@@ -106,6 +109,7 @@ export default function ServicesPage() {
                   </div>
                 </div>
 
+                {/* Text side */}
                 <div className="w-full md:w-1/2">
                   <span className="gv-tag mb-5 inline-block">{tag}</span>
                   <h3 className="text-xl sm:text-2xl xl:text-3xl font-bold mb-5"
@@ -122,6 +126,8 @@ export default function ServicesPage() {
           })}
         </div>
       </section>
+
+      {/* BOTTOM CTA */}
       <div className="gv-divider" />
       <section className="py-14 md:py-24 px-4 sm:px-8 xl:px-20 text-center">
         <p className="gv-eyebrow mb-4">See it in action</p>

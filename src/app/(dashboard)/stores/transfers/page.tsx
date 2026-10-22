@@ -84,7 +84,7 @@ export default function TransfersPage() {
     <div className="w-full max-w-6xl mx-auto space-y-6">
       <ShimmerStyle />
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Label size="sm" as="p" className="gv-eyebrow mb-1">Store</Label>
           <Title size="lg" as="h1">Material Transfers</Title>

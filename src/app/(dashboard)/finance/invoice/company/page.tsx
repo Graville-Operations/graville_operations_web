@@ -33,7 +33,7 @@ export default function CompanyInvoicesPage() {
   return (
     <div className="space-y-6">
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>Company Invoices</h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
@@ -49,7 +49,7 @@ export default function CompanyInvoicesPage() {
       </div>
 
       <div className="gv-card p-3!">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <SearchInput
             value={search}
             onChange={setSearch}

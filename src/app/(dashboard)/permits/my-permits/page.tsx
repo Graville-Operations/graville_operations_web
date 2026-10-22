@@ -41,7 +41,7 @@ export default function PermitsDashboard() {
       <ShimmerStyle />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold" style={{ color: "var(--gv-text-primary)" }}>
             {activeTab === "permits" ? "My Permits" : "Permit Categories"}
@@ -135,7 +135,7 @@ export default function PermitsDashboard() {
           {/* Table — desktop */}
           <div className="gv-card p-0! overflow-hidden hidden md:block">
             {isLoading ? (
-              <table className="w-full">
+              <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
                 <thead>
                   <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                     {["Title", "Category", "Status", "Date", ""].map((h) => (
@@ -154,7 +154,7 @@ export default function PermitsDashboard() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             ) : filtered.length === 0 ? (
               <EmptyState
                 title={
@@ -173,7 +173,7 @@ export default function PermitsDashboard() {
                 }
               />
             ) : (
-              <table className="w-full">
+              <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
                 <thead>
                   <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                     {["Title", "Category", "Status", "Date", ""].map((h) => (
@@ -205,7 +205,7 @@ export default function PermitsDashboard() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </div>
 

@@ -63,7 +63,7 @@ export default function FuelVehicleDetailPage() {
       ) : (
         <>
           {/* Header */}
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="gv-icon-box"><Fuel size={18} className="text-[#33907c]" /></div>
               <div>

@@ -93,7 +93,7 @@ export function DatePicker({
 
       {open && (
         <div
-          className="absolute z-50 mt-2 rounded-xl p-4 w-72"
+          className="absolute z-50 mt-2 rounded-xl p-4 w-72 max-w-[calc(100vw-2rem)]"
           style={{
             background: 'rgba(13,21,40,0.95)',
             backdropFilter: 'blur(16px)',

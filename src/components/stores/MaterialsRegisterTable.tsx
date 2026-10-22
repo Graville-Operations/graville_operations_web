@@ -4,7 +4,7 @@ import type { StoreMaterial } from '@/types/store';
 export function MaterialsRegisterTable({ items, search }: { items: StoreMaterial[]; search: string }) {
   return (
     <div className="gv-card p-0 overflow-hidden">
-      <table className="w-full text-sm table-fixed">
+      <div className="overflow-x-auto"><table className="min-w-[640px] w-full text-sm table-fixed">
         <colgroup>
           <col className="w-[40%]" />
           <col className="w-[30%]" />
@@ -63,7 +63,7 @@ export function MaterialsRegisterTable({ items, search }: { items: StoreMaterial
             );
           })}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

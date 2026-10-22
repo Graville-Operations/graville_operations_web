@@ -81,6 +81,8 @@ const footerLinks = [
 export default function HomePage() {
   return (
     <div className="gv-page" style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+
+      {/* HERO */}
       <section className="min-h-[60vh] py-8 sm:py-0 flex flex-col items-center justify-center text-center px-4 sm:px-8 xl:px-20">
         <p className="gv-eyebrow mb-6">Construction Operations Platform</p>
         <h1 className="text-[1.9rem] sm:text-5xl md:text-6xl xl:text-[5.5rem] font-extrabold leading-[1.12] sm:leading-[1.08] mb-6 sm:mb-10 break-words"
@@ -103,6 +105,8 @@ export default function HomePage() {
           <Link href={ROUTES.public.contact} className="gv-btn-outline">Talk to Us</Link>
         </div>
       </section>
+
+      {/* FEATURES */}
       <section className="py-8 md:py-10 px-4 sm:px-8 xl:px-20">
         <p className="gv-eyebrow mb-3 text-center">Platform Features</p>
         <h2 className="text-3xl md:text-4xl xl:text-5xl font-bold mb-10 md:mb-24 text-center"
@@ -154,6 +158,8 @@ export default function HomePage() {
           })}
         </div>
       </section>
+
+      {/* BOTTOM CTA */}
       <div className="gv-divider" />
       <section className="py-14 md:py-24 px-4 sm:px-8 xl:px-20 text-center">
         <p className="gv-eyebrow mb-4">Ready to stop the bleed?</p>
@@ -166,12 +172,15 @@ export default function HomePage() {
           <Link href={ROUTES.public.contact} className="gv-btn-outline">Contact Us</Link>
         </div>
       </section>
+
+      {/* FOOTER */}
       <div className="gv-divider" />
       <footer className="px-5 sm:px-8 xl:px-32 py-10 md:py-16" style={{ marginTop: "auto" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <div
             className="mb-10 md:mb-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10"
           >
+            {/* Brand column */}
             <div className="flex flex-col gap-4 sm:col-span-2 lg:col-span-1">
               <p className="text-base font-bold" style={{ color: "var(--gv-text-primary)" }}>
                 Graville Operations
@@ -180,6 +189,8 @@ export default function HomePage() {
                 The construction operations platform built for African contractors.
               </p>
             </div>
+
+            {/* Link columns */}
             {footerLinks.map(({ heading, items }) => (
               <div key={heading} className="flex flex-col gap-3">
                 <p className="gv-eyebrow mb-1">{heading}</p>

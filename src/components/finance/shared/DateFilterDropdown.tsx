@@ -84,7 +84,7 @@ export default function DateFilterDropdown({
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-72 rounded-2xl z-30 overflow-hidden"
+          className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-2xl z-30 overflow-hidden"
           style={{
             background: '#0d1528',
             border: '1px solid var(--gv-glass-border)',

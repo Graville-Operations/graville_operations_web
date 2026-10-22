@@ -66,7 +66,7 @@ export function StatCard({ label, value, sub, icon, variant = 'default', onClick
         </div>
       </div>
       <div>
-        <p className="gv-label">{label}</p>
+        <p className="gv-label break-words">{label}</p>
         <p className={`text-3xl font-bold tracking-tight ${VAL_CLS[variant]}`}>{value}</p>
         {sub && <p className="text-muted-foreground text-xs mt-1">{sub}</p>}
       </div>

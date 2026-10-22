@@ -29,6 +29,8 @@ export default function CompanyInvoiceLineItemsEditor({
         </button>
       </div>
 
+      <div className="overflow-x-auto">
+      <div className="min-w-[560px]">
       <div
         className="grid gap-3 px-3 py-2.5 rounded-lg mb-3 text-xs font-semibold uppercase tracking-wider"
         style={{ gridTemplateColumns: '1fr 130px 160px auto', background: 'rgba(51,144,124,0.08)', color: '#33907c' }}
@@ -92,6 +94,8 @@ export default function CompanyInvoiceLineItemsEditor({
             </div>
           );
         })}
+      </div>
+      </div>
       </div>
     </div>
   );

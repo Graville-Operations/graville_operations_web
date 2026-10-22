@@ -37,7 +37,7 @@ export function ClientInvoicesTable({ invoices, isLoading, onSelect }: ClientInv
           </Link>
         </div>
       ) : (
-        <table className="w-full">
+        <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
           <thead
             style={{
               background: 'rgba(255,255,255,0.04)',
@@ -91,7 +91,7 @@ export function ClientInvoicesTable({ invoices, isLoading, onSelect }: ClientInv
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );

@@ -25,7 +25,7 @@ function StatusBlock({
 }: { label: string; count: number; amount: number; color: string }) {
   return (
     <div className="gv-card p-5 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
           {label}
         </span>
@@ -132,7 +132,7 @@ export default function InvoiceCategoryDetailPage() {
               color="#f87171"
             />
             <div className="gv-card p-5 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
                   Partially Paid
                 </span>
@@ -143,7 +143,7 @@ export default function InvoiceCategoryDetailPage() {
                   {summary.partiallyPaidCount} invoice{summary.partiallyPaidCount === 1 ? '' : 's'}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs" style={{ color: 'var(--gv-text-subtle)' }}>
                 <div>
                   <p>Invoice Total</p>
                   <p className="font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
