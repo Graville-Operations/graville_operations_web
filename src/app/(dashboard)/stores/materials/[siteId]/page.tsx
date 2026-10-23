@@ -46,7 +46,7 @@ export default function MaterialsPage() {
 
       {items.length > 0 && (
         <>
-          <div className="grid grid-cols-3 gap-3 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
             <MaterialsDetailTable items={col1} />
             <MaterialsDetailTable items={col2} />
             <MaterialsDetailTable items={col3} />

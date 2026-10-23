@@ -23,7 +23,7 @@ export default function CompanyInvoiceMetaCard({
 
   return (
     <div className="gv-card">
-      <div className="grid grid-cols-4 gap-x-6 gap-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
         {fields.map(({ label, value, shimmer }) => (
           <div key={label}>
             <p className="gv-eyebrow mb-0.5 text-label-sm">{label}</p>

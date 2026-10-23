@@ -25,7 +25,7 @@ export default function ConstructionSitesPage() {
         </p>
       </div>
       <div className="px-4 pb-4">
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           <QuickStatPill label="Total"  value={stats.totalSites}    loading={loadingKpis} />
           <QuickStatPill label="Plan"   value={stats.planningSites} loading={loadingKpis} />
           <QuickStatPill label="Active" value={stats.activeSites}   loading={loadingKpis} />

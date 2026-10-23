@@ -11,7 +11,7 @@ export function WelcomeBanner({ firstName, role }: WelcomeBannerProps) {
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl p-6"
+      className="relative overflow-hidden rounded-2xl p-4 sm:p-6"
       style={{
         background: 'linear-gradient(135deg, rgba(51,144,124,0.30) 0%, rgba(23,57,144,0.25) 100%)',
         border: '1px solid rgba(51,144,124,0.35)',
@@ -24,7 +24,7 @@ export function WelcomeBanner({ firstName, role }: WelcomeBannerProps) {
       />
       <div className="relative">
         <p className="gv-eyebrow mb-2">Dashboard</p>
-        <h2 className="text-2xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>
+        <h2 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--gv-text-primary)' }}>
           {greeting}, {firstName ?? 'there'} 👋
         </h2>
         <p className="mt-1 text-sm" style={{ color: 'var(--gv-text-muted)' }}>

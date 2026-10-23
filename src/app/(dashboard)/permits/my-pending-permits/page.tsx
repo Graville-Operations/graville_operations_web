@@ -44,7 +44,7 @@ export default function PendingApprovalsPage() {
       </div>
       <div className="gv-card p-0! overflow-hidden hidden md:block">
         {isLoading ? (
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
             <thead>
               <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                 {["Title", "Category", "Site", "Status", "Date"].map((h) => (
@@ -63,7 +63,7 @@ export default function PendingApprovalsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         ) : filtered.length === 0 ? (
           <EmptyState
             title={search ? `No results for "${search}"` : "No pending permits"}
@@ -71,7 +71,7 @@ export default function PendingApprovalsPage() {
             fullScreen={false}
           />
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
             <thead>
               <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                 {["Title", "Category", "Site", "Status", "Date"].map((h) => (
@@ -100,7 +100,7 @@ export default function PendingApprovalsPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
 

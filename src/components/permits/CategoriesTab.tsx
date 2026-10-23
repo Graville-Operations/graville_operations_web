@@ -35,7 +35,7 @@ export function CategoriesTab() {
           <button onClick={() => setDeleteError(null)} className="ml-3 opacity-70 hover:opacity-100">✕</button>
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm" style={{ color: "var(--gv-text-muted)" }}>{categories.length} categories</p>
         <button onClick={openCreate} className="gv-btn-brand flex items-center gap-2 px-4 py-2 rounded-xl text-sm">
           <Plus size={15} /> New Category
@@ -43,7 +43,7 @@ export function CategoriesTab() {
       </div>
       <div className="gv-card p-0! overflow-hidden">
         {loading ? (
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
             <thead>
               <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                 {["Name", "Description", "Actions"].map((h) => (
@@ -60,7 +60,7 @@ export function CategoriesTab() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         ) : categories.length === 0 ? (
           <EmptyState
             title="No categories yet"
@@ -69,7 +69,7 @@ export function CategoriesTab() {
             action={{ label: "Create first category", onClick: openCreate }}
           />
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
             <thead>
               <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                 {["Name", "Description", "Actions"].map((h) => (
@@ -107,7 +107,7 @@ export function CategoriesTab() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>

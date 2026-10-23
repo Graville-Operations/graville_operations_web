@@ -2,10 +2,10 @@ import { ShimmerBar } from '@/components/shared/Shimmer';
 
 export function MaterialsDetailSkeleton() {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {[0, 1, 2].map((colIdx) => (
         <div key={colIdx} className="gv-card p-0 overflow-hidden">
-          <table className="w-full text-sm table-fixed">
+          <div className="overflow-x-auto"><table className="min-w-[240px] w-full text-sm table-fixed">
             <colgroup>
               <col className="w-[68%]" />
               <col className="w-[32%]" />
@@ -37,7 +37,7 @@ export function MaterialsDetailSkeleton() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       ))}
     </div>

@@ -28,7 +28,7 @@ export default function CompanyInvoiceLineItems({ items, isDetailLoading }: Comp
           </div>
         ))
       ) : (
-        <table className="w-full">
+        <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
           <thead>
             <tr style={{ background: 'rgba(51,144,124,0.08)' }}>
               {['', 'Particulars', 'Quantity', 'Unit Price', 'Total'].map((h) => (
@@ -57,7 +57,7 @@ export default function CompanyInvoiceLineItems({ items, isDetailLoading }: Comp
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );

@@ -42,7 +42,7 @@ export default function SupplierInvoicePaymentHistoryPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="gv-card p-4">
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#33907c' }}>
                 Total Invoice Value

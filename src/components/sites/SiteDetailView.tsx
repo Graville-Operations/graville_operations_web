@@ -104,7 +104,7 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
 
             <div className="gv-card flex flex-col gap-5"
               style={{ background: 'linear-gradient(135deg,rgba(30,42,58,0.95) 0%,rgba(20,32,46,0.95) 100%)' }}>
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
                 {loadingDetail
                   ? <div className="h-9 w-64 rounded-lg animate-pulse" style={{ background: 'var(--gv-glass-bg-strong)' }} />
                   : <h1 className="text-4xl font-bold text-white leading-tight">{siteName}</h1>}

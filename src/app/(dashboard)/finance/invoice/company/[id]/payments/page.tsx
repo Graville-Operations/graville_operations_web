@@ -20,7 +20,7 @@ export default function CompanyInvoicePaymentHistoryPage() {
   const { history, loading, error } = useCompanyPaymentHistory(id);
 
   return (
-    <div className="space-y-6 w-full" style={{ maxWidth: '75vw', margin: '0 auto' }}>
+    <div className="space-y-6 w-full md:max-w-[75vw] mx-auto">
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.back()}
@@ -42,7 +42,7 @@ export default function CompanyInvoicePaymentHistoryPage() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="gv-card p-4">
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#33907c' }}>
                 Total Invoice Value

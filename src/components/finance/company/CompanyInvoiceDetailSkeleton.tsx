@@ -4,13 +4,13 @@ import { PulseBox } from '@/components/shared/Shimmer';
 
 export default function CompanyInvoiceDetailSkeleton() {
   return (
-    <div className="space-y-6 w-full" style={{ maxWidth: '75vw', margin: '0 auto' }}>
+    <div className="space-y-6 w-full md:max-w-[75vw] mx-auto">
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} />
         <div className="space-y-2"><PulseBox w="180px" h="20px" /><PulseBox w="120px" h="14px" /></div>
       </div>
       <div className="gv-card">
-        <div className="grid grid-cols-4 gap-x-6 gap-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="space-y-2"><PulseBox w="60px" h="10px" /><PulseBox w="100px" h="14px" /></div>
           ))}

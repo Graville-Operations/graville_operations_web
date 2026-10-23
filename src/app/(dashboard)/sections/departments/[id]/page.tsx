@@ -425,7 +425,7 @@ export default function DepartmentDetailPage() {
       <ShimmerStyle />
 
       {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <button type="button" onClick={() => router.push(ROUTES.sections.departments.list)}
             className="gv-btn-outline w-9 h-9 flex items-center justify-center p-0 shrink-0">

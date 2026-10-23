@@ -16,7 +16,7 @@ export function LineItemsEditor({
 }: LineItemsEditorProps) {
   return (
     <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-semibold text-white">Line Items</h3>
         <button
           type="button"

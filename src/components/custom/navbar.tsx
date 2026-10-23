@@ -18,9 +18,13 @@ const links = [
 export function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  // Close the mobile menu whenever the route changes
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  // Close on Escape + lock background scroll while the menu is open
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -34,9 +38,11 @@ export function Navbar() {
   }, [open]);
 
   return (
+    /* gv-nav handles: gradient bg, blur, z-50, shadow-border */
     <nav className="gv-nav relative">
       <div className="relative w-full px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-3">
 
+        {/* LEFT: logo + company name (name hidden on very small screens) */}
         <Link
           href={ROUTES.public.landing}
           className="flex items-center gap-3 min-w-0"
@@ -57,6 +63,8 @@ export function Navbar() {
             Graville Enterprises Limited
           </span>
         </Link>
+
+        {/* CENTER: nav links — desktop only */}
         <ul className="hidden lg:flex items-center gap-10 absolute left-1/2 -translate-x-1/2">
           {links.map(({ href, label }) => (
             <li key={href}>
@@ -76,6 +84,7 @@ export function Navbar() {
           ))}
         </ul>
 
+        {/* RIGHT (desktop): Sign In | Request a demo */}
         <div className="hidden lg:flex items-center gap-3 shrink-0">
           <Link
             href={ROUTES.signin}
@@ -108,8 +117,10 @@ export function Navbar() {
         </button>
       </div>
 
+      {/* MOBILE / TABLET PANEL */}
       {open && (
         <>
+          {/* tap-outside backdrop */}
           <div
             className="lg:hidden fixed inset-0 top-16 bg-black/50"
             onClick={() => setOpen(false)}

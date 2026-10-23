@@ -16,7 +16,7 @@ export default function CompanyInvoiceFormFooter({
   onSubmit,
 }: CompanyInvoiceFormFooterProps) {
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-4">
       <div
         className="flex items-center gap-4 px-5 py-3.5 rounded-xl"
         style={{ background: 'rgba(51,144,124,0.08)', border: '1px solid var(--gv-glass-border)' }}

@@ -31,7 +31,7 @@ export default function MaintenanceServicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="gv-eyebrow">Logistics · Maintenance</p>
           <h1 className="text-2xl font-bold mt-1">Services</h1>

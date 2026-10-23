@@ -211,7 +211,7 @@ export default function ModeOfTransportPage() {
 
       {/* Vehicles section */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Label size="sm" as="p" className="gv-eyebrow">
             Vehicles {!vehiclesLoading && `(${transports.length})`}
           </Label>
@@ -383,8 +383,8 @@ export default function ModeOfTransportPage() {
       </div>
 
       {/* Vehicle Categories section — centered, 3/4 width */}
-      <div className="space-y-4 w-3/4 mx-auto">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 w-full md:w-3/4 mx-auto">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Label size="sm" as="p" className="gv-eyebrow">
             Vehicle Categories {!categoriesLoading && `(${allCategories.length})`}
           </Label>

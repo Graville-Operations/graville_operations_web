@@ -6,7 +6,7 @@ export function InvoiceLineItemsTable({ invoice }: { invoice: ClientInvoiceDetai
       <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
         <h3 className="text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>Line Items</h3>
       </div>
-      <table className="w-full">
+      <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
         <thead style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid var(--gv-glass-border)' }}>
           <tr>
             {['#', 'Particulars', 'Qty', 'Unit Price (KES)', 'Total (KES)'].map((h) => (
@@ -45,7 +45,7 @@ export function InvoiceLineItemsTable({ invoice }: { invoice: ClientInvoiceDetai
             </td>
           </tr>
         </tfoot>
-      </table>
+      </table></div>
     </div>
   );
 }

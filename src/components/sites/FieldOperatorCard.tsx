@@ -91,7 +91,7 @@ export function FieldOperatorCard({ siteId, operator, loading, onOperatorChange 
 
         {showAssignDropdown && (
           <div
-            className="absolute z-40 mt-2 w-72"
+            className="absolute z-40 mt-2 w-72 max-w-[calc(100vw-2rem)]"
             style={{
               background: 'var(--gv-glass-bg-strong)',
               border: '1px solid var(--gv-glass-border)',

@@ -38,7 +38,7 @@ export default function SupplierInvoicesPage() {
         </p>
       </div>
       <div className="gv-card p-3!">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <SearchInput
             value={search}
             onChange={setSearch}

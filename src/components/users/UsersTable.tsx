@@ -37,7 +37,7 @@ export function UsersTable({ users, isLoading, search, onSearchChange, onSelect 
             <p>No users found</p>
           </div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
             <thead className="bg-white/5 border-b border-white/10">
               <tr>
                 {['Name', 'Email', 'Role', 'Phone'].map((h) => (
@@ -74,7 +74,7 @@ export function UsersTable({ users, isLoading, search, onSearchChange, onSelect 
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </>

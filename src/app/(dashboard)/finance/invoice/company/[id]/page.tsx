@@ -54,7 +54,7 @@ export default function CompanyInvoiceDetailPage() {
   const showReject = invoice.payment_status === InvoicePaymentStatus.PENDING;
 
   return (
-    <div className="space-y-6 w-full" style={{ maxWidth: '75vw', margin: '0 auto' }}>
+    <div className="space-y-6 w-full md:max-w-[75vw] mx-auto">
       <CompanyInvoiceHeader
         invoiceNumber={invoice.invoice_number}
         invoicedBy={invoice.invoiced_by}
@@ -74,7 +74,7 @@ export default function CompanyInvoiceDetailPage() {
 
       <CompanyInvoiceLineItems items={invoice.items} isDetailLoading={detailLoading} />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CompanyInvoiceSummary total={invoice.total} />
         <CompanyInvoiceNotes notes={invoice.notes} isDetailLoading={detailLoading} />
       </div>

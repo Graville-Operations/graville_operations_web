@@ -74,7 +74,7 @@ export default function AllPermitsPage() {
       {/* Table — desktop */}
       <div className="gv-card p-0! overflow-hidden hidden md:block">
         {isLoading ? (
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
             <thead>
               <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                 {["Title", "Category", "Status", "Date"].map((h) => (
@@ -92,7 +92,7 @@ export default function AllPermitsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         ) : filtered.length === 0 ? (
           <EmptyState
             title={search ? `No results for "${search}"` : "No permits found"}
@@ -100,7 +100,7 @@ export default function AllPermitsPage() {
             fullScreen={false}
           />
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
             <thead>
               <tr style={{ background: "rgba(51,144,124,0.08)", borderBottom: "1px solid var(--gv-glass-border)" }}>
                 {["Title", "Category", "Status", "Date"].map((h) => (
@@ -128,7 +128,7 @@ export default function AllPermitsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
 

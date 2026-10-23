@@ -62,7 +62,7 @@ export function TransferApproversCard({
       <p className="gv-eyebrow">Approvers</p>
 
       <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--gv-glass-border)' }}>
-        <table className="w-full text-xs">
+        <div className="overflow-x-auto"><table className="min-w-[480px] w-full text-xs">
           <thead>
             <tr style={{ background: 'rgba(51,144,124,0.08)' }}>
               {['Approver', 'Status', ...(hasComment ? ['Comment'] : [])].map((h) => (
@@ -96,7 +96,7 @@ export function TransferApproversCard({
               );
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {canApprove && (

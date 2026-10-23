@@ -4,7 +4,7 @@ export function MaterialsDetailTable({ items }: { items: MaterialItem[] }) {
   if (items.length === 0) return null;
   return (
     <div className="gv-card p-0 overflow-hidden h-full">
-      <table className="w-full text-sm table-fixed">
+      <div className="overflow-x-auto"><table className="min-w-[240px] w-full text-sm table-fixed">
         <colgroup>
           <col className="w-[68%]" />
           <col className="w-[32%]" />
@@ -55,7 +55,7 @@ export function MaterialsDetailTable({ items }: { items: MaterialItem[] }) {
             );
           })}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

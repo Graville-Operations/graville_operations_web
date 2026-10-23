@@ -408,7 +408,7 @@ export default function DepartmentsPage() {
       <ShimmerStyle />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Label size="sm" as="p" className="gv-eyebrow mb-1">Sections</Label>
           <Title size="lg" as="h1">Departments</Title>

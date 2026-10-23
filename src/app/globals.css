@@ -547,7 +547,19 @@
   color:        var(--gv-brand);
 }
 
+/* ── Responsive helpers (mobile-only tweaks; desktop unchanged) ── */
 @media (max-width: 640px) {
+  /* 16px inputs stop iOS Safari zooming the page on focus */
   .gv-input { font-size: 16px; }
+  /* gv-btn-* get comfortable tap height */
   .gv-btn-brand, .gv-btn-outline { padding: 0.75rem 1.25rem; min-height: 2.75rem; }
+}
+
+/* Centered modals/overlays: on phones or short screens, align to the top and let the
+   overlay scroll, so tall forms are never cut off above/below the viewport. */
+@media (max-width: 640px), (max-height: 600px) {
+  .fixed.inset-0.items-center.justify-center {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
 }

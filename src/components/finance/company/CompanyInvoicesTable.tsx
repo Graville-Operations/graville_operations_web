@@ -41,7 +41,7 @@ export default function CompanyInvoicesTable({
 }: CompanyInvoicesTableProps) {
   return (
     <div className="gv-card p-0! overflow-hidden hidden md:block">
-      <table className="w-full">
+      <div className="overflow-x-auto"><table className="min-w-[640px] w-full">
         <thead>
           <tr style={{ background: 'rgba(51,144,124,0.08)', borderBottom: '1px solid var(--gv-glass-border)' }}>
             {HEADERS.map((h) => (
@@ -105,7 +105,7 @@ export default function CompanyInvoicesTable({
             ))
           )}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

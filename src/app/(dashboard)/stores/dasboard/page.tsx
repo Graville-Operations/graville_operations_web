@@ -48,13 +48,13 @@ const VAL_CLS: Record<Variant, string> = {
 interface StatCardProps { label: string; value: string | number; sub?: string; icon: React.ReactNode; variant?: Variant; badge?: string; }
 function StatCard({ label, value, sub, icon, variant = 'default', badge }: StatCardProps) {
   return (
-    <div className={`gv-card flex flex-col gap-4 ${BORDER_CLS[variant]}`}>
-      <div className="flex items-start justify-between">
+    <div className={`gv-card min-w-0 flex flex-col gap-4 ${BORDER_CLS[variant]}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="gv-icon-box"><span className={ICON_CLS[variant]}>{icon}</span></div>
         <div className="flex items-center gap-2">{badge && <span className="gv-tag text-[color:var(--gv-text-subtle)]">{badge}</span>}</div>
       </div>
       <div>
-        <p className="gv-label">{label}</p>
+        <p className="gv-label break-words">{label}</p>
         <p className={`text-3xl font-bold tracking-tight ${VAL_CLS[variant]}`}>{value}</p>
         {sub && <p className="text-muted-foreground text-xs mt-1">{sub}</p>}
       </div>
@@ -64,16 +64,16 @@ function StatCard({ label, value, sub, icon, variant = 'default', badge }: StatC
 
 function LowStockCard({ sites }: { sites: LowStockSite[] }) {
   return (
-    <div className={`gv-card flex flex-row gap-4 ${BORDER_CLS.default}`}>
-      <div className="flex flex-col gap-4 shrink-0">
+    <div className={`gv-card flex flex-col sm:flex-row gap-4 ${BORDER_CLS.default}`}>
+      <div className="flex flex-col gap-4 sm:shrink-0 min-w-0">
         <div className="gv-icon-box"><span className={ICON_CLS.default}><AlertTriangle size={18} /></span></div>
         <div>
-          <p className="gv-label whitespace-nowrap">Sites with Low Stock</p>
+          <p className="gv-label sm:whitespace-nowrap">Sites with Low Stock</p>
           <p className={`text-3xl font-bold tracking-tight ${VAL_CLS.default}`}>{sites.length}</p>
         </div>
       </div>
       {sites.length > 0 && (
-        <ul className="flex flex-col justify-center gap-1.5 pl-4 border-l border-[color:var(--border)] min-w-0">
+        <ul className="flex flex-col justify-center gap-1.5 sm:pl-4 sm:border-l border-[color:var(--border)] min-w-0">
           {sites.map(s => (
             <li key={s.siteId} className="flex items-center gap-3 text-xs">
               <span className="text-[color:var(--foreground)] truncate flex-1">{s.siteName}</span>
@@ -525,7 +525,7 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
           </Field>
 
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <label className="text-xs font-medium text-[color:var(--muted-foreground)] uppercase tracking-wider">Materials</label>
               <button type="button" onClick={addItem} className="flex items-center gap-1 text-xs font-medium text-[color:var(--primary)] hover:opacity-80 cursor-pointer"><Plus size={12} /> Add material</button>
             </div>
@@ -543,7 +543,7 @@ function CreateTransferOverlay({ open, onClose, onSuccess }: CreateTransferOverl
           </div>
 
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <label className="text-xs font-medium text-[color:var(--muted-foreground)] uppercase tracking-wider">Tools</label>
               <button type="button" onClick={addToolItem} className="flex items-center gap-1 text-xs font-medium text-[color:var(--primary)] hover:opacity-80 cursor-pointer"><Plus size={12} /> Add tool</button>
             </div>

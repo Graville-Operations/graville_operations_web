@@ -4,7 +4,7 @@ import type { StoreTool } from '@/types/store';
 export function ToolsRegisterTable({ items, search }: { items: StoreTool[]; search: string }) {
   return (
     <div className="gv-card p-0 overflow-hidden">
-      <table className="w-full text-sm table-fixed">
+      <div className="overflow-x-auto"><table className="min-w-[640px] w-full text-sm table-fixed">
         <colgroup>
           <col className="w-[22%]" />
           <col className="w-[26%]" />
@@ -77,7 +77,7 @@ export function ToolsRegisterTable({ items, search }: { items: StoreTool[]; sear
             );
           })}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }
