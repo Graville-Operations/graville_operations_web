@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { useProfileStore } from '@/store/profile-store';
 import api from '@/lib/api';
@@ -10,10 +11,12 @@ import {
   Eye, EyeOff, Check, AlertCircle, ArrowLeft,
 } from 'lucide-react';
 import { API } from '@/lib/endpoints';
+import { ROUTES } from '@/lib/routes';
 
 type View = 'profile' | 'change-password';
 
 export default function AccountPage() {
+  const router = useRouter();
   const { role, logout } = useAuthStore();
   const { profile, isLoaded, setProfile } = useProfileStore();
 
@@ -70,11 +73,11 @@ export default function AccountPage() {
         current_password: passwordForm.current_password,
         new_password:     passwordForm.new_password,
       });
-      setPasswordSuccess('Password changed successfully');
+      setPasswordSuccess('Password changed successfully. Signing you out...');
       setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
       setTimeout(() => {
-        setPasswordSuccess('');
-        setView('profile');
+        logout();
+        router.replace(ROUTES.signin);
       }, 2000);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
