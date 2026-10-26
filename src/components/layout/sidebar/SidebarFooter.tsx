@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { LogOut, User, Bell } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { formatRole } from '@/lib/utils/format-role';
 import { Button } from '@/components/ui/button';
 import { ROUTES } from '@/lib/routes';
@@ -31,14 +31,6 @@ export function SidebarFooter({ user, role, onLogout }: SidebarFooterProps) {
 
   return (
     <div className="p-3 border-t border-white/10 space-y-1">
-      <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors duration-150">
-        <div className="relative">
-          <Bell size={16} />
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-        </div>
-        <span>Notifications</span>
-      </button>
-
       <Link
         href={ROUTES.account}
         className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors duration-150"

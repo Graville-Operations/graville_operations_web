@@ -34,8 +34,8 @@ export function useForgotPasswordForm() {
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleResetPassword = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError('');
 
     if (newPassword !== confirmPassword) {
