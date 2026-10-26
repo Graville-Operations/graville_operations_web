@@ -4,6 +4,15 @@ import { ArrowLeft, Mail, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useForgotPasswordForm } from '@/hooks/auth/useForgotPasswordForm';
 import { ROUTES } from '@/lib/routes';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function ForgotPasswordPage() {
   const {
@@ -14,6 +23,7 @@ export default function ForgotPasswordPage() {
   } = useForgotPasswordForm();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   return (
     <div className="relative overflow-hidden min-h-screen w-full flex items-center justify-center px-4 py-8 bg-[radial-gradient(ellipse_at_top,#1a3a6e_0%,#0a0f1e_60%,#000000_100%)]">
@@ -72,7 +82,10 @@ export default function ForgotPasswordPage() {
         )}
 
         {step === 'reset' && (
-          <form onSubmit={handleResetPassword} className="space-y-4">
+          <form
+            onSubmit={(e) => { e.preventDefault(); setShowConfirm(true); }}
+            className="space-y-4"
+          >
             {info && (
               <div className="bg-green-500/20 border border-green-400/30 text-green-200 px-4 py-3 rounded-lg text-sm">
                 {info}
@@ -155,6 +168,30 @@ export default function ForgotPasswordPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset password?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to reset the password for {email}? You&apos;ll use the new password the next time you sign in.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowConfirm(false);
+                handleResetPassword();
+              }}
+            >
+              Yes, reset password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
