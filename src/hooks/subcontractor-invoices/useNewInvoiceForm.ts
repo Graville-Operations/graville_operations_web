@@ -45,16 +45,16 @@ export function useNewInvoiceForm(onSuccess: () => void) {
       return setError('All line item fields are required.');
 
     const payload = {
-      invoiceNo: form.invoiceNo.trim(),
-      contractorName: form.contractorName.trim(),
-      invoiceDate: form.invoiceDate,
+      invoice_number: form.invoiceNo.trim(),
+      contractor_name: form.contractorName.trim(),
+      invoice_date: form.invoiceDate,
       notes: form.notes.trim() || null,
       items: form.items.map((it, i) => ({
         index: i + 1,
         particulars: it.particulars.trim(),
         quantity: parseFloat(it.quantity),
-        unitPrice: parseFloat(it.unitPrice),
-        totalAmount: (parseFloat(it.quantity) || 0) * (parseFloat(it.unitPrice) || 0),
+        unit_price: parseFloat(it.unitPrice),
+        total_amount: (parseFloat(it.quantity) || 0) * (parseFloat(it.unitPrice) || 0),
       })),
     };
 
@@ -63,9 +63,12 @@ export function useNewInvoiceForm(onSuccess: () => void) {
       await createSubcontractorInvoice(payload);
       onSuccess();
     } catch (err: any) {
+      // The API client turns a body-level error code into a plain Error, so the
+      // server's message lives on err.message (not err.response) in that case.
       const msg =
         err?.response?.data?.detail ||
         err?.response?.data?.message ||
+        err?.message ||
         'Failed to create invoice. Please try again.';
       setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {

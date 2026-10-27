@@ -86,16 +86,16 @@ export interface NewInvoiceForm {
 }
 
 export interface NewSubcontractorInvoicePayload {
-  invoiceNo: string;
-  contractorName: string;
-  invoiceDate: string;
+  invoice_number: string;
+  contractor_name: string;
+  invoice_date: string;
   notes: string | null;
   items: {
     index: number;
     particulars: string;
     quantity: number;
-    unitPrice: number;
-    totalAmount: number;
+    unit_price: number;
+    total_amount: number;
   }[];
 }
 
