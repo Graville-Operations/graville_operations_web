@@ -12,6 +12,15 @@ import {
 } from 'lucide-react';
 import { API } from '@/lib/endpoints';
 import { ROUTES } from '@/lib/routes';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 type View = 'profile' | 'change-password';
 
@@ -34,6 +43,7 @@ export default function AccountPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -185,7 +195,7 @@ export default function AccountPage() {
           <div className="bg-red-500/5 backdrop-blur-md border border-red-500/20 rounded-2xl p-6 shadow-lg">
             <p className="text-sm text-white/40 mb-4">This will end your current session.</p>
             <button
-              onClick={() => logout()}
+              onClick={() => setShowLogoutConfirm(true)}
               className="px-5 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all text-sm font-medium"
             >
               Sign Out
@@ -246,6 +256,32 @@ export default function AccountPage() {
           </form>
         </div>
       )}
+
+      <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log out?</DialogTitle>
+            <DialogDescription>
+              You&apos;ll need to sign in again to access your account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLogoutConfirm(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowLogoutConfirm(false);
+                logout();
+                router.replace(ROUTES.signin);
+              }}
+            >
+              Logout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
