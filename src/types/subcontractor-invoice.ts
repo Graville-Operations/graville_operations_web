@@ -80,6 +80,7 @@ export interface NewLineItem {
 export interface NewInvoiceForm {
   invoiceNo: string;
   contractorName: string;
+  siteId: string;
   invoiceDate: string;
   notes: string;
   items: NewLineItem[];
@@ -88,6 +89,7 @@ export interface NewInvoiceForm {
 export interface NewSubcontractorInvoicePayload {
   invoice_number: string;
   contractor_name: string;
+  site_id: number;
   invoice_date: string;
   notes: string | null;
   items: {
@@ -108,6 +110,7 @@ export const emptyLineItem = (): NewLineItem => ({
 export const defaultInvoiceForm = (): NewInvoiceForm => ({
   invoiceNo: '',
   contractorName: '',
+  siteId: '',
   invoiceDate: '',
   notes: '',
   items: [emptyLineItem()],
