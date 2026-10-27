@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createSubcontractorInvoice } from '@/lib/api/subcontractor-invoices';
+import { useSiteStore } from '@/store/site-store';
 import {
   defaultInvoiceForm,
   emptyLineItem,
@@ -13,6 +14,14 @@ export function useNewInvoiceForm(onSuccess: () => void) {
   const [form, setForm] = useState<NewInvoiceForm>(defaultInvoiceForm());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const sites = useSiteStore((s) => s.sites);
+  const sitesLoading = useSiteStore((s) => s.isLoading);
+  const fetchSitesAction = useSiteStore((s) => s.fetchSites);
+
+  useEffect(() => {
+    fetchSitesAction(); // no-op while the shared sites cache already holds the list
+  }, [fetchSitesAction]);
 
   const setField = <K extends keyof NewInvoiceForm>(key: K, value: NewInvoiceForm[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -40,13 +49,17 @@ export function useNewInvoiceForm(onSuccess: () => void) {
 
     if (!form.invoiceNo.trim()) return setError('Invoice number is required.');
     if (!form.contractorName.trim()) return setError('Contractor name is required.');
+    if (!form.siteId) return setError('Please select a site.');
     if (!form.invoiceDate) return setError('Invoice date is required.');
     if (form.items.some((it) => !it.particulars.trim() || !it.quantity || !it.unitPrice))
       return setError('All line item fields are required.');
+    if (form.items.some((it) => !(parseFloat(it.quantity) > 0)))
+      return setError('Each line item quantity must be greater than 0.');
 
     const payload = {
       invoice_number: form.invoiceNo.trim(),
       contractor_name: form.contractorName.trim(),
+      site_id: Number(form.siteId),
       invoice_date: form.invoiceDate,
       notes: form.notes.trim() || null,
       items: form.items.map((it, i) => ({
@@ -83,6 +96,8 @@ export function useNewInvoiceForm(onSuccess: () => void) {
     addItem,
     removeItem,
     grandTotal,
+    sites,
+    sitesLoading,
     submitting,
     error,
     submit,
