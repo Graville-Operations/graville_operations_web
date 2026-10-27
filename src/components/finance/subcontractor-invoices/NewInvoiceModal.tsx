@@ -24,6 +24,8 @@ export function NewInvoiceModal({ onClose, onCreated }: NewInvoiceModalProps) {
     addItem,
     removeItem,
     grandTotal,
+    sites,
+    sitesLoading,
     submitting,
     error,
     submit,
@@ -102,6 +104,25 @@ export function NewInvoiceModal({ onClose, onCreated }: NewInvoiceModalProps) {
                 value={form.contractorName}
                 onChange={(e) => setField('contractorName', e.target.value)}
               />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>
+                Site <span className="text-red-400">*</span>
+              </label>
+              <select
+                className={inputCls}
+                value={form.siteId}
+                onChange={(e) => setField('siteId', e.target.value)}
+              >
+                <option value="" className="bg-[#0f1f2e]">
+                  {sitesLoading ? 'Loading sites…' : 'Select a site'}
+                </option>
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id} className="bg-[#0f1f2e]">
+                    {s.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Notes</label>
