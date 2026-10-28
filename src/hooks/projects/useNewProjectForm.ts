@@ -3,13 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSite } from '@/lib/api/sites';
-import { CreateSitePayload, ProjectStatus, SiteStatus } from '@/types/site';
+import { CreateSitePayload, ProjectStatus } from '@/types/site';
 import { ROUTES } from '@/lib/routes';
 
 export interface NewProjectFormState {
   name: string;
   location: string;
-  project_status: ProjectStatus | '';
   description: string;
   tender_name: string;
   inquiring_entity: string;
@@ -20,12 +19,10 @@ export interface NewProjectFormState {
 }
 
 const EMPTY: NewProjectFormState = {
-  name: '', location: '', project_status: '',
+  name: '', location: '',
   description: '', tender_name: '', inquiring_entity: '',
   completion_date: '', latitude: '', tagInput: '', tags: [],
 };
-
-const DEFAULT_SITE_STATUS = SiteStatus.ACTIVE;
 
 export function useNewProjectForm() {
   const router = useRouter();
@@ -51,7 +48,6 @@ export function useNewProjectForm() {
   const getMissingFields = (): string[] => {
     const missing: string[] = [];
     if (!form.name.trim())             missing.push('Site name');
-    if (!form.project_status)          missing.push('Project status');
     if (!form.location.trim())         missing.push('Location');
     if (!form.inquiring_entity.trim()) missing.push('Tenderer');
     if (!form.tender_name.trim())      missing.push('Tender Name');
@@ -77,16 +73,15 @@ export function useNewProjectForm() {
     setError(null);
 
     const payload: CreateSitePayload = {
-      name:             form.name.trim(),
-      project_status:   form.project_status as ProjectStatus,
-      site_status:      DEFAULT_SITE_STATUS,
-      location:         form.location.trim(),
-      inquiring_entity: form.inquiring_entity.trim(),
-      tender_name:      form.tender_name.trim(),
-      ...(form.description      && { description:      form.description }),
-      ...(form.completion_date  && { completion_date:  form.completion_date }),
-      ...(form.latitude         && { latitude:         parseFloat(form.latitude) }),
-      ...(form.tags.length > 0  && { tags:             form.tags }),
+      name:            form.name.trim(),
+      location:        form.location.trim(),
+      projectStatus:   ProjectStatus.PLANNING,
+      tendererName:    form.tender_name.trim(),        // saved as tender_name
+      procuringEntity: form.inquiring_entity.trim(),   // saved as inquiring_entity
+      ...(form.description.trim() && { tenderName: form.description.trim() }), // saved as description
+      ...(form.completion_date     && { completiondate: form.completion_date }),
+      ...(form.latitude            && { latitude: parseFloat(form.latitude) }),
+      ...(form.tags.length > 0     && { tags: form.tags }),
     };
 
     try {
