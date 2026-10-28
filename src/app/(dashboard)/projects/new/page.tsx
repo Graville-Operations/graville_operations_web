@@ -2,18 +2,11 @@
 
 import Link from 'next/link';
 import { ArrowLeft, Plus, X, Loader2, AlertCircle } from 'lucide-react';
-import { ProjectStatus } from '@/types/enums/project-status';
 import { useNewProjectForm } from '@/hooks/projects/useNewProjectForm';
 import { Field } from '@/components/shared/Field';
 import { Section } from '@/components/shared/Section';
 import { DatePicker } from '@/components/projects/DatePicker';
 import { ROUTES } from '@/lib/routes';
-
-const PROJECT_STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
-  { value: ProjectStatus.PLANNING,    label: 'Planning' },
-  { value: ProjectStatus.IN_PROGRESS, label: 'In Progress' },
-  { value: ProjectStatus.ON_HOLD,     label: 'On Hold' },
-];
 
 export default function NewProjectPage() {
   const { form, set, setField, addTag, removeTag, handleSubmit, submitting, error } = useNewProjectForm();
@@ -33,7 +26,7 @@ export default function NewProjectPage() {
       <div className="mb-8">
         <h1 className="text-xl font-semibold text-white">New Project</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--gv-text-muted)' }}>
-          Fill in the details below to register a new site
+          Fill in the details below to register a new site. New projects start in Planning.
         </p>
       </div>
 
@@ -53,31 +46,20 @@ export default function NewProjectPage() {
               <input className="gv-input" placeholder="e.g. Nairobi Central Site"
                 value={form.name} onChange={set('name')} disabled={submitting} required />
             </Field>
-            <Field label="Project status" required>
-              <select className="gv-input" value={form.project_status}
-                onChange={set('project_status')} disabled={submitting} required>
-                <option value="" disabled style={{ background: '#0d1528' }}>Select status</option>
-                {PROJECT_STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value} style={{ background: '#0d1528' }}>{o.label}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Location" required>
               <input className="gv-input" placeholder="e.g. Westlands, Nairobi"
                 value={form.location} onChange={set('location')} disabled={submitting} required />
             </Field>
-
-            <Field label="Completion date">
-              <DatePicker
-                value={form.completion_date}
-                onChange={(v) => setField('completion_date', v)}
-                disabled={submitting}
-              />
-            </Field>
           </div>
+
+          <Field label="Completion date">
+            <DatePicker
+              value={form.completion_date}
+              onChange={(v) => setField('completion_date', v)}
+              disabled={submitting}
+            />
+          </Field>
 
           <Field label="Tender Name" required>
             <textarea
