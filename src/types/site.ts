@@ -126,19 +126,17 @@ export interface AttendanceRecordDTO {
 
 export type { Task as SiteTask, TaskDTO as SiteTaskDTO, SubTask, SubTaskDTO } from '@/lib/types';
 
-// Mirrors the backend `SiteCreate` model (src/sites/dto/requests/site_request.py).
-// Key names must match exactly: unknown keys are silently ignored by the API.
 export interface CreateSitePayload {
   name: string;
   location?: string;
   projectStatus: ProjectStatus;
-  completiondate?: string | null; // note: all lowercase, as defined in the backend
+  completionDate?: string | null;
   latitude?: number;
   longitude?: number;
   tags?: string[];
-  tenderName?: string;            // saved in the site's `description` column
-  tendererName?: string;          // saved in the `tender_name` column
-  procuringEntity?: string;       // saved in the `inquiring_entity` column
+  tenderName?: string;           
+  tendererName?: string;          
+  procuringEntity?: string;       
   field_operator_id?: number;
 }
 

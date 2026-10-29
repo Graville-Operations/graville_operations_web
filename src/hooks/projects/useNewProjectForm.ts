@@ -72,14 +72,14 @@ export function useNewProjectForm() {
     setSubmitting(true);
     setError(null);
 
-    const payload: CreateSitePayload = {
+      const payload: CreateSitePayload = {
       name:            form.name.trim(),
       location:        form.location.trim(),
       projectStatus:   ProjectStatus.PLANNING,
       tendererName:    form.tender_name.trim(),        // saved as tender_name
       procuringEntity: form.inquiring_entity.trim(),   // saved as inquiring_entity
       ...(form.description.trim() && { tenderName: form.description.trim() }), // saved as description
-      ...(form.completion_date     && { completiondate: form.completion_date }),
+      ...(form.completion_date     && { completionDate: form.completion_date }),
       ...(form.latitude            && { latitude: parseFloat(form.latitude) }),
       ...(form.tags.length > 0     && { tags: form.tags }),
     };
