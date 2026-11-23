@@ -72,7 +72,7 @@ export function useNewProjectForm() {
     setSubmitting(true);
     setError(null);
 
-      const payload: CreateSitePayload = {
+       const payload: CreateSitePayload = {
       name:            form.name.trim(),
       location:        form.location.trim(),
       projectStatus:   ProjectStatus.PLANNING,

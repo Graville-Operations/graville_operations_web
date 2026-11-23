@@ -1,6 +1,20 @@
 import { ArrowLeft, Users, UserCheck } from 'lucide-react';
 import { AttendanceRecord } from '@/types/site';
-import { AttendanceRow } from '@/components/sites/AttendanceRow';
+
+type WorkerRecord = AttendanceRecord & { checkInCount?: number | null };
+
+const COLUMNS = ["Worker's Name", 'Phone Number', 'National ID', 'No. of Check-ins'];
+
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 export function AllWorkersScreen({
   records,
@@ -11,45 +25,121 @@ export function AllWorkersScreen({
   dateLabel: string;
   onClose: () => void;
 }) {
+  const rows = records as WorkerRecord[];
+
   return (
     <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: 'var(--gv-bg-gradient)' }}>
-      <div className="flex items-center gap-3 px-6 py-4 flex-shrink-0"
+      {/* Top bar */}
+      <div
+        className="flex-shrink-0"
         style={{
           background: 'var(--gv-nav-bg)',
           borderBottom: '1px solid var(--gv-glass-border)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-        }}>
-        <button onClick={onClose} className="flex items-center gap-2 text-base font-semibold"
-          style={{ color: 'var(--gv-brand)' }}>
-          <ArrowLeft className="w-5 h-5" />Back
-        </button>
-        <div className="flex-1 text-center">
-          <p className="text-lg font-bold text-white">Workers on Site</p>
-          <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>{dateLabel}</p>
+        }}
+      >
+        <div className="mx-auto w-full max-w-6xl flex items-center gap-3 px-6 py-4">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-2 text-base font-semibold"
+            style={{ color: 'var(--gv-brand)' }}
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back
+          </button>
+          <div className="flex-1 text-center">
+            <p className="text-lg font-bold text-white">Workers on Site</p>
+            <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>{dateLabel}</p>
+          </div>
+          <span className="w-16" />
         </div>
-        <span className="w-16" />
       </div>
 
-      <div className="px-6 pt-5 pb-3 flex-shrink-0">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-base font-semibold"
-          style={{ background: 'rgba(51,144,124,0.15)', border: '1px solid rgba(51,144,124,0.35)', color: '#33907C' }}>
-          <Users className="w-4 h-4" />
-          {records.length} worker{records.length !== 1 ? 's' : ''} checked in
-        </div>
-      </div>
+      {/* Scrollable content, centered and inset from the screen edges */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-6xl px-6 py-6 md:px-10 md:py-8">
+          <div className="pb-4">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-base font-semibold"
+              style={{
+                background: 'rgba(51,144,124,0.15)',
+                border: '1px solid rgba(51,144,124,0.35)',
+                color: '#33907C',
+              }}
+            >
+              <Users className="w-4 h-4" />
+              {rows.length} worker{rows.length !== 1 ? 's' : ''} checked in
+            </div>
+          </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-8">
-        {records.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-20 text-center">
-            <UserCheck className="w-8 h-8" style={{ color: 'var(--gv-text-subtle)' }} />
-            <p className="text-base text-white">No check-ins for this period</p>
-          </div>
-        ) : (
-          <div className="gv-card" style={{ padding: '0 1rem' }}>
-            {records.map((r) => <AttendanceRow key={r.id} record={r} />)}
-          </div>
-        )}
+          {rows.length === 0 ? (
+            <div className="gv-card flex flex-col items-center gap-3 py-20 text-center">
+              <UserCheck className="w-8 h-8" style={{ color: 'var(--gv-text-subtle)' }} />
+              <p className="text-base text-white">No check-ins for this period</p>
+            </div>
+          ) : (
+            <div className="gv-card overflow-hidden" style={{ padding: 0 }}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse" style={{ minWidth: '640px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--gv-glass-border)' }}>
+                      {COLUMNS.map((col, i) => (
+                        <th
+                          key={col}
+                          className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider whitespace-nowrap ${
+                            i === COLUMNS.length - 1 ? 'text-center' : ''
+                          }`}
+                          style={{ color: 'var(--gv-text-muted)' }}
+                        >
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, idx) => {
+                      const name = r.workerName?.trim() ? r.workerName : '—';
+                      const initials = name !== '—' ? getInitials(name) : '?';
+                      const isLast = idx === rows.length - 1;
+
+                      return (
+                        <tr
+                          key={r.id}
+                          style={{ borderBottom: isLast ? 'none' : '1px solid var(--gv-glass-border)' }}
+                        >
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white"
+                                style={{
+                                  background: 'rgba(51,144,124,0.2)',
+                                  border: '1px solid rgba(51,144,124,0.4)',
+                                }}
+                              >
+                                {initials}
+                              </div>
+                              <span className="text-base font-semibold text-white capitalize">{name}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3 text-base whitespace-nowrap" style={{ color: 'var(--gv-text-subtle)' }}>
+                            {r.phone ?? '—'}
+                          </td>
+                          <td className="px-5 py-3 text-base whitespace-nowrap" style={{ color: 'var(--gv-text-subtle)' }}>
+                            {r.nationalId ?? '—'}
+                          </td>
+                          <td className="px-5 py-3 text-base text-center whitespace-nowrap" style={{ color: 'var(--gv-text-subtle)' }}>
+                            {r.checkInCount ?? '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
