@@ -40,7 +40,7 @@ export function SiteExpenseCard({ siteStat, onRetry }: SiteExpenseCardProps) {
   }
 
   return (
-    <div className="gv-card h-full w-full flex flex-col gap-3">
+    <div className="gv-card h-full w-full min-w-0 flex flex-col gap-3">
 
       <div className="flex items-center gap-2">
         <div className="gv-icon-box flex-shrink-0">
@@ -56,14 +56,14 @@ export function SiteExpenseCard({ siteStat, onRetry }: SiteExpenseCardProps) {
 
       <div className="border-t border-[color:var(--gv-glass-border)]" />
 
-      <div className="grid grid-cols-[1fr_2rem_5.5rem] gap-x-1 px-2 pb-0.5">
+      <div className="grid grid-cols-[minmax(0,1fr)_2rem_auto] gap-x-2 px-2 pb-0.5">
         <span className="text-[10px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide">
           Expense
         </span>
         <span className="text-[10px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide text-right">
           No.
         </span>
-        <span className="text-[10px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide text-right">
+        <span className="text-[10px] font-medium text-[color:var(--muted-foreground)] uppercase tracking-wide text-right whitespace-nowrap">
           Total (KES)
         </span>
       </div>
@@ -73,7 +73,7 @@ export function SiteExpenseCard({ siteStat, onRetry }: SiteExpenseCardProps) {
           <button
             key={row.label}
             onClick={() => router.push(row.route)}
-            className="w-full grid grid-cols-[1fr_2rem_5.5rem] gap-x-1 items-center
+            className="w-full grid grid-cols-[minmax(0,1fr)_2rem_auto] gap-x-2 items-center
                        px-2 py-2 rounded-lg text-left
                        bg-transparent border border-transparent
                        hover:bg-[color:var(--gv-glass-bg-strong)]
@@ -96,7 +96,7 @@ export function SiteExpenseCard({ siteStat, onRetry }: SiteExpenseCardProps) {
             </span>
 
             <span className="flex items-center gap-0.5 justify-end">
-              <span className="text-[11px] font-semibold text-[color:var(--foreground)] tabular-nums">
+              <span className="text-[11px] font-semibold text-[color:var(--foreground)] tabular-nums whitespace-nowrap">
                 {row.amount > 0 ? formatAmount(row.amount) : '—'}
               </span>
               <ChevronRight

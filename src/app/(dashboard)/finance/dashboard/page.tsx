@@ -40,11 +40,11 @@ export default function FinanceDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-        <div className="gv-card h-full flex items-start gap-4">
+        <div className="gv-card h-full min-w-0 flex items-start gap-4">
           <div className="gv-icon-box flex-shrink-0">
             <FileText size={18} className="text-[color:var(--primary)]" />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <p className="text-lg font-medium text-[color:var(--foreground)]">Finance Overview</p>
             <p className="text-sm text-[color:var(--muted-foreground)] leading-relaxed">
               Consolidated view of all financial activity across this company. Each card below
@@ -109,7 +109,7 @@ export default function FinanceDashboardPage() {
           </div>
 
           {sitesLoading ? (
-            <div className="grid grid-cols-2 gap-4 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
               {[0, 1, 2, 3].map((i) => <CardSkeleton key={i} />)}
             </div>
           ) : siteStats.length === 0 ? (
@@ -125,7 +125,7 @@ export default function FinanceDashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
               {filteredStats.map((s) => (
                 <SiteExpenseCard
                   key={s.site.id}
