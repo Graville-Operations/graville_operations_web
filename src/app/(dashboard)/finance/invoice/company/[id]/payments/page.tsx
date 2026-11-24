@@ -43,27 +43,27 @@ export default function CompanyInvoicePaymentHistoryPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="gv-card p-4">
+            <div className="gv-card p-4 min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#33907c' }}>
                 Total Invoice Value
               </p>
-              <p className="text-lg font-bold mt-1" style={{ color: 'var(--gv-text-primary)' }}>
+              <p className="text-base sm:text-lg font-bold mt-1 break-words" style={{ color: 'var(--gv-text-primary)' }}>
                 {loading ? '—' : `KES ${history?.total_invoice_value.toLocaleString()}`}
               </p>
             </div>
-            <div className="gv-card p-4">
+            <div className="gv-card p-4 min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#33907c' }}>
                 Total Paid
               </p>
-              <p className="text-lg font-bold mt-1" style={{ color: 'var(--gv-text-primary)' }}>
+              <p className="text-base sm:text-lg font-bold mt-1 break-words" style={{ color: 'var(--gv-text-primary)' }}>
                 {loading ? '—' : `KES ${history?.total_paid.toLocaleString()}`}
               </p>
             </div>
-            <div className="gv-card p-4">
+            <div className="gv-card p-4 min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#33907c' }}>
                 Remaining Balance
               </p>
-              <p className="text-lg font-bold mt-1" style={{ color: 'var(--gv-text-primary)' }}>
+              <p className="text-base sm:text-lg font-bold mt-1 break-words" style={{ color: 'var(--gv-text-primary)' }}>
                 {loading ? '—' : `KES ${history?.remaining_balance.toLocaleString()}`}
               </p>
             </div>
@@ -89,25 +89,25 @@ export default function CompanyInvoicePaymentHistoryPage() {
               history.payments.map((payment, idx) => (
                 <div
                   key={payment.id}
-                  className="flex items-center justify-between p-4"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 p-4"
                   style={{
                     borderBottom: idx < history.payments.length - 1 ? '1px solid var(--gv-glass-border)' : 'none',
                   }}
                 >
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--gv-text-primary)' }}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold break-words" style={{ color: 'var(--gv-text-primary)' }}>
                       KES {payment.amount.toLocaleString()}
                     </p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+                    <p className="text-xs mt-0.5 break-words" style={{ color: 'var(--gv-text-muted)' }}>
                       {payment.notes || 'No notes'}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+                  <div className="sm:text-right min-w-0">
+                    <p className="text-sm break-words" style={{ color: 'var(--gv-text-muted)' }}>
                       {payment.payment_date}
                     </p>
                     {payment.recorded_by && (
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--gv-text-muted)' }}>
+                      <p className="text-xs mt-0.5 break-words" style={{ color: 'var(--gv-text-muted)' }}>
                         Recorded by {payment.recorded_by}
                       </p>
                     )}
