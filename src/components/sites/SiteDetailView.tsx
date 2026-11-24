@@ -157,7 +157,7 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
 
               <div>
                 <p className="gv-label mb-2">Field Operator</p>
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
                   <div className="min-w-0">
                     <FieldOperatorCard
                       siteId={siteId}
@@ -177,7 +177,7 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
                         ? 'Site is completed or cancelled and can no longer be updated'
                         : undefined
                     }
-                    className="flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors justify-self-start sm:justify-self-center"
+                    className="flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors self-start lg:self-center"
                     style={{
                       background: 'var(--gv-glass-bg)',
                       border: '1px solid var(--gv-glass-border)',
@@ -189,7 +189,6 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
                     <Pencil className="w-3.5 h-3.5" />
                     Update Site
                   </button>
-                  <div className="hidden sm:block" />
                 </div>
               </div>
 

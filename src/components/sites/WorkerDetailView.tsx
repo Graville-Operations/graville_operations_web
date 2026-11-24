@@ -35,7 +35,15 @@ function DetailLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function WorkerDetailView({ row, onBack }: { row: SiteWorkerRow; onBack: () => void }) {
+export function WorkerDetailView({
+  row,
+  onBack,
+  onRetry,
+}: {
+  row: SiteWorkerRow;
+  onBack: () => void;
+  onRetry?: () => void;
+}) {
   const d = row.detail;
   const attendances = d?.attendances ?? [];
   const tasks = d?.tasks ?? [];
@@ -81,7 +89,17 @@ export function WorkerDetailView({ row, onBack }: { row: SiteWorkerRow; onBack: 
           )}
           {row.detailFailed && !d && (
             <div className="gv-card py-8 text-center text-sm" style={{ color: 'var(--gv-text-muted)' }}>
-              Couldn&apos;t load this worker&apos;s details. Close and try again.
+              <p>Couldn&apos;t load this worker&apos;s details.</p>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="mt-3 px-4 py-2 rounded-lg text-sm font-semibold"
+                  style={{ color: 'var(--gv-brand)', background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}
+                >
+                  Try again
+                </button>
+              )}
             </div>
           )}
 

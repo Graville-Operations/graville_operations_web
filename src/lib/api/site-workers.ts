@@ -11,6 +11,13 @@ interface WorkerListItemDTO {
   skill?: { name?: string | null } | null;
 }
 
+interface AttendanceDTO {
+  id: number;
+  date?: string | null;
+  checkInTime?: string | null;
+  check_in_time?: string | null;
+}
+
 interface WorkerDetailDTO {
   id: number;
   first_name?: string | null;
@@ -18,8 +25,9 @@ interface WorkerDetailDTO {
   national_id?: string | null;
   phone?: string | null;
   status?: string | null;
-  skill?: { name?: string | null; amount?: number | null } | null;
-  attendances?: { id: number; date?: string | null; checkInTime?: string | null }[] | null;
+  skill?: { name?: string | null; amount?: number | string | null } | null;
+  attendances?: AttendanceDTO[] | null;
+  attendance?: AttendanceDTO[] | null;
   tasksAssigned?: {
     id: number;
     name?: string | null;
@@ -27,6 +35,12 @@ interface WorkerDetailDTO {
     description?: string | null;
     status?: string | null;
   }[] | null;
+}
+
+function toNumber(v: unknown): number | null {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 const PAGE_SIZE = 100; // backend maximum for /workers/list-by-id
@@ -42,7 +56,9 @@ export async function fetchAllSiteWorkers(siteId: number) {
     all.push(...page);
     if (page.length < PAGE_SIZE) break;
   }
-  return all.map((w) => ({
+  // One entry per worker, however many times they checked in.
+  const unique = Array.from(new Map(all.map((w) => [w.id, w])).values());
+  return unique.map((w) => ({
     id: w.id,
     fullName: `${w.first_name ?? ''} ${w.last_name ?? ''}`.trim() || 'Unnamed worker',
     status: w.status ?? '',
@@ -64,11 +80,11 @@ export async function fetchSiteWorkerDetail(workerId: number): Promise<SiteWorke
     phone: w.phone ?? null,
     status: w.status ?? '',
     skillName: w.skill?.name ?? null,
-    dailyRate: typeof w.skill?.amount === 'number' ? w.skill.amount : null,
-    attendances: (w.attendances ?? []).map((a) => ({
+    dailyRate: toNumber(w.skill?.amount),
+    attendances: (w.attendances ?? w.attendance ?? []).map((a) => ({
       id: a.id,
       date: a.date ?? '',
-      checkInTime: a.checkInTime ?? '',
+      checkInTime: a.checkInTime ?? a.check_in_time ?? '',
     })),
     tasks: (w.tasksAssigned ?? []).map((t) => ({
       id: t.id,
