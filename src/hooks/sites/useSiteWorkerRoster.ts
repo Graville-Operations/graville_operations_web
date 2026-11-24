@@ -1,21 +1,36 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchAllSiteWorkers, fetchSiteWorkerDetail } from '@/lib/api/site-workers';
 import type { SiteWorkerRow } from '@/types/site-worker-detail';
 
 const CONCURRENCY = 6;
 
 /**
- * Loads every worker on a site, then fills in phone / national id /
- * check-in count from /workers/details/{id} (the list endpoint doesn't
- * return those). Rows appear immediately; detail cells fill in as they load.
+ * Loads every worker on a site once (one row per worker, no repeats), then
+ * fills in phone / national id / check-in count from /workers/details/{id}.
+ * Rows appear immediately; detail cells fill in as they load.
+ * `loadDetail(id)` retries a single worker (used when a row is opened).
  */
 export function useSiteWorkerRoster(siteId: number) {
   const [rows, setRows] = useState<SiteWorkerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const alive = useRef(true);
+
+  const loadDetail = useCallback(async (id: number) => {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, detailFailed: false } : r)));
+    try {
+      const detail = await fetchSiteWorkerDetail(id);
+      if (!alive.current) return;
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, detail, detailFailed: false } : r)));
+    } catch {
+      if (!alive.current) return;
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, detailFailed: true } : r)));
+    }
+  }, []);
 
   useEffect(() => {
+    alive.current = true;
     let cancelled = false;
 
     async function run() {
@@ -32,15 +47,7 @@ export function useSiteWorkerRoster(siteId: number) {
           while (!cancelled) {
             const i = next++;
             if (i >= list.length) return;
-            const id = list[i].id;
-            try {
-              const detail = await fetchSiteWorkerDetail(id);
-              if (cancelled) return;
-              setRows((prev) => prev.map((r) => (r.id === id ? { ...r, detail } : r)));
-            } catch {
-              if (cancelled) return;
-              setRows((prev) => prev.map((r) => (r.id === id ? { ...r, detailFailed: true } : r)));
-            }
+            await loadDetail(list[i].id);
           }
         };
         await Promise.all(Array.from({ length: Math.min(CONCURRENCY, list.length) }, worker));
@@ -52,8 +59,11 @@ export function useSiteWorkerRoster(siteId: number) {
     }
 
     run();
-    return () => { cancelled = true; };
-  }, [siteId]);
+    return () => {
+      cancelled = true;
+      alive.current = false;
+    };
+  }, [siteId, loadDetail]);
 
-  return { rows, loading, error };
+  return { rows, loading, error, loadDetail };
 }

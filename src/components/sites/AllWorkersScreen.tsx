@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Users, Loader2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Users, Loader2 } from 'lucide-react';
 import { useSiteWorkerRoster } from '@/hooks/sites/useSiteWorkerRoster';
 import { WorkerDetailView } from '@/components/sites/WorkerDetailView';
 import type { SiteWorkerRow } from '@/types/site-worker-detail';
@@ -39,12 +39,23 @@ function CellSkeleton() {
 }
 
 export function AllWorkersScreen({ siteId, onClose }: { siteId: number; onClose: () => void }) {
-  const { rows, loading, error } = useSiteWorkerRoster(siteId);
+  const { rows, loading, error, loadDetail } = useSiteWorkerRoster(siteId);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const selected: SiteWorkerRow | undefined = rows.find((r) => r.id === selectedId);
 
+  const openWorker = (r: SiteWorkerRow) => {
+    setSelectedId(r.id);
+    if (!r.detail) loadDetail(r.id); // retry if the background load failed
+  };
+
   if (selected) {
-    return <WorkerDetailView row={selected} onBack={() => setSelectedId(null)} />;
+    return (
+      <WorkerDetailView
+        row={selected}
+        onBack={() => setSelectedId(null)}
+        onRetry={() => loadDetail(selected.id)}
+      />
+    );
   }
 
   return (
@@ -100,10 +111,48 @@ export function AllWorkersScreen({ siteId, onClose }: { siteId: number; onClose:
             <p className="text-base text-white">No workers on this site yet</p>
           </div>
         ) : (
-          <div className="gv-card flex-1 min-h-0 overflow-hidden" style={{ padding: 0 }}>
+          <>
+          {/* Phones: one card per worker, no sideways scrolling */}
+          <div className="md:hidden flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 pb-4">
+            {rows.map((r) => {
+              const d = r.detail;
+              const pending = !d && !r.detailFailed;
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => openWorker(r)}
+                  className="gv-card w-full text-left flex items-center gap-3 min-w-0"
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white"
+                    style={{ background: 'rgba(51,144,124,0.2)', border: '1px solid rgba(51,144,124,0.4)' }}
+                  >
+                    {getInitials(r.fullName) || '?'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base font-semibold text-white capitalize break-words">{r.fullName}</p>
+                    <p className="text-sm break-words" style={{ color: 'var(--gv-text-subtle)' }}>
+                      {pending ? 'Loading…' : d?.phone || '—'}
+                    </p>
+                    <div className="mt-1.5"><StatusPill status={d?.status || r.status} /></div>
+                  </div>
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <span className="text-xl font-bold text-white">
+                      {pending ? <CellSkeleton /> : d ? d.attendances.length : '—'}
+                    </span>
+                    <span className="text-xs" style={{ color: 'var(--gv-text-subtle)' }}>check-ins</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tablet / desktop: table */}
+          <div className="hidden md:block gv-card flex-1 min-h-0 overflow-hidden" style={{ padding: 0 }}>
             {/* Scrolls both ways so the sticky header stays at the top */}
             <div className="h-full overflow-auto">
-              <table className="w-full text-left border-collapse" style={{ minWidth: '720px' }}>
+              <table className="w-full text-left border-collapse" style={{ minWidth: '640px' }}>
                 <thead>
                   <tr>
                     {COLUMNS.map((col, i) => (
@@ -136,9 +185,9 @@ export function AllWorkersScreen({ siteId, onClose }: { siteId: number; onClose:
                     return (
                       <tr
                         key={r.id}
-                        onClick={() => setSelectedId(r.id)}
+                        onClick={() => openWorker(r)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(r.id); }
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openWorker(r); }
                         }}
                         tabIndex={0}
                         role="button"
@@ -168,7 +217,6 @@ export function AllWorkersScreen({ siteId, onClose }: { siteId: number; onClose:
                         <td className="px-4 sm:px-5 py-3 text-base text-center whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.8)' }}>
                           <span className="inline-flex items-center gap-2">
                             {pending ? <CellSkeleton /> : d ? d.attendances.length : '—'}
-                            <ChevronRight className="w-4 h-4" style={{ color: 'var(--gv-text-subtle)' }} />
                           </span>
                         </td>
                       </tr>
@@ -178,6 +226,7 @@ export function AllWorkersScreen({ siteId, onClose }: { siteId: number; onClose:
               </table>
             </div>
           </div>
+          </>
         )}
       </div>
     </div>

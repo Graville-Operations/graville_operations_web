@@ -117,17 +117,17 @@ export function FieldOperatorCard({ siteId, operator, loading, onOperatorChange 
   }
 
   return (
-    <div className="relative inline-block" ref={wrapperRef}>
+    <div className="relative block w-full sm:inline-block sm:w-auto max-w-full" ref={wrapperRef}>
       <div
-        className="inline-flex items-center gap-6 px-4 py-3 rounded-xl"
+        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 px-4 py-3 rounded-xl max-w-full"
         style={{ background: 'var(--gv-glass-bg)', border: '1px solid var(--gv-glass-border)' }}
       >
-        <div className="flex flex-col gap-1.5">
-          <span className="flex items-center gap-2 text-sm font-semibold text-white">
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <span className="flex items-center gap-2 text-sm font-semibold text-white min-w-0">
             <UserCog className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--gv-brand)' }} />
             {operator.name}
           </span>
-          <span className="flex items-center gap-2 text-sm" style={{ color: 'var(--gv-text-muted)' }}>
+          <span className="flex items-center gap-2 text-sm min-w-0 break-all" style={{ color: 'var(--gv-text-muted)' }}>
             <Mail className="w-4 h-4 flex-shrink-0" />
             {operator.email || 'No email on file'}
           </span>
@@ -137,7 +137,7 @@ export function FieldOperatorCard({ siteId, operator, loading, onOperatorChange 
           </span>
         </div>
 
-        <div className="flex flex-col gap-2 flex-shrink-0">
+        <div className="flex flex-row sm:flex-col gap-2 flex-shrink-0">
           <Button variant="outline" size="sm" onClick={openReplaceDropdown} disabled={replacing || unassigning}>
             <Repeat className="w-3.5 h-3.5" />
             Replace
