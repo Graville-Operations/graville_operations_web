@@ -9,9 +9,9 @@ import { ROUTES } from '@/lib/routes';
 export interface NewProjectFormState {
   name: string;
   location: string;
-  description: string;
-  tender_name: string;
-  inquiring_entity: string;
+  tender_name: string;        // -> tenderName       (saved as description)
+  tenderer: string;           // -> tendererName     (saved as tenderer_name)
+  procuring_entity: string;   // -> procuringEntity  (saved as inquiring_entity)
   completion_date: string;
   latitude: string;
   tagInput: string;
@@ -20,7 +20,7 @@ export interface NewProjectFormState {
 
 const EMPTY: NewProjectFormState = {
   name: '', location: '',
-  description: '', tender_name: '', inquiring_entity: '',
+  tender_name: '', tenderer: '', procuring_entity: '',
   completion_date: '', latitude: '', tagInput: '', tags: [],
 };
 
@@ -49,8 +49,9 @@ export function useNewProjectForm() {
     const missing: string[] = [];
     if (!form.name.trim())             missing.push('Site name');
     if (!form.location.trim())         missing.push('Location');
-    if (!form.inquiring_entity.trim()) missing.push('Tenderer');
     if (!form.tender_name.trim())      missing.push('Tender Name');
+    if (!form.tenderer.trim())         missing.push('Tenderer');
+    if (!form.procuring_entity.trim()) missing.push('Procuring Entity');
     return missing;
   };
 
@@ -72,13 +73,13 @@ export function useNewProjectForm() {
     setSubmitting(true);
     setError(null);
 
-       const payload: CreateSitePayload = {
+    const payload: CreateSitePayload = {
       name:            form.name.trim(),
       location:        form.location.trim(),
       projectStatus:   ProjectStatus.PLANNING,
-      tendererName:    form.tender_name.trim(),        // saved as tender_name
-      procuringEntity: form.inquiring_entity.trim(),   // saved as inquiring_entity
-      ...(form.description.trim() && { tenderName: form.description.trim() }), // saved as description
+      tenderName:      form.tender_name.trim(),       
+      tendererName:    form.tenderer.trim(),         
+      procuringEntity: form.procuring_entity.trim(),  
       ...(form.completion_date     && { completionDate: form.completion_date }),
       ...(form.latitude            && { latitude: parseFloat(form.latitude) }),
       ...(form.tags.length > 0     && { tags: form.tags }),
