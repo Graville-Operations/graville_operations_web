@@ -148,40 +148,27 @@ export function AllWorkersScreen({ siteId, onClose }: { siteId: number; onClose:
             })}
           </div>
 
-          {/* Tablet / desktop: table */}
-          <div className="hidden md:block gv-card flex-1 min-h-0 overflow-hidden" style={{ padding: 0 }}>
-            {/* Scrolls both ways so the sticky header stays at the top */}
+          {/* Tablet / desktop: same open table style as External Works (row lines only, no cell boxes) */}
+          <div className="hidden md:block gv-card p-0 flex-1 min-h-0 overflow-hidden">
             <div className="h-full overflow-auto">
-              <table className="w-full text-left border-collapse" style={{ minWidth: '640px' }}>
+              <table className="w-full text-sm" style={{ minWidth: '640px' }}>
                 <thead>
-                  <tr>
-                    {COLUMNS.map((col, i) => (
+                  <tr className="border-b border-[color:var(--border)] text-left">
+                    {COLUMNS.map((col) => (
                       <th
                         key={col}
-                        className={`sticky top-0 z-10 px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold uppercase tracking-wider whitespace-nowrap ${
-                          col === 'Attendance' ? 'text-center' : ''
-                        }`}
-                        style={{
-                          background: 'rgba(22,38,70,0.97)',
-                          color: 'rgba(255,255,255,0.9)',
-                          borderBottom: '1px solid var(--gv-glass-border-hover)',
-                          borderRight: i < COLUMNS.length - 1 ? '1px solid var(--gv-glass-border)' : 'none',
-                        }}
+                        className={`sticky top-0 z-10 px-4 py-3 align-middle whitespace-nowrap ${col === 'Attendance' ? 'text-center' : 'text-left'}`}
+                        style={{ background: 'rgba(22,38,70,0.97)' }}
                       >
-                        {col}
+                        <span className="gv-label">{col}</span>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r, idx) => {
+                  {rows.map((r) => {
                     const d = r.detail;
-                    const isLast = idx === rows.length - 1;
                     const pending = !d && !r.detailFailed;
-                    const cellStyle = {
-                      color: 'rgba(255,255,255,0.8)',
-                      borderRight: '1px solid var(--gv-glass-border)',
-                    };
                     return (
                       <tr
                         key={r.id}
@@ -191,33 +178,22 @@ export function AllWorkersScreen({ siteId, onClose }: { siteId: number; onClose:
                         }}
                         tabIndex={0}
                         role="button"
-                        className="cursor-pointer transition-colors hover:bg-white/5 focus:bg-white/5 outline-none"
-                        style={{ borderBottom: isLast ? 'none' : '1px solid var(--gv-glass-border)' }}
+                        className="border-b border-[color:var(--border)] last:border-0 cursor-pointer hover:bg-[color:var(--muted)] focus:bg-[color:var(--muted)] outline-none transition-colors"
                       >
-                        <td className="px-4 sm:px-5 py-3" style={cellStyle}>
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white"
-                              style={{ background: 'rgba(51,144,124,0.2)', border: '1px solid rgba(51,144,124,0.4)' }}
-                            >
-                              {getInitials(r.fullName) || '?'}
-                            </div>
-                            <span className="text-base font-semibold text-white capitalize">{r.fullName}</span>
-                          </div>
+                        <td className="px-4 py-3 font-medium text-[color:var(--foreground)] capitalize whitespace-nowrap">
+                          {r.fullName}
                         </td>
-                        <td className="px-4 sm:px-5 py-3 text-base whitespace-nowrap" style={cellStyle}>
+                        <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">
                           {pending ? <CellSkeleton /> : d?.phone || '—'}
                         </td>
-                        <td className="px-4 sm:px-5 py-3 text-base whitespace-nowrap" style={cellStyle}>
+                        <td className="px-4 py-3 text-[color:var(--muted-foreground)] whitespace-nowrap">
                           {pending ? <CellSkeleton /> : d?.nationalId || '—'}
                         </td>
-                        <td className="px-4 sm:px-5 py-3" style={cellStyle}>
+                        <td className="px-4 py-3">
                           <StatusPill status={d?.status || r.status} />
                         </td>
-                        <td className="px-4 sm:px-5 py-3 text-base text-center whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                          <span className="inline-flex items-center gap-2">
-                            {pending ? <CellSkeleton /> : d ? d.attendances.length : '—'}
-                          </span>
+                        <td className="px-4 py-3 text-center text-[color:var(--foreground)] font-medium whitespace-nowrap">
+                          {pending ? <CellSkeleton /> : d ? d.attendances.length : '—'}
                         </td>
                       </tr>
                     );

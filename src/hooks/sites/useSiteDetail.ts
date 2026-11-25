@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { fetchSiteById, fetchSiteAnalytics, updateSite } from '@/lib/api/sites';
 import { fetchAttendanceSummary } from '@/lib/api/attendance';
+import { fetchAllSiteWorkers } from '@/lib/api/site-workers';
 import { SiteAnalytics, AttendanceRecord, SiteDetail, UpdateSitePayload } from '@/types/site';
 import { useSiteStore } from '@/store/site-store';
 
@@ -13,6 +14,10 @@ export function useSiteDetail(siteId: number) {
 
   const [detail, setDetail]               = useState<SiteDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(true);
+
+  // Headcount = distinct workers on the site (not attendance records)
+  const [workerCount, setWorkerCount] = useState<number | null>(null);
+  const [loadingWorkerCount, setLoadingWorkerCount] = useState(true);
 
   const [updatingSite, setUpdatingSite]   = useState(false);
   const [updateSiteError, setUpdateSiteError] = useState<string | null>(null);
@@ -71,6 +76,14 @@ export function useSiteDetail(siteId: number) {
   }, [siteId, loadDetail, fetchSitesAction]);
 
   useEffect(() => { loadDetail(); loadAnalytics(); }, [loadDetail, loadAnalytics]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchAllSiteWorkers(siteId)
+      .then((list) => { if (!cancelled) setWorkerCount(list.length); })
+      .catch(() => { if (!cancelled) setWorkerCount(null); }) // fall back to analytics figure
+      .finally(() => { if (!cancelled) setLoadingWorkerCount(false); });
+    return () => { cancelled = true; };
+  }, [siteId]);
   useEffect(() => { loadRange(rangeFrom, rangeTo); }, [rangeFrom, rangeTo, loadRange]);
 
   const estimatedValue   = analytics?.estimatedProjectValue ?? detail?.estimatedValue ?? 0;
@@ -84,7 +97,7 @@ export function useSiteDetail(siteId: number) {
   const attendanceBreakdown = analytics?.attendanceBreakdown ?? [];
   const taskBreakdown       = analytics?.taskBreakdown       ?? [];
   const completedTasks      = analytics?.completedTasks      ?? 0;
-  const totalWorkers        = analytics?.totalWorkers        ?? 0;
+  const totalWorkers        = workerCount ?? analytics?.totalWorkers ?? 0;
 
   const rangeLabel = rangeFrom === rangeTo
     ? format(parseISO(rangeFrom), 'dd MMM yyyy')
@@ -93,7 +106,7 @@ export function useSiteDetail(siteId: number) {
   return {
     detail, loadingDetail, refreshDetail: loadDetail,
     updatingSite, updateSiteError, updateSiteDetail,
-    analytics, loadingAnalytics,
+    analytics, loadingAnalytics, loadingWorkerCount,
     rangeRecords, rangePayouts, loadingRange,
     rangeFrom, rangeTo, setRangeFrom, setRangeTo, todayStr, rangeLabel,
     derived: {

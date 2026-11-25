@@ -32,7 +32,7 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
   const {
     detail, loadingDetail, refreshDetail,
     updatingSite, updateSiteDetail,
-    analytics, loadingAnalytics,
+    analytics, loadingAnalytics, loadingWorkerCount,
     rangeRecords, rangePayouts, loadingRange,
     rangeFrom, rangeTo, setRangeFrom, setRangeTo, todayStr, rangeLabel,
     derived,
@@ -205,7 +205,7 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="gv-card flex flex-col gap-1 min-w-0">
                   <p className="gv-label">Total Workers</p>
-                  {loadingAnalytics
+                  {loadingWorkerCount
                     ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
                     : <p className="text-3xl sm:text-5xl font-bold text-white break-words">{totalWorkers}</p>}
                   <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>Overall headcount</p>
