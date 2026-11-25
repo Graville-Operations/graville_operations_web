@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MapPin, Calendar, Building2, Loader2, FileText, Briefcase,
@@ -48,7 +48,18 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
   } = derived;
 
   const PREVIEW_LIMIT  = 5;
-  const previewRecords = rangeRecords.slice(0, PREVIEW_LIMIT);
+  // One entry per worker with their check-in count for the selected range
+  const workerGroups = useMemo(() => {
+    const map = new Map<string, { record: (typeof rangeRecords)[number]; count: number }>();
+    for (const r of rangeRecords) {
+      const key = r.nationalId || r.phone || (r.workerName ?? '').trim().toLowerCase() || String(r.id);
+      const g = map.get(key);
+      if (g) g.count += 1;
+      else map.set(key, { record: r, count: 1 });
+    }
+    return Array.from(map.values());
+  }, [rangeRecords]);
+  const previewRecords = workerGroups.slice(0, PREVIEW_LIMIT);
 
   const handleBack = () => router.push(ROUTES.projects.sites);
 
@@ -386,7 +397,7 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
                     </div>
                     {loadingRange
                       ? <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--gv-brand)' }} />
-                      : <p className="text-3xl sm:text-5xl font-bold text-white break-words">{rangeRecords.length}</p>}
+                      : <p className="text-3xl sm:text-5xl font-bold text-white break-words">{workerGroups.length}</p>}
                     <p className="text-sm mt-1" style={{ color: 'var(--gv-text-subtle)' }}>{rangeLabel}</p>
                   </div>
                   <div className="gv-card flex flex-col gap-1 min-w-0">
@@ -413,7 +424,7 @@ export function SiteDetailView({ siteId }: { siteId: number }) {
                 ) : (
                   <>
                     <div className="gv-card" style={{ padding: '0 1rem' }}>
-                      {previewRecords.map((r) => <AttendanceRow key={r.id} record={r} />)}
+                      {previewRecords.map((g) => <AttendanceRow key={g.record.id} record={g.record} checkIns={g.count} />)}
                     </div>
                   </>
                 )}
