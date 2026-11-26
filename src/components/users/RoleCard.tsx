@@ -9,6 +9,10 @@ interface RoleCardProps {
 }
 
 export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
+  const created = role.created_at ?? role.createdAt;
+  const createdLabel = created ? formatDate(created) : '';
+  const showCreated = createdLabel !== '' && createdLabel !== '—';
+
   return (
     <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-lg flex flex-col gap-3">
       <div className="flex items-start justify-between">
@@ -18,9 +22,9 @@ export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
           </div>
           <div>
             <p className="font-semibold text-white text-sm">{role.name}</p>
-            <p className="text-xs text-white/40 mt-0.5">
-              {formatDate(role.created_at ?? role.createdAt)}
-            </p>
+            {showCreated && (
+              <p className="text-xs text-white/40 mt-0.5">{createdLabel}</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -38,9 +42,9 @@ export function RoleCard({ role, onEdit, onDelete }: RoleCardProps) {
           </button>
         </div>
       </div>
-      <p className="text-sm text-white/50 leading-relaxed">
-        {role.description || '—'}
-      </p>
+      {role.description && (
+        <p className="text-sm text-white/50 leading-relaxed">{role.description}</p>
+      )}
     </div>
   );
 }
