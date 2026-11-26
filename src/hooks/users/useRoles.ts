@@ -55,7 +55,7 @@ export function useRoles() {
   };
 
   const openEdit = (role: Role) => {
-    setFormData({ name: role.name, description: role.description });
+    setFormData({ name: role.name, description: role.description ?? '' });
     setError('');
     setEditingRole(role);
     setShowCreate(true);
@@ -73,20 +73,26 @@ export function useRoles() {
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim()) { setError('Role name is required'); return; }
+    const payload: RoleFormState = { name: formData.name.trim(), description: formData.description.trim() };
+    if (!payload.name) { setError('Role name is required'); return; }
+    if (editingRole && payload.name === editingRole.name && payload.description === (editingRole.description ?? '')) {
+      closeModal(); // nothing changed — don't send a pointless request
+      return;
+    }
+    const duplicate = roles.some((r) => r.id !== editingRole?.id && r.name.trim().toLowerCase() === payload.name.toLowerCase());
+    if (duplicate) { setError('A role with this name already exists'); return; }
     setSaving(true);
     setError('');
     try {
       if (editingRole) {
-        await updateRole(editingRole.id, formData);
+        await updateRole(editingRole.id, payload);
       } else {
-        await createRole(formData);
+        await createRole(payload);
       }
       await load({ force: true });
       closeModal();
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      setError(e.response?.data?.message ?? 'Something went wrong');
+      setError(getApiErrorMessage(err, 'Failed to save role'));
     } finally {
       setSaving(false);
     }

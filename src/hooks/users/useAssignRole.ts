@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ApiUser } from '@/types/users';
 import { Role } from '@/types/users';
 import { fetchRoles, fetchUsers, assignRoleToUser } from '@/lib/api/users';
+import { getApiErrorMessage } from '@/lib/api/api-error';
 
 export function useAssignRole() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -96,26 +97,39 @@ export function useAssignRole() {
       return;
     }
 
+    // Users who already hold this role don't need a request (and the server may reject it)
+    const role = roles.find((r) => r.id === selectedRoleId);
+    const targets = users.filter(
+      (u) => selectedUserIds.has(u.id) && (u.role ?? '').trim().toLowerCase() !== (role?.name ?? '').trim().toLowerCase()
+    );
+    const alreadyHave = selectedUserIds.size - targets.length;
+    if (targets.length === 0) {
+      setError(`Selected user${selectedUserIds.size > 1 ? 's already have' : ' already has'} the "${role?.name}" role.`);
+      return;
+    }
+
     setAssigning(true);
     setError('');
     setSuccess('');
 
-    const results = await Promise.allSettled(
-      Array.from(selectedUserIds).map((userId) => assignRoleToUser(selectedRoleId, userId))
-    );
-
-    const failed = results.filter((r) => r.status === 'rejected').length;
-    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const results = await Promise.allSettled(targets.map((u) => assignRoleToUser(selectedRoleId, u.id)));
+    const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    const succeeded = results.length - failures.length;
 
     setAssigning(false);
+    await loadUsers();
 
-    if (failed === 0) {
-      setSuccess(`Role assigned to ${succeeded} user${succeeded > 1 ? 's' : ''} successfully`);
+    const note = alreadyHave > 0 ? ` (${alreadyHave} already had it)` : '';
+    if (failures.length === 0) {
+      setSuccess(`"${role?.name}" assigned to ${succeeded} user${succeeded > 1 ? 's' : ''}${note}`);
       setSelectedUserIds(new Set());
-      loadUsers();
     } else {
-      setError(`${succeeded} succeeded, ${failed} failed. Check permissions and try again.`);
-      loadUsers();
+      // Keep only the failed users selected so a retry targets just them
+      const failedIds = new Set(
+        results.flatMap((r, i) => (r.status === 'rejected' ? [targets[i].id] : []))
+      );
+      setSelectedUserIds(failedIds);
+      setError(`${succeeded} succeeded, ${failures.length} failed: ${getApiErrorMessage(failures[0].reason, 'Check permissions and try again.')}`);
     }
   };
 

@@ -76,7 +76,7 @@ export function ApproverSelect({ users, selected, onToggle, loading, buttonClass
         style={{ color: selected.length ? "white" : "var(--gv-text-faint)" }}
       >
         <span className="truncate">
-          {selected.length === 0 ? "Select approvers" : selected.map((a) => a.name).join(", ")}
+          {selected.length === 0 ? "Select approvers" : selected.map((a) => (a.role ? `${a.name} (${a.role})` : a.name)).join(", ")}
         </span>
         <ChevronDown size={15} className={`ml-2 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
@@ -115,7 +115,16 @@ export function ApproverSelect({ users, selected, onToggle, loading, buttonClass
                     >
                       {sel && <Check size={10} color="white" />}
                     </span>
-                    <span>{u.firstName} {u.lastName}</span>
+                    <span className="flex-1 min-w-0 text-left truncate">{u.firstName} {u.lastName}</span>
+                    <span
+                      className="shrink-0 text-xs px-2 py-0.5 rounded-full"
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        color: sel ? "#33907c" : "var(--gv-text-muted)",
+                      }}
+                    >
+                      {u.role || "No role"}
+                    </span>
                   </button>
                 );
               })

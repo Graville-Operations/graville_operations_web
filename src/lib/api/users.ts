@@ -77,14 +77,17 @@ export async function createRole(payload: RoleFormState): Promise<void> {
 export async function updateRole(id: number, payload: RoleFormState): Promise<void> {
   await api.patch(API.roles.update(id), payload);
   clearEntityCache(ENTITY_CACHE_KEYS.roles);
+  clearEntityCache(ENTITY_CACHE_KEYS.users); // users carry the role name — a rename must show up there too
 }
 
 export async function deleteRole(id: number): Promise<void> {
   await api.delete(API.roles.delete(id));
   clearEntityCache(ENTITY_CACHE_KEYS.roles);
+  clearEntityCache(ENTITY_CACHE_KEYS.users);
 }
 
-export function assignRoleToUser(roleId: number, userId: number) {
-  clearEntityCache(ENTITY_CACHE_KEYS.users); // a user's role changed — user list view may show it
-  return api.post(API.roles.assign(roleId, userId));
+export async function assignRoleToUser(roleId: number, userId: number) {
+  await api.post(API.roles.assign(roleId, userId));
+  // Only after the server accepted it — a user's role changed, so the cached list is stale.
+  clearEntityCache(ENTITY_CACHE_KEYS.users);
 }
