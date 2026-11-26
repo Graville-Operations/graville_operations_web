@@ -134,9 +134,9 @@ export interface CreateSitePayload {
   latitude?: number;
   longitude?: number;
   tags?: string[];
-  tenderName?: string;           
-  tendererName?: string;          
-  procuringEntity?: string;       
+  tenderName?: string;            // saved as description (Tender Name)
+  tendererName?: string;          // saved as tenderer_name (Tenderer)
+  procuringEntity?: string;       // saved as inquiring_entity (Procuring Entity)
   field_operator_id?: number;
 }
 
@@ -146,9 +146,9 @@ export interface UpdateSitePayload {
   projectStatus?: string;
   completionDate?: string | null;
   tags?: string[];
-  description?: string;
-  tenderName?: string;
-  inquiringEntity?: string;
+  tenderName?: string;            // saved as description (Tender Name)
+  tendererName?: string;          // saved as tenderer_name (Tenderer)
+  procuringEntity?: string;       // saved as inquiring_entity (Procuring Entity)
 }
 
 export interface OverviewKPIs {

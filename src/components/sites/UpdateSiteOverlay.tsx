@@ -37,23 +37,23 @@ export function UpdateSiteOverlay({
 }: UpdateSiteOverlayProps) {
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
-  const [description, setDescription] = useState('');
+  const [tenderName, setTenderName] = useState('');          // site.description  <-> tenderName
   const [projectStatus, setProjectStatus] = useState<string>(ProjectStatus.PLANNING);
   const [completionDate, setCompletionDate] = useState('');
   const [tagsInput, setTagsInput] = useState('');
-  const [tenderName, setTenderName] = useState('');
-  const [inquiringEntity, setInquiringEntity] = useState('');
+  const [tenderer, setTenderer] = useState('');              // site.tendererName <-> tendererName
+  const [procuringEntity, setProcuringEntity] = useState(''); // site.inquiringEntity <-> procuringEntity
 
   useEffect(() => {
     if (!open || !site) return;
     setName(site.name ?? '');
     setLocation(site.location ?? '');
-    setDescription(site.description ?? '');
+    setTenderName(site.description ?? '');
     setProjectStatus(site.projectStatus || ProjectStatus.PLANNING);
     setCompletionDate(site.completionDate ?? '');
     setTagsInput((site.tags ?? []).join(', '));
-    setTenderName(site.tendererName ?? '');
-    setInquiringEntity(site.inquiringEntity ?? '');
+    setTenderer(site.tendererName ?? '');
+    setProcuringEntity(site.inquiringEntity ?? '');
   }, [open, site]);
 
   const currentStatus   = site ? normProjectStatus(site.projectStatus) : ProjectStatus.PLANNING;
@@ -68,14 +68,14 @@ export function UpdateSiteOverlay({
     const payload: UpdateSitePayload = {
       name: name.trim() || undefined,
       location: location.trim() || undefined,
-      description: description.trim() || undefined,
+      tenderName: tenderName.trim() || undefined,           // saved as description
       projectStatus: projectStatus || undefined,
       completionDate: completionDate || undefined,
       tags: tagsInput
         ? tagsInput.split(',').map((t) => t.trim()).filter(Boolean)
         : undefined,
-      tenderName: tenderName.trim() || undefined,
-      inquiringEntity: inquiringEntity.trim() || undefined,
+      tendererName: tenderer.trim() || undefined,           // saved as tenderer_name
+      procuringEntity: procuringEntity.trim() || undefined, // saved as inquiring_entity
     };
     await onSubmit(payload);
   };
@@ -97,10 +97,10 @@ export function UpdateSiteOverlay({
             <Input value={location} onChange={(e) => setLocation(e.target.value)} />
           </Field>
 
-          <Field label="Description">
+          <Field label="Tender Name">
             <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={tenderName}
+              onChange={(e) => setTenderName(e.target.value)}
               rows={3}
             />
           </Field>
@@ -136,12 +136,12 @@ export function UpdateSiteOverlay({
             <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} />
           </Field>
 
-          <Field label="Tender Name">
-            <Input value={tenderName} onChange={(e) => setTenderName(e.target.value)} />
+          <Field label="Tenderer">
+            <Input value={tenderer} onChange={(e) => setTenderer(e.target.value)} />
           </Field>
 
-          <Field label="Inquiring Entity">
-            <Input value={inquiringEntity} onChange={(e) => setInquiringEntity(e.target.value)} />
+          <Field label="Procuring Entity">
+            <Input value={procuringEntity} onChange={(e) => setProcuringEntity(e.target.value)} />
           </Field>
         </div>
 

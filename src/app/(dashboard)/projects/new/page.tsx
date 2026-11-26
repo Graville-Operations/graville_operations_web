@@ -75,8 +75,19 @@ export default function NewProjectPage() {
             <input
               className="gv-input w-full"
               placeholder="e.g. Ministry of Works"
-              value={form.inquiring_entity}
-              onChange={set('inquiring_entity')}
+              value={form.tenderer}
+              onChange={set('tenderer')}
+              disabled={submitting}
+              required
+            />
+          </Field>
+
+          <Field label="Procuring Entity" required>
+            <input
+              className="gv-input w-full"
+              placeholder="e.g. Kenya National Highways Authority"
+              value={form.procuring_entity}
+              onChange={set('procuring_entity')}
               disabled={submitting}
               required
             />
