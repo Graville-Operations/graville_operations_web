@@ -199,7 +199,10 @@ export default function CreatePermitPage() {
             {selectedApprovers.map((a) => (
               <div key={a.userId} className="flex items-center gap-2.5">
                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#33907c" }} />
-                <p className="text-sm text-white">{a.name}</p>
+                <p className="text-sm text-white">
+                  {a.name}
+                  {a.role && <span style={{ color: "var(--gv-text-muted)" }}> · {a.role}</span>}
+                </p>
               </div>
             ))}
           </div>

@@ -3,6 +3,7 @@ import { ApiUser } from "@/types/users";
 export interface SelectedApprover {
   userId: number;
   name: string;
+  role?: string;
   stepOrder: number;
 }
 
@@ -19,6 +20,6 @@ export function toggleApproverIn(
   }
   return [
     ...list,
-    { userId: user.id, name: `${user.firstName} ${user.lastName}`, stepOrder: list.length + 1 },
+    { userId: user.id, name: `${user.firstName} ${user.lastName}`, role: user.role, stepOrder: list.length + 1 },
   ];
 }
